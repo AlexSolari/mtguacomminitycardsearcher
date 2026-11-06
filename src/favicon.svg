@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>Card Searcher</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f8d474"/>
+      <stop offset="1" stop-color="#d97706"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity=".35"/>
+      <stop offset=".5" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#bg)"/>
+  <rect width="64" height="64" rx="14" fill="url(#shine)"/>
+  <g fill="#2b1a06">
+    <!-- main four-point sparkle -->
+    <path d="M28 14 Q30.5 33.5 50 36 Q30.5 38.5 28 58 Q25.5 38.5 6 36 Q25.5 33.5 28 14Z"/>
+    <!-- small sparkle -->
+    <path d="M48 7 Q49.2 14.8 57 16 Q49.2 17.2 48 25 Q46.8 17.2 39 16 Q46.8 14.8 48 7Z"/>
+  </g>
+</svg>
