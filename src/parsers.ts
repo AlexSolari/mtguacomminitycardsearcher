@@ -60,6 +60,31 @@ export function parseCarton(html: string): CardResult[] {
   }));
 }
 
+// paytowin.club — card auctions, via the site's public JSON API (api.paytowin.club/auctions?q=…&game=magic).
+// Titles are free text written by sellers ("Raucous Theater #266", "4х Viper"); photos are the seller's own.
+export function parsePaytowin(json: any): CardResult[] {
+  const items: any[] = json?.items ?? [];
+  return items
+    .filter((a) => a.status === "live")
+    .map((a) => {
+      const currentBid = typeof a.current_high_uah === "number" ? a.current_high_uah : null;
+      return {
+        shop: "paytowin" as const,
+        name: String(a.title ?? "").trim(),
+        url: `https://paytowin.club/a/${a.id}`,
+        image: a.photos?.[0]?.urls?.medium ?? a.photos?.[0]?.urls?.thumb ?? null,
+        price: currentBid ?? a.starting_price_uah ?? null,
+        auction: {
+          currentBid,
+          startingPrice: a.starting_price_uah,
+          buyNow: typeof a.buy_now_uah === "number" ? a.buy_now_uah : null,
+          endsAt: a.end_time,
+          bids: a.bid_count ?? 0,
+        },
+      };
+    });
+}
+
 // nerdik.club — server-rendered catalog, one <div class="catalogCard j-catalog-card"> per product, 20 per page.
 // The page mixes in out-of-stock items; we drop them. (The site's own "in stock" filter URL sits behind a
 // bot challenge, so we filter here instead.)

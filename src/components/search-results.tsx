@@ -1,7 +1,15 @@
 import { Fragment, useState } from "react";
-import { AlertTriangle, Crown, ExternalLink, ImageOff, Loader2, SearchX, Sparkles } from "lucide-react";
+import { AlertTriangle, Crown, ExternalLink, Gavel, Hourglass, ImageOff, Loader2, SearchX, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { isArtSeries, isExactMatch, SHOP_INFO, type CardResult, type SearchResult, type ShopId } from "@/shops";
+import {
+  isArtSeries,
+  isExactMatch,
+  SHOP_INFO,
+  type AuctionInfo,
+  type CardResult,
+  type SearchResult,
+  type ShopId,
+} from "@/shops";
 
 export const formatPrice = (price: number) => `${price.toLocaleString("uk-UA")} ₴`;
 
@@ -9,16 +17,49 @@ const byPrice = (a: CardResult, b: CardResult) => (a.price ?? Infinity) - (b.pri
 const minPrice = (links: CardResult[]) =>
   links.reduce<number | null>((min, l) => (l.price !== null && (min === null || l.price < min) ? l.price : min), null);
 
-// Groups, each sorted by price: exact matches → Art Series → other (fuzzy) matches.
+// Groups, each sorted by price: exact matches → auctions → other (fuzzy) matches → Art Series.
 // "Best price" / "from" / totals use the first non-empty of exact → other → art, so neither "School Daze"
-// (for "Daze") nor a 16 ₴ Art Series card (for "Sol Ring") wins "Best price".
+// (for "Daze") nor a 16 ₴ Art Series card (for "Sol Ring") wins "Best price". Auction bids aren't fixed
+// prices, so auctions never count toward pricing.
 function splitMatches(r: SearchResult) {
-  const art = r.links.filter(isArtSeries).sort(byPrice);
-  const playable = r.links.filter(l => !isArtSeries(l));
+  const auctions = r.links.filter(l => l.auction).sort(byPrice);
+  const offers = r.links.filter(l => !l.auction);
+  const art = offers.filter(isArtSeries).sort(byPrice);
+  const playable = offers.filter(l => !isArtSeries(l));
   const exact = playable.filter(l => isExactMatch(l.name, r.card)).sort(byPrice);
   const other = playable.filter(l => !isExactMatch(l.name, r.card)).sort(byPrice);
   const pricing = exact.length > 0 ? exact : other.length > 0 ? other : art;
-  return { exact, art, other, pricing, min: minPrice(pricing) };
+  return { exact, auctions, art, other, pricing, min: minPrice(pricing) };
+}
+
+function timeLeft(iso: string) {
+  const ms = new Date(iso).getTime() - Date.now();
+  if (!(ms > 0)) return "ended";
+  const m = Math.floor(ms / 60_000);
+  const d = Math.floor(m / 1440);
+  const h = Math.floor((m % 1440) / 60);
+  return d > 0 ? `${d}d ${h}h left` : h > 0 ? `${h}h ${m % 60}m left` : `${m}m left`;
+}
+
+function AuctionMeta({ auction }: { auction: AuctionInfo }) {
+  return (
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+      <span className="inline-flex items-center gap-1">
+        <Hourglass className="size-3" />
+        {timeLeft(auction.endsAt)}
+      </span>
+      <span>·</span>
+      <span>
+        {auction.bids} bid{auction.bids === 1 ? "" : "s"}
+      </span>
+      {auction.buyNow !== null && (
+        <>
+          <span>·</span>
+          <span>buy now {formatPrice(auction.buyNow)}</span>
+        </>
+      )}
+    </div>
+  );
 }
 const cheapest = (r: SearchResult) => splitMatches(r).min;
 
@@ -76,15 +117,27 @@ function ResultTile({ link, best }: { link: CardResult; best: boolean }) {
             Best price
           </span>
         )}
+        {link.auction && (
+          <span className="absolute left-3.5 top-3.5 inline-flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-[11px] font-semibold text-white shadow-lg backdrop-blur">
+            <Gavel className="size-3" />
+            Auction
+          </span>
+        )}
         <span className="absolute right-3.5 top-3.5 grid size-7 place-items-center rounded-full bg-black/60 text-white opacity-0 backdrop-blur transition group-hover:opacity-100">
           <ExternalLink className="size-3.5" />
         </span>
       </div>
       <div className="flex flex-1 flex-col gap-2 p-3">
         <span className="line-clamp-2 text-sm font-medium leading-snug">{link.name}</span>
+        {link.auction && <AuctionMeta auction={link.auction} />}
         <div className="mt-auto flex items-center justify-between gap-2">
           <ShopBadge shop={link.shop} />
           <span className={cn("text-sm font-semibold tabular-nums", best ? "text-primary" : "text-foreground")}>
+            {link.auction && (
+              <span className="mr-1 text-xs font-normal text-muted-foreground">
+                {link.auction.currentBid !== null ? "bid" : "start"}
+              </span>
+            )}
             {link.price === null ? "—" : formatPrice(link.price)}
           </span>
         </div>
@@ -115,13 +168,14 @@ function GroupDivider({ label, count }: { label: string; count: number }) {
 }
 
 export function CardSection({ result }: { result: SearchResult }) {
-  const { exact, art, other, pricing, min } = splitMatches(result);
+  const { exact, auctions, art, other, pricing, min } = splitMatches(result);
   const links = result.links;
   const isBest = (link: CardResult) =>
     links.length > 1 && pricing.includes(link) && link.price !== null && link.price === min;
   const hasExact = exact.length > 0;
   const groups = [
     { key: "exact", label: null, links: exact, dim: false },
+    { key: "auctions", label: "Auctions", links: auctions, dim: false },
     { key: "other", label: hasExact ? "Other matches" : "No exact match · similar names", links: other, dim: hasExact },
     { key: "art", label: "Art Series", links: art, dim: hasExact || other.length > 0 },
   ];

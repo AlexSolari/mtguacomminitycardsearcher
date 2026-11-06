@@ -1,12 +1,13 @@
 // Shared between server and frontend — keep free of server-only imports.
 
-export type ShopId = "gin" | "carton" | "manavault" | "nerdik";
+export type ShopId = "gin" | "carton" | "manavault" | "nerdik" | "paytowin";
 
 export const SHOP_INFO: Record<ShopId, { label: string; homepage: string; icon: string }> = {
   gin: { label: "MTGin", homepage: "https://mtgin.kyiv.ua", icon: "https://mtgin.kyiv.ua/favicon.png" },
   carton: { label: "CartOn", homepage: "https://carton.cards", icon: "https://carton.cards/icon.png" },
   manavault: { label: "Mana Vault", homepage: "https://manavaultstore.com", icon: "https://manavaultstore.com/favicon.ico" },
   nerdik: { label: "Nerdik", homepage: "https://nerdik.club", icon: "https://nerdik.club/assets/favicon.ico" },
+  paytowin: { label: "PayToWin", homepage: "https://paytowin.club", icon: "https://paytowin.club/favicon-96x96.png" },
 };
 
 // "Jace, the Mind-Sculptor" → "jace the mind sculptor"
@@ -29,6 +30,15 @@ export type CardResult = {
   image: string | null;
   price: number | null; // UAH
   artSeries?: boolean; // set by parsers that know the set/layout (CartOn, MTGin); otherwise inferred from the name
+  auction?: AuctionInfo; // auction lot rather than a fixed-price offer (PayToWin) — `price` is the current/starting bid
+};
+
+export type AuctionInfo = {
+  currentBid: number | null; // null until someone bids
+  startingPrice: number;
+  buyNow: number | null;
+  endsAt: string; // ISO timestamp
+  bids: number;
 };
 
 // Art Series cards are collectible art cards, not playable copies — grouped separately and kept out of pricing.
