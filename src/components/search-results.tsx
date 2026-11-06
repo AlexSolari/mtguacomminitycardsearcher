@@ -13,7 +13,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { BIDS, OFFERS, plural, VERSIONS } from "@/i18n";
+import { BIDS, CARDS, OFFERS, plural, VERSIONS } from "@/i18n";
 import {
   isArtSeries,
   isExactMatch,
@@ -268,7 +268,7 @@ export function CardSection({ result }: { result: SearchResult }) {
       ))}
 
       {links.length === 0 ? (
-        <div className="flex items-center gap-3 rounded-xl border border-dashed px-4 py-6 text-sm text-muted-foreground">
+        result.errors.length === 0 && <div className="flex items-center gap-3 rounded-xl border border-dashed px-4 py-6 text-sm text-muted-foreground">
           <SearchX className="size-5 shrink-0" />
           Не знайдено в жодному магазині.
         </div>
@@ -319,19 +319,35 @@ function Stat({ label, value, accent }: { label: string; value: React.ReactNode;
   );
 }
 
-export function SearchSummary({ results }: { results: SearchResult[] }) {
+// `results` = cards finished so far; `total` = cards in the search. Updates live as per-card requests return.
+export function SearchSummary({ results, total: cardCount }: { results: SearchResult[]; total: number }) {
   const found = results.filter(r => r.links.length > 0);
-  const missing = results.filter(r => r.links.length === 0);
+  const missing = results.filter(r => r.links.length === 0 && r.errors.length === 0);
   const total = found.reduce((sum, r) => sum + (cheapest(r) ?? 0), 0);
   const offers = results.reduce((sum, r) => sum + r.links.length, 0);
+  const remaining = cardCount - results.length;
 
   return (
     <div className="flex flex-col gap-4 rounded-2xl border bg-card/60 p-5 backdrop-blur animate-in fade-in duration-500">
       <div className="grid grid-cols-3 gap-4">
-        <Stat label="Знайдено" value={`${found.length} / ${results.length}`} />
+        <Stat label="Знайдено" value={`${found.length} / ${cardCount}`} />
         <Stat label="Пропозиції" value={offers} />
         <Stat label="Мінімальна сума" value={formatPrice(total)} accent />
       </div>
+      {remaining > 0 && (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Loader2 className="size-3.5 animate-spin" />
+            Шукаємо ще {plural(remaining, CARDS)}…
+          </div>
+          <div className="h-1 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-primary transition-[width] duration-500 ease-out"
+              style={{ width: `${(results.length / cardCount) * 100}%` }}
+            />
+          </div>
+        </div>
+      )}
       {missing.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 border-t pt-4 text-sm">
           <span className="text-muted-foreground">Не знайдено:</span>

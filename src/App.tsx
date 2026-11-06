@@ -1,5 +1,5 @@
-import { useState, type FormEvent, type KeyboardEvent } from "react";
-import { AlertTriangle, Link2Off, Loader2, Search, Sparkles } from "lucide-react";
+import { useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { Link2Off, Loader2, Search, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { CardSection, CardSectionSkeleton, EmptyState, SearchSummary, ShopBadge } from "@/components/search-results";
@@ -8,35 +8,53 @@ import { parseCardList } from "./decklist";
 import { CARDS, plural } from "./i18n";
 import "./index.css";
 
+// One entry per searched card, in list order. Each card is fetched by its own request, so sections fill in
+// as soon as their card is done instead of waiting for the slowest one.
+type Entry = { card: string; result: SearchResult | null };
+
+async function searchCard(card: string, signal: AbortSignal): Promise<SearchResult> {
+  try {
+    const res = await fetch("/api/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cards: [card] }),
+      signal,
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = (await res.json()) as { results: SearchResult[] };
+    return data.results[0] ?? { card, links: [], errors: [] };
+  } catch (err) {
+    if (signal.aborted) throw err;
+    console.error(`search for "${card}" failed`, err);
+    return { card, links: [], errors: [`Не вдалося виконати пошук: ${(err as Error).message}`] };
+  }
+}
+
 export function App() {
   const [text, setText] = useState("");
-  const [pending, setPending] = useState<string[] | null>(null);
-  const [results, setResults] = useState<SearchResult[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [entries, setEntries] = useState<Entry[] | null>(null);
+  const searchRef = useRef<AbortController | null>(null);
 
   const { names: cardNames, links } = parseCardList(text);
-  const submitting = pending !== null;
+  const submitting = entries?.some(e => e.result === null) ?? false;
+  const finished = entries?.flatMap(e => (e.result ? [e.result] : [])) ?? [];
 
-  async function search() {
+  function search() {
     if (cardNames.length === 0 || submitting) return;
 
-    setPending(cardNames);
-    setError(null);
-    try {
-      const res = await fetch("/api/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cards: cardNames }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = (await res.json()) as { results: SearchResult[] };
-      setResults(data.results);
-    } catch (err) {
-      console.error("search failed", err);
-      setError(`Не вдалося виконати пошук: ${(err as Error).message}`);
-    } finally {
-      setPending(null);
-    }
+    searchRef.current?.abort(); // drop any responses still in flight from a previous search
+    const controller = new AbortController();
+    searchRef.current = controller;
+
+    setEntries(cardNames.map(card => ({ card, result: null })));
+    cardNames.forEach((card, i) => {
+      searchCard(card, controller.signal)
+        .then(result => {
+          if (controller.signal.aborted) return;
+          setEntries(prev => prev && prev.map((e, j) => (j === i ? { ...e, result } : e)));
+        })
+        .catch(() => {}); // aborted
+    });
   }
 
   function handleSubmit(e: FormEvent) {
@@ -120,24 +138,19 @@ export function App() {
         </aside>
 
         <div className="flex min-w-0 flex-col gap-10">
-          {error && (
-            <p className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              <AlertTriangle className="size-4 shrink-0" />
-              {error}
-            </p>
-          )}
-
-          {pending ? (
-            pending.map(name => <CardSectionSkeleton key={name} name={name} />)
-          ) : results ? (
+          {entries ? (
             <>
-              <SearchSummary results={results} />
-              {results.map(result => (
-                <CardSection key={result.card} result={result} />
-              ))}
+              <SearchSummary results={finished} total={entries.length} />
+              {entries.map(entry =>
+                entry.result ? (
+                  <CardSection key={entry.card} result={entry.result} />
+                ) : (
+                  <CardSectionSkeleton key={entry.card} name={entry.card} />
+                ),
+              )}
             </>
           ) : (
-            !error && <EmptyState />
+            <EmptyState />
           )}
         </div>
       </main>
