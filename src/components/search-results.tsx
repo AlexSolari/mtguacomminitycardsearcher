@@ -1,6 +1,7 @@
-import { Fragment, memo, useEffect, useState } from 'react';
+import { Fragment, memo, useEffect, useId, useState } from 'react';
 import {
     AlertTriangle,
+    ChevronRight,
     Crown,
     ExternalLink,
     Gavel,
@@ -519,15 +520,54 @@ function SectionHeader({
 
 const grid = 'grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4';
 
-function GroupDivider({ label, count }: { label: string; count: number }) {
-    return (
-        <div className='flex items-center gap-3 pt-2 text-xs uppercase tracking-wider text-muted-foreground'>
+// With `expanded` + `onToggle`, the divider is a button that shows/hides its group.
+function GroupDivider({
+    label,
+    count,
+    expanded,
+    onToggle,
+    controls
+}: {
+    label: string;
+    count: number;
+    expanded?: boolean;
+    onToggle?: () => void;
+    controls?: string;
+}) {
+    const content = (
+        <>
+            {onToggle && (
+                <ChevronRight
+                    className={cn(
+                        'size-3.5 shrink-0 transition-transform duration-200',
+                        expanded && 'rotate-90'
+                    )}
+                />
+            )}
             <span>{label}</span>
             <span className='rounded-full bg-muted px-2 py-0.5 tabular-nums normal-case tracking-normal'>
                 {count}
             </span>
             <span className='h-px flex-1 bg-border' />
-        </div>
+        </>
+    );
+    const base =
+        'flex items-center gap-3 pt-2 text-xs uppercase tracking-wider text-muted-foreground';
+    return onToggle ? (
+        <button
+            type='button'
+            onClick={onToggle}
+            aria-expanded={expanded}
+            aria-controls={controls}
+            className={cn(
+                base,
+                'w-full cursor-pointer rounded-sm text-left transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+            )}
+        >
+            {content}
+        </button>
+    ) : (
+        <div className={base}>{content}</div>
     );
 }
 
@@ -550,6 +590,10 @@ export const CardSection = memo(function CardSection({
         link.price !== null &&
         link.price === min;
     const hasExact = exact.length > 0;
+    // Fuzzy "other matches" ("The Walls of Ba Sing Se" for "Ba Sing Se") start collapsed — but only when there
+    // are exact matches to show instead; otherwise they're the whole result.
+    const [otherOpen, setOtherOpen] = useState(false);
+    const idPrefix = useId();
     const groups = [
         { key: 'exact', label: null, links: exact, dim: false },
         { key: 'auctions', label: 'Аукціони', links: auctions, dim: false },
@@ -559,7 +603,10 @@ export const CardSection = memo(function CardSection({
                 ? 'Інші збіги'
                 : 'Точних збігів немає · схожі назви',
             links: other,
-            dim: hasExact
+            dim: hasExact,
+            collapse: hasExact
+                ? { open: otherOpen, toggle: () => setOtherOpen((o) => !o) }
+                : undefined
         },
         {
             key: 'art',
@@ -610,10 +657,16 @@ export const CardSection = memo(function CardSection({
                                       <GroupDivider
                                           label={group.label}
                                           count={group.links.length}
+                                          expanded={group.collapse?.open}
+                                          onToggle={group.collapse?.toggle}
+                                          controls={`${idPrefix}-${group.key}`}
                                       />
                                   )}
-                                  {view === 'table' ? (
+                                  {group.collapse &&
+                                  !group.collapse.open ? null : view ===
+                                    'table' ? (
                                       <div
+                                          id={`${idPrefix}-${group.key}`}
                                           className={cn(
                                               group.dim &&
                                                   'opacity-70 transition-opacity hover:opacity-100'
@@ -626,6 +679,7 @@ export const CardSection = memo(function CardSection({
                                       </div>
                                   ) : (
                                       <div
+                                          id={`${idPrefix}-${group.key}`}
                                           className={cn(
                                               grid,
                                               group.dim &&
