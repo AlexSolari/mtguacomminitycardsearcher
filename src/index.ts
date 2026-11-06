@@ -1,6 +1,14 @@
 import { serve } from "bun";
 import index from "./index.html";
-import { parseCarton, parseGin, parseManavault, parseManavaultVersions, parseNerdik, parsePaytowin } from "./parsers";
+import {
+  parseCarton,
+  parseGin,
+  parseKartoteka,
+  parseManavault,
+  parseManavaultVersions,
+  parseNerdik,
+  parsePaytowin,
+} from "./parsers";
 import { isExactMatch, normalize, type CardResult, type SearchResult, type ShopId } from "./shops";
 
 async function fetchHtml(url: string): Promise<string> {
@@ -40,6 +48,7 @@ const SHOPS: { name: ShopId; search: (card: string) => Promise<CardResult[]> }[]
   { name: "carton", search: searchBy("https://carton.cards/search", parseCarton) },
   { name: "manavault", search: searchManavault },
   { name: "nerdik", search: searchBy("https://nerdik.club/katalog/search/", parseNerdik) },
+  { name: "kartoteka", search: searchBy("https://kartoteka.in.ua/ua/search/", parseKartoteka) },
   {
     name: "paytowin",
     search: async card => {

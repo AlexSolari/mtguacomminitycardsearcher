@@ -1,12 +1,13 @@
 // Shared between server and frontend — keep free of server-only imports.
 
-export type ShopId = "gin" | "carton" | "manavault" | "nerdik" | "paytowin";
+export type ShopId = "gin" | "carton" | "manavault" | "nerdik" | "kartoteka" | "paytowin";
 
 export const SHOP_INFO: Record<ShopId, { label: string; homepage: string; icon: string }> = {
   gin: { label: "MTGin", homepage: "https://mtgin.kyiv.ua", icon: "https://mtgin.kyiv.ua/favicon.png" },
   carton: { label: "CartOn", homepage: "https://carton.cards", icon: "https://carton.cards/icon.png" },
   manavault: { label: "Mana Vault", homepage: "https://manavaultstore.com", icon: "https://manavaultstore.com/favicon.ico" },
   nerdik: { label: "Nerdik", homepage: "https://nerdik.club", icon: "https://nerdik.club/assets/favicon.ico" },
+  kartoteka: { label: "Kartoteka", homepage: "https://kartoteka.in.ua", icon: "https://kartoteka.in.ua/assets/favicon.ico" },
   paytowin: { label: "PayToWin", homepage: "https://paytowin.club", icon: "https://paytowin.club/favicon-96x96.png" },
 };
 
