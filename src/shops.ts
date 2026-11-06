@@ -9,6 +9,19 @@ export const SHOP_INFO: Record<ShopId, { label: string; homepage: string; icon: 
   nerdik: { label: "Nerdik", homepage: "https://nerdik.club", icon: "https://nerdik.club/assets/favicon.ico" },
 };
 
+// "Jace, the Mind-Sculptor" → "jace the mind sculptor"
+export const normalize = (s: string) => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+
+// Is `listing` exactly the searched card, ignoring shop decorations? Handles:
+//   "Daze (PLST-DD2-23)"                         (CartOn set suffix)
+//   "Daze — Nemesis #29, Foil, English"          (Nerdik edition suffix)
+//   "Emeritus of Woe // Demonic Tutor"           (either face of a split / MDFC card, or the full name)
+export function isExactMatch(listing: string, query: string) {
+  const q = normalize(query);
+  const name = listing.split(" — ")[0]!.replace(/\s+\([A-Z0-9]+-[^)]*\)$/i, "");
+  return [name, ...name.split(" // ")].some(n => normalize(n) === q);
+}
+
 export type CardResult = {
   shop: ShopId;
   name: string;

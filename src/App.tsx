@@ -1,23 +1,11 @@
 import { useState, type FormEvent, type KeyboardEvent } from "react";
-import { AlertTriangle, Loader2, Search, Sparkles } from "lucide-react";
+import { AlertTriangle, Link2Off, Loader2, Search, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { CardSection, CardSectionSkeleton, EmptyState, SearchSummary, ShopBadge } from "@/components/search-results";
 import { SHOP_INFO, type SearchResult, type ShopId } from "./shops";
+import { parseCardList } from "./decklist";
 import "./index.css";
-
-function parseCardNames(text: string): string[] {
-  const seen = new Set<string>();
-  return text
-    .split(/\r?\n/)
-    .map(line => line.trim())
-    .filter(line => {
-      const key = line.toLowerCase();
-      if (!line || seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-}
 
 export function App() {
   const [text, setText] = useState("");
@@ -25,7 +13,7 @@ export function App() {
   const [results, setResults] = useState<SearchResult[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const cardNames = parseCardNames(text);
+  const { names: cardNames, links } = parseCardList(text);
   const submitting = pending !== null;
 
   async function search() {
@@ -66,7 +54,7 @@ export function App() {
     <div className="mx-auto flex max-w-7xl flex-col gap-10 px-4 py-10 sm:px-6 lg:py-14">
       <header className="flex flex-col gap-3">
         <div className="flex items-center gap-3">
-          <div className="grid size-11 place-items-center rounded-xl bg-gradient-to-br from-primary to-amber-600 text-primary-foreground shadow-lg shadow-primary/20">
+          <div className="grid size-11 place-items-center rounded-xl bg-linear-to-br from-primary to-amber-600 text-primary-foreground shadow-lg shadow-primary/20">
             <Sparkles className="size-5" />
           </div>
           <h1 className="font-display text-3xl font-bold tracking-wide sm:text-4xl">
@@ -100,20 +88,30 @@ export function App() {
               value={text}
               onChange={e => setText(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={"Lightning Bolt\nCounterspell\nDemonic Tutor"}
+              placeholder={"Lightning Bolt\nCounterspell\n\n…or paste a decklist export:\n4 Demonic Tutor\n1 Sol Ring (C21) 263"}
               spellCheck={false}
               className="min-h-64 max-h-[55vh] resize-none bg-background/50 font-mono text-sm leading-relaxed"
             />
+            {links.length > 0 && (
+              <div className="flex gap-2 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2.5 text-xs leading-relaxed text-foreground">
+                <Link2Off className="mt-0.5 size-4 shrink-0 text-primary" />
+                <p>
+                  Deck links can't be imported directly — MTGGoldfish blocks automated access. On the deck page, use
+                  the <b>Copy</b> / <b>Download</b> (text, Arena or MTGO) option and paste the list here instead.{" "}
+                  {links.length === 1 ? "The link is" : "Links are"} ignored.
+                </p>
+              </div>
+            )}
             <Button
               type="submit"
               disabled={submitting || cardNames.length === 0}
-              className="h-11 bg-gradient-to-r from-primary to-amber-500 font-semibold shadow-lg shadow-primary/20 transition hover:brightness-110"
+              className="h-11 bg-linear-to-r from-primary to-amber-500 font-semibold shadow-lg shadow-primary/20 transition hover:brightness-110"
             >
               {submitting ? <Loader2 className="animate-spin" /> : <Search />}
               {submitting ? "Searching…" : "Search shops"}
             </Button>
             <p className="text-center text-xs text-muted-foreground">
-              One card per line ·{" "}
+              Names or a decklist (MTGGoldfish, Arena, MTGO) ·{" "}
               <kbd className="rounded border bg-muted px-1.5 py-0.5 font-sans text-[10px]">Ctrl</kbd> +{" "}
               <kbd className="rounded border bg-muted px-1.5 py-0.5 font-sans text-[10px]">Enter</kbd> to search
             </p>

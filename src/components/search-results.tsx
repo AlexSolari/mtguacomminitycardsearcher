@@ -1,12 +1,23 @@
 import { useState } from "react";
 import { AlertTriangle, Crown, ExternalLink, ImageOff, Loader2, SearchX, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { SHOP_INFO, type CardResult, type SearchResult, type ShopId } from "@/shops";
+import { isExactMatch, SHOP_INFO, type CardResult, type SearchResult, type ShopId } from "@/shops";
 
 export const formatPrice = (price: number) => `${price.toLocaleString("uk-UA")} ₴`;
 
 const byPrice = (a: CardResult, b: CardResult) => (a.price ?? Infinity) - (b.price ?? Infinity);
-const cheapest = (r: SearchResult) => r.links.reduce<number | null>((min, l) => (l.price !== null && (min === null || l.price < min) ? l.price : min), null);
+const minPrice = (links: CardResult[]) =>
+  links.reduce<number | null>((min, l) => (l.price !== null && (min === null || l.price < min) ? l.price : min), null);
+
+// Exact matches first (each group by price). "Best price" / "from" / totals use the exact group when there is one,
+// so e.g. "School Daze" doesn't win "Best price" for a "Daze" search.
+function splitMatches(r: SearchResult) {
+  const exact = r.links.filter(l => isExactMatch(l.name, r.card)).sort(byPrice);
+  const other = r.links.filter(l => !isExactMatch(l.name, r.card)).sort(byPrice);
+  const pricing = exact.length > 0 ? exact : other;
+  return { exact, other, pricing, min: minPrice(pricing) };
+}
+const cheapest = (r: SearchResult) => splitMatches(r).min;
 
 export function ShopBadge({ shop, className }: { shop: ShopId; className?: string }) {
   const info = SHOP_INFO[shop];
@@ -90,9 +101,21 @@ function SectionHeader({ title, children }: { title: string; children?: React.Re
 
 const grid = "grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4";
 
+function GroupDivider({ label, count }: { label: string; count: number }) {
+  return (
+    <div className="flex items-center gap-3 pt-2 text-xs uppercase tracking-wider text-muted-foreground">
+      <span>{label}</span>
+      <span className="rounded-full bg-muted px-2 py-0.5 tabular-nums normal-case tracking-normal">{count}</span>
+      <span className="h-px flex-1 bg-border" />
+    </div>
+  );
+}
+
 export function CardSection({ result }: { result: SearchResult }) {
-  const links = [...result.links].sort(byPrice);
-  const min = cheapest(result);
+  const { exact, other, pricing, min } = splitMatches(result);
+  const links = result.links;
+  const isBest = (link: CardResult) =>
+    links.length > 1 && pricing.includes(link) && link.price !== null && link.price === min;
 
   return (
     <section className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -120,11 +143,25 @@ export function CardSection({ result }: { result: SearchResult }) {
           Not found in any shop.
         </div>
       ) : (
-        <div className={grid}>
-          {links.map(link => (
-            <ResultTile key={link.url} link={link} best={links.length > 1 && link.price !== null && link.price === min} />
-          ))}
-        </div>
+        <>
+          {exact.length > 0 && (
+            <div className={grid}>
+              {exact.map(link => (
+                <ResultTile key={link.url} link={link} best={isBest(link)} />
+              ))}
+            </div>
+          )}
+          {other.length > 0 && (
+            <>
+              <GroupDivider label={exact.length > 0 ? "Other matches" : "No exact match · similar names"} count={other.length} />
+              <div className={cn(grid, exact.length > 0 && "opacity-70 transition-opacity hover:opacity-100")}>
+                {other.map(link => (
+                  <ResultTile key={link.url} link={link} best={isBest(link)} />
+                ))}
+              </div>
+            </>
+          )}
+        </>
       )}
     </section>
   );

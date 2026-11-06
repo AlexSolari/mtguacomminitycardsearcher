@@ -1,10 +1,7 @@
 import { serve } from "bun";
 import index from "./index.html";
 import { parseCarton, parseGin, parseManavault, parseNerdik } from "./parsers";
-import type { CardResult, SearchResult, ShopId } from "./shops";
-
-// "Jace, the Mind-Sculptor" → "jace the mind sculptor"
-const normalize = (s: string) => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+import { normalize, type CardResult, type SearchResult, type ShopId } from "./shops";
 
 const SHOPS:{ name: ShopId; searchUrl: string; parse: (html: string) => CardResult[] }[] = [
   { name: "gin", searchUrl: "https://mtgin.kyiv.ua/", parse: parseGin },
