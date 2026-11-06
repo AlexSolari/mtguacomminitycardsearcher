@@ -12,6 +12,8 @@ import {
     LayoutGrid,
     Link2Off,
     Loader2,
+    PanelLeftClose,
+    Pencil,
     Rows3,
     Search,
     Sparkles,
@@ -124,6 +126,12 @@ export function App() {
     const [entries, setEntries] = useState<Entry[] | null>(null);
     const searchRef = useRef<AbortController | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const [listCollapsed, setListCollapsed] = useState(false);
+    const expandList = () => {
+        setListCollapsed(false);
+        requestAnimationFrame(() => textareaRef.current?.focus());
+    };
     const dragDepth = useRef(0); // dragenter/leave fire for every child element; count to know when we truly left
     const [dragging, setDragging] = useState(false);
     const [importNote, setImportNote] = useState<{
@@ -164,6 +172,7 @@ export function App() {
         searchRef.current = controller;
 
         setEntries(cardNames.map((card) => ({ card, result: null })));
+        setListCollapsed(true); // fold the list into a one-line bar so results get the full width
         cardNames.forEach((card, i) => {
             searchCard(card, controller.signal)
                 .then((result) => {
@@ -252,174 +261,228 @@ export function App() {
                 </p>
             </header>
 
-            <main className='grid items-start gap-8 lg:grid-cols-[340px_1fr]'>
-                <aside className='lg:sticky lg:top-8'>
-                    <form
-                        onSubmit={handleSubmit}
-                        className='flex flex-col gap-4 rounded-2xl border bg-card/60 p-5 shadow-2xl shadow-black/30 backdrop-blur'
-                    >
-                        <div className='flex items-center justify-between gap-2'>
-                            <label
-                                htmlFor='card-list'
-                                className='text-sm font-semibold'
-                            >
+            <main
+                className={cn(
+                    'grid items-start gap-8',
+                    !listCollapsed && 'lg:grid-cols-[340px_1fr]'
+                )}
+            >
+                <aside className={cn(!listCollapsed && 'lg:sticky lg:top-8')}>
+                    {listCollapsed ? (
+                        <div className='flex items-center gap-3 rounded-2xl border bg-card/60 px-4 py-2.5 shadow-2xl shadow-black/30 backdrop-blur animate-in fade-in duration-300'>
+                            <span className='shrink-0 text-sm font-semibold'>
                                 Список карт
-                            </label>
-                            <div className='flex items-center gap-2'>
-                                <Button
-                                    type='button'
-                                    variant='ghost'
-                                    size='sm'
-                                    className='h-7 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground'
-                                    onClick={() =>
-                                        fileInputRef.current?.click()
-                                    }
-                                    title='Завантажити файл колоди (.txt, .dec, .dek, .csv)'
-                                >
-                                    <Upload className='size-3.5' />
-                                    Файл
-                                </Button>
-                                <input
-                                    ref={fileInputRef}
-                                    type='file'
-                                    accept={DECK_FILE_ACCEPT}
-                                    multiple
-                                    hidden
-                                    onChange={(e) => {
-                                        if (e.target.files?.length)
-                                            importFiles(e.target.files);
-                                        e.target.value = ''; // allow re-selecting the same file
-                                    }}
-                                />
-                                <span className='rounded-full bg-muted px-2 py-0.5 text-xs tabular-nums text-muted-foreground'>
-                                    {plural(cardNames.length, CARDS)}
-                                </span>
-                            </div>
+                            </span>
+                            <span className='shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs tabular-nums text-muted-foreground'>
+                                {plural(cardNames.length, CARDS)}
+                            </span>
+                            <span
+                                className='min-w-0 flex-1 truncate text-sm text-muted-foreground'
+                                title={cardNames.join('\n')}
+                            >
+                                {cardNames.join(' · ')}
+                            </span>
+                            <Button
+                                type='button'
+                                variant='ghost'
+                                size='sm'
+                                className='h-8 shrink-0 gap-1.5 px-2.5 text-xs text-muted-foreground hover:text-foreground'
+                                onClick={expandList}
+                                aria-controls='card-list-form'
+                                aria-expanded={false}
+                            >
+                                <Pencil className='size-3.5' />
+                                Змінити
+                            </Button>
                         </div>
-                        <div
-                            className='relative'
-                            onDragEnter={(e) => {
-                                if (!hasFiles(e)) return;
-                                e.preventDefault();
-                                dragDepth.current++;
-                                setDragging(true);
-                            }}
-                            onDragOver={(e) => {
-                                if (!hasFiles(e)) return;
-                                e.preventDefault();
-                                e.dataTransfer.dropEffect = 'copy';
-                            }}
-                            onDragLeave={(e) => {
-                                if (!hasFiles(e)) return;
-                                if (--dragDepth.current <= 0)
-                                    setDragging(false);
-                            }}
-                            onDrop={(e) => {
-                                if (!hasFiles(e)) return; // dropped text falls through to the textarea's default behaviour
-                                e.preventDefault();
-                                dragDepth.current = 0;
-                                setDragging(false);
-                                importFiles(e.dataTransfer.files);
-                            }}
+                    ) : (
+                        <form
+                            id='card-list-form'
+                            onSubmit={handleSubmit}
+                            className='flex flex-col gap-4 rounded-2xl border bg-card/60 p-5 shadow-2xl shadow-black/30 backdrop-blur'
                         >
-                            <Textarea
-                                id='card-list'
-                                value={text}
-                                onChange={(e) => {
-                                    setText(e.target.value);
-                                    setImportNote(null);
+                            <div className='flex items-center justify-between gap-2'>
+                                <label
+                                    htmlFor='card-list'
+                                    className='text-sm font-semibold'
+                                >
+                                    Список карт
+                                </label>
+                                <div className='flex items-center gap-2'>
+                                    <Button
+                                        type='button'
+                                        variant='ghost'
+                                        size='sm'
+                                        className='h-7 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground'
+                                        onClick={() =>
+                                            fileInputRef.current?.click()
+                                        }
+                                        title='Завантажити файл колоди (.txt, .dec, .dek, .csv)'
+                                    >
+                                        <Upload className='size-3.5' />
+                                        Файл
+                                    </Button>
+                                    <input
+                                        ref={fileInputRef}
+                                        type='file'
+                                        accept={DECK_FILE_ACCEPT}
+                                        multiple
+                                        hidden
+                                        onChange={(e) => {
+                                            if (e.target.files?.length)
+                                                importFiles(e.target.files);
+                                            e.target.value = ''; // allow re-selecting the same file
+                                        }}
+                                    />
+                                    <span className='rounded-full bg-muted px-2 py-0.5 text-xs tabular-nums text-muted-foreground'>
+                                        {plural(cardNames.length, CARDS)}
+                                    </span>
+                                    {entries && (
+                                        <Button
+                                            type='button'
+                                            variant='ghost'
+                                            size='sm'
+                                            className='size-7 p-0 text-muted-foreground hover:text-foreground'
+                                            onClick={() =>
+                                                setListCollapsed(true)
+                                            }
+                                            title='Згорнути список'
+                                            aria-label='Згорнути список'
+                                            aria-expanded
+                                        >
+                                            <PanelLeftClose className='size-4' />
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                            <div
+                                className='relative'
+                                onDragEnter={(e) => {
+                                    if (!hasFiles(e)) return;
+                                    e.preventDefault();
+                                    dragDepth.current++;
+                                    setDragging(true);
                                 }}
-                                onKeyDown={handleKeyDown}
-                                placeholder={
-                                    'Lightning Bolt\nCounterspell\n\n…або вставте експорт колоди:\n4 Demonic Tutor\n1 Sol Ring (C21) 263\n\n…або перетягніть сюди файл колоди'
-                                }
-                                spellCheck={false}
-                                className='min-h-64 max-h-[55vh] resize-none bg-background/50 font-mono text-sm leading-relaxed'
-                            />
-                            {dragging && (
-                                <div className='pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-primary bg-background/90 text-center backdrop-blur-sm animate-in fade-in duration-150'>
-                                    <Upload className='size-7 text-primary' />
-                                    <p className='text-sm font-semibold'>
-                                        Відпустіть, щоб імпортувати колоду
-                                    </p>
-                                    <p className='text-xs text-muted-foreground'>
-                                        .txt · .dec · .dek (MTGO) · .csv
+                                onDragOver={(e) => {
+                                    if (!hasFiles(e)) return;
+                                    e.preventDefault();
+                                    e.dataTransfer.dropEffect = 'copy';
+                                }}
+                                onDragLeave={(e) => {
+                                    if (!hasFiles(e)) return;
+                                    if (--dragDepth.current <= 0)
+                                        setDragging(false);
+                                }}
+                                onDrop={(e) => {
+                                    if (!hasFiles(e)) return; // dropped text falls through to the textarea's default behaviour
+                                    e.preventDefault();
+                                    dragDepth.current = 0;
+                                    setDragging(false);
+                                    importFiles(e.dataTransfer.files);
+                                }}
+                            >
+                                <Textarea
+                                    ref={textareaRef}
+                                    id='card-list'
+                                    value={text}
+                                    onChange={(e) => {
+                                        setText(e.target.value);
+                                        setImportNote(null);
+                                    }}
+                                    onKeyDown={handleKeyDown}
+                                    placeholder={
+                                        'Lightning Bolt\nCounterspell\n\n…або вставте експорт колоди:\n4 Demonic Tutor\n1 Sol Ring (C21) 263\n\n…або перетягніть сюди файл колоди'
+                                    }
+                                    spellCheck={false}
+                                    className='min-h-64 max-h-[55vh] resize-none bg-background/50 font-mono text-sm leading-relaxed'
+                                />
+                                {dragging && (
+                                    <div className='pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-primary bg-background/90 text-center backdrop-blur-sm animate-in fade-in duration-150'>
+                                        <Upload className='size-7 text-primary' />
+                                        <p className='text-sm font-semibold'>
+                                            Відпустіть, щоб імпортувати колоду
+                                        </p>
+                                        <p className='text-xs text-muted-foreground'>
+                                            .txt · .dec · .dek (MTGO) · .csv
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                            {importNote && (
+                                <p
+                                    className={cn(
+                                        'flex items-start gap-2 rounded-lg border px-3 py-2 text-xs',
+                                        importNote.ok
+                                            ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+                                            : 'border-destructive/30 bg-destructive/10 text-destructive'
+                                    )}
+                                >
+                                    {importNote.ok ? (
+                                        <FileCheck className='size-4 shrink-0' />
+                                    ) : (
+                                        <AlertTriangle className='size-4 shrink-0' />
+                                    )}
+                                    {importNote.text}
+                                </p>
+                            )}
+                            {links.length > 0 && (
+                                <div className='flex gap-2 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2.5 text-xs leading-relaxed text-foreground'>
+                                    <Link2Off className='mt-0.5 size-4 shrink-0 text-primary' />
+                                    <p>
+                                        Посилання на колоди не імпортуються
+                                        напряму — MTGGoldfish блокує
+                                        автоматичний доступ. На сторінці колоди
+                                        скористайтеся кнопкою <b>Copy</b> /{' '}
+                                        <b>Download</b> (текст, Arena або MTGO)
+                                        і вставте список сюди.{' '}
+                                        {links.length === 1
+                                            ? 'Посилання пропущено.'
+                                            : 'Посилання пропущені.'}
                                     </p>
                                 </div>
                             )}
-                        </div>
-                        {importNote && (
-                            <p
-                                className={cn(
-                                    'flex items-start gap-2 rounded-lg border px-3 py-2 text-xs',
-                                    importNote.ok
-                                        ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
-                                        : 'border-destructive/30 bg-destructive/10 text-destructive'
-                                )}
+                            <Button
+                                type='submit'
+                                disabled={submitting || cardNames.length === 0}
+                                className='h-11 bg-linear-to-r from-primary to-amber-500 font-semibold shadow-lg shadow-primary/20 transition hover:brightness-110'
                             >
-                                {importNote.ok ? (
-                                    <FileCheck className='size-4 shrink-0' />
+                                {submitting ? (
+                                    <Loader2 className='animate-spin' />
                                 ) : (
-                                    <AlertTriangle className='size-4 shrink-0' />
+                                    <Search />
                                 )}
-                                {importNote.text}
+                                {submitting ? 'Шукаємо…' : 'Шукати в магазинах'}
+                            </Button>
+                            <p className='text-center text-xs text-muted-foreground'>
+                                Назви або список колоди (MTGGoldfish, Arena,
+                                MTGO) ·{' '}
+                                <kbd className='rounded border bg-muted px-1.5 py-0.5 font-sans text-[10px]'>
+                                    Ctrl
+                                </kbd>{' '}
+                                +{' '}
+                                <kbd className='rounded border bg-muted px-1.5 py-0.5 font-sans text-[10px]'>
+                                    Enter
+                                </kbd>{' '}
+                                — пошук
                             </p>
-                        )}
-                        {links.length > 0 && (
-                            <div className='flex gap-2 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2.5 text-xs leading-relaxed text-foreground'>
-                                <Link2Off className='mt-0.5 size-4 shrink-0 text-primary' />
-                                <p>
-                                    Посилання на колоди не імпортуються напряму
-                                    — MTGGoldfish блокує автоматичний доступ. На
-                                    сторінці колоди скористайтеся кнопкою{' '}
-                                    <b>Copy</b> / <b>Download</b> (текст, Arena
-                                    або MTGO) і вставте список сюди.{' '}
-                                    {links.length === 1
-                                        ? 'Посилання пропущено.'
-                                        : 'Посилання пропущені.'}
-                                </p>
-                            </div>
-                        )}
-                        <Button
-                            type='submit'
-                            disabled={submitting || cardNames.length === 0}
-                            className='h-11 bg-linear-to-r from-primary to-amber-500 font-semibold shadow-lg shadow-primary/20 transition hover:brightness-110'
-                        >
-                            {submitting ? (
-                                <Loader2 className='animate-spin' />
-                            ) : (
-                                <Search />
-                            )}
-                            {submitting ? 'Шукаємо…' : 'Шукати в магазинах'}
-                        </Button>
-                        <p className='text-center text-xs text-muted-foreground'>
-                            Назви або список колоди (MTGGoldfish, Arena, MTGO) ·{' '}
-                            <kbd className='rounded border bg-muted px-1.5 py-0.5 font-sans text-[10px]'>
-                                Ctrl
-                            </kbd>{' '}
-                            +{' '}
-                            <kbd className='rounded border bg-muted px-1.5 py-0.5 font-sans text-[10px]'>
-                                Enter
-                            </kbd>{' '}
-                            — пошук
-                        </p>
-                    </form>
+                        </form>
+                    )}
                 </aside>
 
                 <div className='flex min-w-0 flex-col gap-10'>
                     {entries ? (
                         <>
                             <div className='flex flex-col gap-3'>
+                                <SearchSummary
+                                    results={finished}
+                                    total={entries.length}
+                                />
                                 <div className='flex justify-end'>
                                     <ViewToggle
                                         view={view}
                                         onChange={changeView}
                                     />
                                 </div>
-                                <SearchSummary
-                                    results={finished}
-                                    total={entries.length}
-                                />
                             </div>
                             {entries.map((entry) =>
                                 entry.result ? (
