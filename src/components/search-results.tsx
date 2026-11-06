@@ -1,5 +1,17 @@
 import { Fragment, useState } from "react";
-import { AlertTriangle, Crown, ExternalLink, Gavel, Hourglass, ImageOff, Loader2, SearchX, Sparkles } from "lucide-react";
+import {
+  AlertTriangle,
+  Crown,
+  ExternalLink,
+  Gavel,
+  Hourglass,
+  ImageOff,
+  Layers,
+  Loader2,
+  Package,
+  SearchX,
+  Sparkles,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   isArtSeries,
@@ -94,7 +106,20 @@ function CardImage({ src, alt }: { src: string | null; alt: string }) {
   );
 }
 
+function Badge({ className, children, title }: { className?: string; children: React.ReactNode; title?: string }) {
+  return (
+    <span
+      title={title}
+      className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold leading-tight shadow-lg", className)}
+    >
+      {children}
+    </span>
+  );
+}
+
 function ResultTile({ link, best }: { link: CardResult; best: boolean }) {
+  const discount =
+    link.oldPrice && link.price !== null ? Math.round((1 - link.price / link.oldPrice) * 100) || null : null;
   return (
     <a
       href={link.url}
@@ -111,34 +136,79 @@ function ResultTile({ link, best }: { link: CardResult; best: boolean }) {
         <div className="size-full overflow-hidden rounded-[4.75%/3.5%] bg-muted">
           <CardImage src={link.image} alt={link.name} />
         </div>
-        {best && (
-          <span className="absolute left-3.5 top-3.5 inline-flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[11px] font-semibold text-primary-foreground shadow-lg">
-            <Crown className="size-3" />
-            Best price
-          </span>
+        {/* left: status + finish/discount badges, stacked */}
+        <div className="absolute left-3.5 top-3.5 flex flex-col items-start gap-1">
+          {best && (
+            <Badge className="bg-primary text-primary-foreground">
+              <Crown className="size-3" />
+              Best price
+            </Badge>
+          )}
+          {link.auction && (
+            <Badge className="bg-black/70 text-white backdrop-blur">
+              <Gavel className="size-3" />
+              Auction
+            </Badge>
+          )}
+          {link.foil && (
+            <Badge className="bg-[linear-gradient(110deg,#f0abfc,#93c5fd_35%,#86efac_60%,#fde68a)] tracking-wider text-slate-900">
+              FOIL
+            </Badge>
+          )}
+          {discount !== null && <Badge className="bg-rose-600 text-white">−{discount}%</Badge>}
+        </div>
+        {/* right: language + condition */}
+        {(link.language || link.condition) && (
+          <div className="absolute right-3.5 top-3.5 flex flex-col items-end gap-1">
+            {link.language && (
+              <Badge className="border border-white/25 bg-black/70 font-mono tracking-wide text-white backdrop-blur" title="Language">
+                {link.language}
+              </Badge>
+            )}
+            {link.condition && (
+              <Badge className="bg-sky-600/90 text-white" title="Condition">
+                {link.condition}
+              </Badge>
+            )}
+          </div>
         )}
-        {link.auction && (
-          <span className="absolute left-3.5 top-3.5 inline-flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-[11px] font-semibold text-white shadow-lg backdrop-blur">
-            <Gavel className="size-3" />
-            Auction
-          </span>
-        )}
-        <span className="absolute right-3.5 top-3.5 grid size-7 place-items-center rounded-full bg-black/60 text-white opacity-0 backdrop-blur transition group-hover:opacity-100">
+        <span className="absolute bottom-1.5 right-3.5 grid size-7 place-items-center rounded-full bg-black/60 text-white opacity-0 backdrop-blur transition group-hover:opacity-100">
           <ExternalLink className="size-3.5" />
         </span>
       </div>
       <div className="flex flex-1 flex-col gap-2 p-3">
         <span className="line-clamp-2 text-sm font-medium leading-snug">{link.name}</span>
         {link.auction && <AuctionMeta auction={link.auction} />}
-        <div className="mt-auto flex items-center justify-between gap-2">
-          <ShopBadge shop={link.shop} />
-          <span className={cn("text-sm font-semibold tabular-nums", best ? "text-primary" : "text-foreground")}>
-            {link.auction && (
-              <span className="mr-1 text-xs font-normal text-muted-foreground">
-                {link.auction.currentBid !== null ? "bid" : "start"}
+        {(link.stock !== undefined || link.printings) && (
+          <div className="flex flex-wrap items-center gap-1.5 text-xs">
+            {link.stock !== undefined && (
+              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-emerald-400">
+                <Package className="size-3" />
+                {link.stock} in stock
               </span>
             )}
-            {link.price === null ? "—" : formatPrice(link.price)}
+            {link.printings && (
+              <span className="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-muted-foreground">
+                <Layers className="size-3" />
+                {link.printings} versions
+              </span>
+            )}
+          </div>
+        )}
+        <div className="mt-auto flex items-end justify-between gap-2">
+          <ShopBadge shop={link.shop} />
+          <span className="flex flex-col items-end leading-tight">
+            {link.oldPrice !== undefined && (
+              <span className="text-xs text-muted-foreground line-through tabular-nums">{formatPrice(link.oldPrice)}</span>
+            )}
+            <span className={cn("text-sm font-semibold tabular-nums", best ? "text-primary" : "text-foreground")}>
+              {(link.auction || link.fromPrice) && (
+                <span className="mr-1 text-xs font-normal text-muted-foreground">
+                  {link.auction ? (link.auction.currentBid !== null ? "bid" : "start") : "from"}
+                </span>
+              )}
+              {link.price === null ? "—" : formatPrice(link.price)}
+            </span>
           </span>
         </div>
       </div>

@@ -31,6 +31,26 @@ export type CardResult = {
   price: number | null; // UAH
   artSeries?: boolean; // set by parsers that know the set/layout (CartOn, MTGin); otherwise inferred from the name
   auction?: AuctionInfo; // auction lot rather than a fixed-price offer (PayToWin) — `price` is the current/starting bid
+
+  // Optional details — each shop fills in what it exposes (see the parsers).
+  fromPrice?: boolean; // `price` is the cheapest of several offers/conditions ("від …")
+  oldPrice?: number; // pre-discount price (Nerdik)
+  stock?: number; // copies for sale
+  printings?: number; // >1 when the tile stands for several printings and links to an all-versions page (MTGin)
+  foil?: boolean;
+  language?: string; // upper-case code: EN, RU, JA…
+  condition?: string; // short grade: NM, M, LP…
+};
+
+// Nerdik and others spell languages out; normalise to codes for the badge.
+const LANGUAGE_CODES: Record<string, string> = {
+  english: "EN", russian: "RU", japanese: "JA", german: "DE", french: "FR", italian: "IT", spanish: "ES",
+  portuguese: "PT", korean: "KO", chinese: "ZH", "simplified chinese": "ZHS", "traditional chinese": "ZHT", ukrainian: "UK",
+};
+export const languageCode = (s: string | null | undefined) => {
+  if (!s) return undefined;
+  const t = s.trim();
+  return LANGUAGE_CODES[t.toLowerCase()] ?? (t.length <= 3 ? t.toUpperCase() : undefined);
 };
 
 export type AuctionInfo = {
