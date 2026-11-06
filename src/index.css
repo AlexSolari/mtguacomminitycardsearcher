@@ -2,7 +2,8 @@
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Cinzel", ui-serif, Georgia, serif;
+  /* Cinzel has no Cyrillic — the browser falls back per glyph to Forum for Ukrainian text */
+  --font-display: "Cinzel", "Forum", ui-serif, Georgia, serif;
 }
 
 /* Arcane dark theme: ink-indigo surfaces with a gold accent. */

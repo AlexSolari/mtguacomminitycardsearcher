@@ -13,6 +13,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BIDS, OFFERS, plural, VERSIONS } from "@/i18n";
 import {
   isArtSeries,
   isExactMatch,
@@ -46,11 +47,11 @@ function splitMatches(r: SearchResult) {
 
 function timeLeft(iso: string) {
   const ms = new Date(iso).getTime() - Date.now();
-  if (!(ms > 0)) return "ended";
+  if (!(ms > 0)) return "завершено";
   const m = Math.floor(ms / 60_000);
   const d = Math.floor(m / 1440);
   const h = Math.floor((m % 1440) / 60);
-  return d > 0 ? `${d}d ${h}h left` : h > 0 ? `${h}h ${m % 60}m left` : `${m}m left`;
+  return d > 0 ? `ще ${d} д ${h} год` : h > 0 ? `ще ${h} год ${m % 60} хв` : `ще ${m} хв`;
 }
 
 function AuctionMeta({ auction }: { auction: AuctionInfo }) {
@@ -61,13 +62,11 @@ function AuctionMeta({ auction }: { auction: AuctionInfo }) {
         {timeLeft(auction.endsAt)}
       </span>
       <span>·</span>
-      <span>
-        {auction.bids} bid{auction.bids === 1 ? "" : "s"}
-      </span>
+      <span>{plural(auction.bids, BIDS)}</span>
       {auction.buyNow !== null && (
         <>
           <span>·</span>
-          <span>buy now {formatPrice(auction.buyNow)}</span>
+          <span>викуп {formatPrice(auction.buyNow)}</span>
         </>
       )}
     </div>
@@ -141,13 +140,13 @@ function ResultTile({ link, best }: { link: CardResult; best: boolean }) {
           {best && (
             <Badge className="bg-primary text-primary-foreground">
               <Crown className="size-3" />
-              Best price
+              Найкраща ціна
             </Badge>
           )}
           {link.auction && (
             <Badge className="bg-black/70 text-white backdrop-blur">
               <Gavel className="size-3" />
-              Auction
+              Аукціон
             </Badge>
           )}
           {link.foil && (
@@ -161,12 +160,12 @@ function ResultTile({ link, best }: { link: CardResult; best: boolean }) {
         {(link.language || link.condition) && (
           <div className="absolute right-3.5 top-3.5 flex flex-col items-end gap-1">
             {link.language && (
-              <Badge className="border border-white/25 bg-black/70 font-mono tracking-wide text-white backdrop-blur" title="Language">
+              <Badge className="border border-white/25 bg-black/70 font-mono tracking-wide text-white backdrop-blur" title="Мова">
                 {link.language}
               </Badge>
             )}
             {link.condition && (
-              <Badge className="bg-sky-600/90 text-white" title="Condition">
+              <Badge className="bg-sky-600/90 text-white" title="Стан">
                 {link.condition}
               </Badge>
             )}
@@ -184,13 +183,13 @@ function ResultTile({ link, best }: { link: CardResult; best: boolean }) {
             {link.stock !== undefined && (
               <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-emerald-400">
                 <Package className="size-3" />
-                {link.stock} in stock
+                {link.stock} шт. в наявності
               </span>
             )}
             {link.printings && (
               <span className="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-muted-foreground">
                 <Layers className="size-3" />
-                {link.printings} versions
+                {plural(link.printings, VERSIONS)}
               </span>
             )}
           </div>
@@ -204,7 +203,7 @@ function ResultTile({ link, best }: { link: CardResult; best: boolean }) {
             <span className={cn("text-sm font-semibold tabular-nums", best ? "text-primary" : "text-foreground")}>
               {(link.auction || link.fromPrice) && (
                 <span className="mr-1 text-xs font-normal text-muted-foreground">
-                  {link.auction ? (link.auction.currentBid !== null ? "bid" : "start") : "from"}
+                  {link.auction ? (link.auction.currentBid !== null ? "ставка" : "старт") : "від"}
                 </span>
               )}
               {link.price === null ? "—" : formatPrice(link.price)}
@@ -245,8 +244,8 @@ export function CardSection({ result }: { result: SearchResult }) {
   const hasExact = exact.length > 0;
   const groups = [
     { key: "exact", label: null, links: exact, dim: false },
-    { key: "auctions", label: "Auctions", links: auctions, dim: false },
-    { key: "other", label: hasExact ? "Other matches" : "No exact match · similar names", links: other, dim: hasExact },
+    { key: "auctions", label: "Аукціони", links: auctions, dim: false },
+    { key: "other", label: hasExact ? "Інші збіги" : "Точних збігів немає · схожі назви", links: other, dim: hasExact },
     { key: "art", label: "Art Series", links: art, dim: hasExact || other.length > 0 },
   ];
 
@@ -255,12 +254,10 @@ export function CardSection({ result }: { result: SearchResult }) {
       <SectionHeader title={result.card}>
         {min !== null && (
           <span>
-            from <span className="font-semibold text-primary tabular-nums">{formatPrice(min)}</span>
+            від <span className="font-semibold text-primary tabular-nums">{formatPrice(min)}</span>
           </span>
         )}
-        <span className="rounded-full bg-muted px-2 py-0.5 text-xs tabular-nums">
-          {links.length} offer{links.length === 1 ? "" : "s"}
-        </span>
+        <span className="rounded-full bg-muted px-2 py-0.5 text-xs tabular-nums">{plural(links.length, OFFERS)}</span>
       </SectionHeader>
 
       {result.errors.map(err => (
@@ -273,7 +270,7 @@ export function CardSection({ result }: { result: SearchResult }) {
       {links.length === 0 ? (
         <div className="flex items-center gap-3 rounded-xl border border-dashed px-4 py-6 text-sm text-muted-foreground">
           <SearchX className="size-5 shrink-0" />
-          Not found in any shop.
+          Не знайдено в жодному магазині.
         </div>
       ) : (
         groups.map(
@@ -331,13 +328,13 @@ export function SearchSummary({ results }: { results: SearchResult[] }) {
   return (
     <div className="flex flex-col gap-4 rounded-2xl border bg-card/60 p-5 backdrop-blur animate-in fade-in duration-500">
       <div className="grid grid-cols-3 gap-4">
-        <Stat label="Found" value={`${found.length} / ${results.length}`} />
-        <Stat label="Offers" value={offers} />
-        <Stat label="Cheapest total" value={formatPrice(total)} accent />
+        <Stat label="Знайдено" value={`${found.length} / ${results.length}`} />
+        <Stat label="Пропозиції" value={offers} />
+        <Stat label="Мінімальна сума" value={formatPrice(total)} accent />
       </div>
       {missing.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 border-t pt-4 text-sm">
-          <span className="text-muted-foreground">Missing:</span>
+          <span className="text-muted-foreground">Не знайдено:</span>
           {missing.map(r => (
             <span key={r.card} className="rounded-full border border-destructive/30 bg-destructive/10 px-2.5 py-0.5 text-xs text-destructive">
               {r.card}
@@ -356,8 +353,8 @@ export function EmptyState() {
         <Sparkles className="size-7" />
       </div>
       <div className="flex flex-col gap-1">
-        <p className="font-display text-lg font-semibold tracking-wide">Your results will appear here</p>
-        <p className="text-sm text-muted-foreground">Paste a list of cards and we'll check every shop at once.</p>
+        <p className="font-display text-lg font-semibold tracking-wide">Тут з'являться результати</p>
+        <p className="text-sm text-muted-foreground">Вставте список карт — і ми перевіримо всі магазини одразу.</p>
       </div>
       <div className="flex flex-wrap justify-center gap-4 pt-2">
         {(Object.keys(SHOP_INFO) as ShopId[]).map(shop => (

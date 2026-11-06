@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { CardSection, CardSectionSkeleton, EmptyState, SearchSummary, ShopBadge } from "@/components/search-results";
 import { SHOP_INFO, type SearchResult, type ShopId } from "./shops";
 import { parseCardList } from "./decklist";
+import { CARDS, plural } from "./i18n";
 import "./index.css";
 
 export function App() {
@@ -32,7 +33,7 @@ export function App() {
       setResults(data.results);
     } catch (err) {
       console.error("search failed", err);
-      setError(`Search failed: ${(err as Error).message}`);
+      setError(`Не вдалося виконати пошук: ${(err as Error).message}`);
     } finally {
       setPending(null);
     }
@@ -57,12 +58,12 @@ export function App() {
           <div className="grid size-11 place-items-center rounded-xl bg-linear-to-br from-primary to-amber-600 text-primary-foreground shadow-lg shadow-primary/20">
             <Sparkles className="size-5" />
           </div>
-          <h1 className="font-display text-3xl font-bold tracking-wide sm:text-4xl">
-            Card <span className="text-primary">Searcher</span>
+          <h1 className="font-display text-2xl font-bold leading-tight tracking-wide sm:text-3xl lg:text-4xl">
+            MTG UA Community <span className="text-primary">Card Searcher</span>
           </h1>
         </div>
         <p className="flex flex-wrap items-center gap-x-3 gap-y-2 text-muted-foreground">
-          Compare prices across
+          Порівнюємо ціни в магазинах
           {(Object.keys(SHOP_INFO) as ShopId[]).map(shop => (
             <ShopBadge key={shop} shop={shop} className="rounded-full border bg-card/60 px-2.5 py-1 text-foreground" />
           ))}
@@ -77,10 +78,10 @@ export function App() {
           >
             <div className="flex items-center justify-between">
               <label htmlFor="card-list" className="text-sm font-semibold">
-                Card list
+                Список карт
               </label>
               <span className="rounded-full bg-muted px-2 py-0.5 text-xs tabular-nums text-muted-foreground">
-                {cardNames.length} card{cardNames.length === 1 ? "" : "s"}
+                {plural(cardNames.length, CARDS)}
               </span>
             </div>
             <Textarea
@@ -88,7 +89,7 @@ export function App() {
               value={text}
               onChange={e => setText(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={"Lightning Bolt\nCounterspell\n\n…or paste a decklist export:\n4 Demonic Tutor\n1 Sol Ring (C21) 263"}
+              placeholder={"Lightning Bolt\nCounterspell\n\n…або вставте експорт колоди:\n4 Demonic Tutor\n1 Sol Ring (C21) 263"}
               spellCheck={false}
               className="min-h-64 max-h-[55vh] resize-none bg-background/50 font-mono text-sm leading-relaxed"
             />
@@ -96,9 +97,9 @@ export function App() {
               <div className="flex gap-2 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2.5 text-xs leading-relaxed text-foreground">
                 <Link2Off className="mt-0.5 size-4 shrink-0 text-primary" />
                 <p>
-                  Deck links can't be imported directly — MTGGoldfish blocks automated access. On the deck page, use
-                  the <b>Copy</b> / <b>Download</b> (text, Arena or MTGO) option and paste the list here instead.{" "}
-                  {links.length === 1 ? "The link is" : "Links are"} ignored.
+                  Посилання на колоди не імпортуються напряму — MTGGoldfish блокує автоматичний доступ. На сторінці
+                  колоди скористайтеся кнопкою <b>Copy</b> / <b>Download</b> (текст, Arena або MTGO) і вставте список
+                  сюди. {links.length === 1 ? "Посилання пропущено." : "Посилання пропущені."}
                 </p>
               </div>
             )}
@@ -108,12 +109,12 @@ export function App() {
               className="h-11 bg-linear-to-r from-primary to-amber-500 font-semibold shadow-lg shadow-primary/20 transition hover:brightness-110"
             >
               {submitting ? <Loader2 className="animate-spin" /> : <Search />}
-              {submitting ? "Searching…" : "Search shops"}
+              {submitting ? "Шукаємо…" : "Шукати в магазинах"}
             </Button>
             <p className="text-center text-xs text-muted-foreground">
-              Names or a decklist (MTGGoldfish, Arena, MTGO) ·{" "}
+              Назви або список колоди (MTGGoldfish, Arena, MTGO) ·{" "}
               <kbd className="rounded border bg-muted px-1.5 py-0.5 font-sans text-[10px]">Ctrl</kbd> +{" "}
-              <kbd className="rounded border bg-muted px-1.5 py-0.5 font-sans text-[10px]">Enter</kbd> to search
+              <kbd className="rounded border bg-muted px-1.5 py-0.5 font-sans text-[10px]">Enter</kbd> — пошук
             </p>
           </form>
         </aside>
