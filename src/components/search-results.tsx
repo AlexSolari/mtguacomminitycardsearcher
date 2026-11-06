@@ -15,6 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import { BIDS, CARDS, OFFERS, plural, VERSIONS } from "@/i18n";
 import {
+  describeError,
   isArtSeries,
   isExactMatch,
   SHOP_INFO,
@@ -388,9 +389,9 @@ export function CardSection({ result, view = "grid" }: { result: SearchResult; v
       </SectionHeader>
 
       {result.errors.map(err => (
-        <p key={err} className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <p key={err.shop ?? "request"} className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           <AlertTriangle className="size-4 shrink-0" />
-          {err}
+          {describeError(err)}
         </p>
       ))}
 
@@ -459,6 +460,10 @@ export function SearchSummary({ results, total: cardCount }: { results: SearchRe
   const total = found.reduce((sum, r) => sum + (cheapest(r) ?? 0), 0);
   const offers = results.reduce((sum, r) => sum + r.links.length, 0);
   const remaining = cardCount - results.length;
+  // shop → number of cards whose search failed there
+  const failedShops = new Map<ShopId, number>();
+  for (const r of results)
+    for (const e of r.errors) if (e.shop) failedShops.set(e.shop, (failedShops.get(e.shop) ?? 0) + 1);
 
   return (
     <div className="flex flex-col gap-4 rounded-2xl border bg-card/60 p-5 backdrop-blur animate-in fade-in duration-500">
@@ -479,6 +484,17 @@ export function SearchSummary({ results, total: cardCount }: { results: SearchRe
               style={{ width: `${(results.length / cardCount) * 100}%` }}
             />
           </div>
+        </div>
+      )}
+      {failedShops.size > 0 && (
+        <div className="flex flex-wrap items-center gap-2 border-t pt-4 text-sm">
+          <AlertTriangle className="size-4 shrink-0 text-destructive" />
+          <span className="text-muted-foreground">Пошук не вдався в магазинах:</span>
+          {[...failedShops].map(([shop, count]) => (
+            <span key={shop} className="rounded-full border border-destructive/30 bg-destructive/10 px-2.5 py-0.5 text-xs text-destructive">
+              {SHOP_INFO[shop].label} · {plural(count, CARDS)}
+            </span>
+          ))}
         </div>
       )}
       {missing.length > 0 && (

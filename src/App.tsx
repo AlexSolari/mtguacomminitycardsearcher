@@ -75,7 +75,7 @@ async function searchCard(card: string, signal: AbortSignal): Promise<SearchResu
   } catch (err) {
     if (signal.aborted) throw err;
     console.error(`search for "${card}" failed`, err);
-    return { card, links: [], errors: [`Не вдалося виконати пошук: ${(err as Error).message}`] };
+    return { card, links: [], errors: [{ message: (err as Error).message }] };
   }
 }
 

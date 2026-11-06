@@ -65,8 +65,17 @@ export type AuctionInfo = {
 // Art Series cards are collectible art cards, not playable copies — grouped separately and kept out of pricing.
 export const isArtSeries = (l: CardResult) => l.artSeries === true || /\bart series\b/i.test(l.name);
 
+// A search that failed — on one shop (`shop` set), or the whole request for the card (no `shop`).
+export type SearchError = {
+  shop?: ShopId;
+  message: string; // short technical reason, e.g. "HTTP 429"
+};
+
+export const describeError = (e: SearchError) =>
+  e.shop ? `Пошук у ${SHOP_INFO[e.shop].label} не вдався (${e.message})` : `Не вдалося виконати пошук: ${e.message}`;
+
 export type SearchResult = {
   card: string;
   links: CardResult[];
-  errors: string[];
+  errors: SearchError[];
 };
