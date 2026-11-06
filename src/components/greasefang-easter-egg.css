@@ -1,0 +1,144 @@
+/* Greasefang easter egg — one ~6.1s timeline, every step started by animation-delay:
+ *   0.0s  Greasefang pops up
+ *   0.7s  Parhelion II flies in from beyond the right edge, a bit below center
+ *   1.8s  Greasefang taps (crews) → Parhelion grows a little
+ *   2.6s  Parhelion rises 30% (back to center)
+ *   3.2s  two Angel tokens appear beside it, tilted outwards
+ *   3.7s  …all three hold…
+ *   4.4s  Parhelion and the Angels fly off the top of the screen together
+ *   5.4s  Greasefang fades out
+ * If you stretch it, keep DURATION_MS in greasefang-easter-egg.tsx past the end.
+ */
+
+.egg-stage {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    pointer-events: none;
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+}
+
+.egg-card {
+    display: block;
+    border-radius: 4.75% / 3.5%;
+    box-shadow: 0 24px 60px -12px rgb(0 0 0 / 0.7);
+}
+
+/* Greasefang: bottom-left, pops in, taps, fades away */
+.egg-greasefang {
+    position: absolute;
+    left: 6vw;
+    bottom: 8vh;
+    width: min(190px, 26vw);
+    animation:
+        egg-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both,
+        egg-fade-out 0.7s ease-in 5.4s forwards;
+}
+.egg-greasefang .egg-card {
+    animation: egg-tap 0.35s ease-in-out 1.8s both;
+}
+
+/* Parhelion + Angels move as one squadron. It starts a bit below center and rises before the Angels appear —
+   that's animated on `translate`, so it doesn't fight the fly-off on `transform`. */
+.egg-squadron {
+    position: relative;
+    translate: 0 30%;
+    animation:
+        egg-rise 0.6s cubic-bezier(0.34, 1.3, 0.64, 1) 2.6s forwards,
+        egg-fly-up 0.9s cubic-bezier(0.55, 0, 0.75, 0.2) 4.4s forwards;
+}
+.egg-parhelion {
+    width: min(220px, 30vw);
+    animation: egg-arrive 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.7s both;
+}
+.egg-parhelion .egg-card {
+    animation: egg-grow 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 2.05s both;
+}
+
+/* both appear at once, tilted outwards (`rotate` stacks with the animated `transform`) */
+.egg-angel {
+    position: absolute;
+    top: 50%;
+    width: min(165px, 22vw);
+    animation: egg-angel-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 3.2s both;
+}
+.egg-angel-left {
+    right: calc(100% + 2vw);
+    rotate: -10deg;
+}
+.egg-angel-right {
+    left: calc(100% + 2vw);
+    rotate: 10deg;
+}
+
+@keyframes egg-pop {
+    from {
+        opacity: 0;
+        transform: scale(0.3) translateY(40px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes egg-fade-out {
+    to {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+}
+
+@keyframes egg-tap {
+    to {
+        transform: rotate(90deg);
+    }
+}
+
+/* starts fully past the right edge (it's centered, so half the viewport + its own width), tilted and
+   motion-blurred, then glides to the center and levels out */
+@keyframes egg-arrive {
+    from {
+        transform: translateX(calc(50vw + 100%)) rotate(12deg);
+        filter: blur(6px);
+    }
+    70% {
+        filter: none;
+    }
+    to {
+        transform: none;
+        filter: none;
+    }
+}
+
+@keyframes egg-grow {
+    to {
+        transform: scale(1.12);
+    }
+}
+
+@keyframes egg-rise {
+    to {
+        translate: 0 0;
+    }
+}
+
+@keyframes egg-angel-in {
+    from {
+        opacity: 0;
+        transform: translateY(-50%) scale(0.4);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(-50%);
+    }
+}
+
+@keyframes egg-fly-up {
+    to {
+        transform: translateY(-120vh);
+        opacity: 0.6;
+    }
+}

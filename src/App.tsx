@@ -30,6 +30,7 @@ import {
     ShopBadge,
     type ResultsView
 } from '@/components/search-results';
+import { useGreasefangEasterEgg } from '@/components/greasefang-easter-egg';
 import { SHOP_INFO, type SearchResult, type ShopId } from './shops';
 import { parseCardList } from './decklist';
 import { DeckFileError, deckFileToNames } from './deckfile';
@@ -192,6 +193,7 @@ async function searchCard(
 }
 
 export function App() {
+    const easterEgg = useGreasefangEasterEgg();
     const [text, setText] = useState('');
     const [entries, setEntries] = useState<Entry[] | null>(null);
     const searchRef = useRef<AbortController | null>(null);
@@ -310,7 +312,12 @@ export function App() {
         <div className='mx-auto flex min-h-dvh max-w-7xl flex-col gap-10 px-4 py-10 sm:px-6 lg:py-8'>
             <header className='flex flex-col gap-3'>
                 <div className='flex items-center gap-3'>
-                    <div className='grid size-11 place-items-center rounded-xl bg-linear-to-br from-primary to-amber-600 text-primary-foreground shadow-lg shadow-primary/20'>
+                    {/* click → Greasefang easter egg; hovering warms up the card images first */}
+                    <div
+                        onClick={easterEgg.play}
+                        onPointerEnter={easterEgg.preload}
+                        className='grid size-11 place-items-center rounded-xl bg-linear-to-br from-primary to-amber-600 text-primary-foreground shadow-lg shadow-primary/20 motion-safe:hover:animate-shake'
+                    >
                         <Sparkles className='size-5' />
                     </div>
                     <h1 className='font-display text-2xl font-bold leading-tight tracking-wide sm:text-3xl lg:text-4xl'>
@@ -576,6 +583,7 @@ export function App() {
             </main>
 
             <Footer />
+            {easterEgg.show}
         </div>
     );
 }
