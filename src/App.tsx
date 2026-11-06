@@ -1,13 +1,57 @@
 import { useEffect, useRef, useState, type DragEvent as ReactDragEvent, type FormEvent, type KeyboardEvent } from "react";
-import { AlertTriangle, FileCheck, Link2Off, Loader2, Search, Sparkles, Upload } from "lucide-react";
+import { AlertTriangle, FileCheck, LayoutGrid, Link2Off, Loader2, Rows3, Search, Sparkles, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { CardSection, CardSectionSkeleton, EmptyState, SearchSummary, ShopBadge } from "@/components/search-results";
+import {
+  CardSection,
+  CardSectionSkeleton,
+  EmptyState,
+  SearchSummary,
+  ShopBadge,
+  type ResultsView,
+} from "@/components/search-results";
 import { SHOP_INFO, type SearchResult, type ShopId } from "./shops";
 import { parseCardList } from "./decklist";
 import { DeckFileError, deckFileToNames } from "./deckfile";
 import { CARDS, FILES, plural } from "./i18n";
+
+// Results layout (tiles / table), remembered per browser.
+const VIEW_KEY = "searcher:view";
+function loadView(): ResultsView {
+  try {
+    return localStorage.getItem(VIEW_KEY) === "table" ? "table" : "grid";
+  } catch {
+    return "grid";
+  }
+}
+
+function ViewToggle({ view, onChange }: { view: ResultsView; onChange: (v: ResultsView) => void }) {
+  const options: { value: ResultsView; label: string; icon: typeof LayoutGrid }[] = [
+    { value: "grid", label: "Плитки", icon: LayoutGrid },
+    { value: "table", label: "Таблиця", icon: Rows3 },
+  ];
+  return (
+    <div role="radiogroup" aria-label="Вигляд результатів" className="inline-flex rounded-lg border bg-card/60 p-0.5 backdrop-blur">
+      {options.map(({ value, label, icon: Icon }) => (
+        <button
+          key={value}
+          type="button"
+          role="radio"
+          aria-checked={view === value}
+          onClick={() => onChange(value)}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition",
+            view === value ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <Icon className="size-3.5" />
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 const DECK_FILE_ACCEPT = ".txt,.dec,.dek,.csv,.mwDeck,text/plain,text/csv";
 const hasFiles = (e: ReactDragEvent) => e.dataTransfer.types.includes("Files");
@@ -43,6 +87,13 @@ export function App() {
   const dragDepth = useRef(0); // dragenter/leave fire for every child element; count to know when we truly left
   const [dragging, setDragging] = useState(false);
   const [importNote, setImportNote] = useState<{ ok: boolean; text: string } | null>(null);
+  const [view, setView] = useState<ResultsView>(loadView);
+  const changeView = (next: ResultsView) => {
+    setView(next);
+    try {
+      localStorage.setItem(VIEW_KEY, next);
+    } catch {} // private mode / blocked storage — the choice just won't persist
+  };
 
   // A file dropped anywhere else on the page would make the browser navigate to it — swallow those drops.
   useEffect(() => {
@@ -258,10 +309,15 @@ export function App() {
         <div className="flex min-w-0 flex-col gap-10">
           {entries ? (
             <>
-              <SearchSummary results={finished} total={entries.length} />
+              <div className="flex flex-col gap-3">
+                <div className="flex justify-end">
+                  <ViewToggle view={view} onChange={changeView} />
+                </div>
+                <SearchSummary results={finished} total={entries.length} />
+              </div>
               {entries.map(entry =>
                 entry.result ? (
-                  <CardSection key={entry.card} result={entry.result} />
+                  <CardSection key={entry.card} result={entry.result} view={view} />
                 ) : (
                   <CardSectionSkeleton key={entry.card} name={entry.card} />
                 ),

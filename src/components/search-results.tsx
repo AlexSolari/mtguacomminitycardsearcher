@@ -131,9 +131,131 @@ function Badge({ className, children, title }: { className?: string; children: R
   );
 }
 
+const discountOf = (link: CardResult) =>
+  link.oldPrice && link.price !== null ? Math.round((1 - link.price / link.oldPrice) * 100) || null : null;
+
+// Price with its qualifier ("від" / "ставка" / "старт") and, for discounts, the struck-through old price.
+function PriceBlock({ link, best }: { link: CardResult; best: boolean }) {
+  return (
+    <span className="flex flex-col items-end leading-tight">
+      {link.oldPrice !== undefined && (
+        <span className="text-xs text-muted-foreground line-through tabular-nums">{formatPrice(link.oldPrice)}</span>
+      )}
+      <span className={cn("whitespace-nowrap text-sm font-semibold tabular-nums", best ? "text-primary" : "text-foreground")}>
+        {(link.auction || link.fromPrice) && (
+          <span className="mr-1 text-xs font-normal text-muted-foreground">
+            {link.auction ? (link.auction.currentBid !== null ? "ставка" : "старт") : "від"}
+          </span>
+        )}
+        {link.price === null ? "—" : formatPrice(link.price)}
+      </span>
+    </span>
+  );
+}
+
+const FOIL_BADGE = "bg-[linear-gradient(110deg,#f0abfc,#93c5fd_35%,#86efac_60%,#fde68a)] tracking-wider text-slate-900";
+
+// Table view: one compact row per offer; the whole row is a link.
+function ResultTable({ links, isBest }: { links: CardResult[]; isBest: (l: CardResult) => boolean }) {
+  return (
+    <div className="overflow-x-auto rounded-xl border bg-card/60 backdrop-blur-sm">
+      <table className="w-full min-w-160 text-sm">
+        <thead>
+          <tr className="border-b text-left text-xs uppercase tracking-wider text-muted-foreground">
+            <th className="w-14 py-2.5 pl-3 font-medium" />
+            <th className="px-3 py-2.5 font-medium">Карта</th>
+            <th className="px-3 py-2.5 font-medium">Деталі</th>
+            <th className="px-3 py-2.5 font-medium">Магазин</th>
+            <th className="px-3 py-2.5 text-right font-medium">Наявність</th>
+            <th className="py-2.5 pl-3 pr-4 text-right font-medium">Ціна</th>
+          </tr>
+        </thead>
+        <tbody>
+          {links.map(link => {
+            const best = isBest(link);
+            const discount = discountOf(link);
+            const open = () => window.open(link.url, "_blank", "noopener,noreferrer");
+            return (
+              <tr
+                key={link.url}
+                onClick={open}
+                className={cn(
+                  "group cursor-pointer border-b transition-colors last:border-0 hover:bg-primary/5",
+                  best && "bg-primary/[0.07]",
+                )}
+              >
+                <td className="py-1.5 pl-3">
+                  <div className="aspect-488/680 w-9 overflow-hidden rounded-sm bg-muted">
+                    {link.image && <img src={link.image} alt="" loading="lazy" className="size-full object-cover" />}
+                  </div>
+                </td>
+                <td className="px-3 py-1.5">
+                  {/* real link for keyboard / middle-click / copy-link; the row click covers the rest */}
+                  <a
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={e => e.stopPropagation()}
+                    className="font-medium leading-snug group-hover:text-primary group-hover:underline"
+                  >
+                    {link.name}
+                  </a>
+                  {link.auction && (
+                    <div className="mt-0.5">
+                      <AuctionMeta auction={link.auction} />
+                    </div>
+                  )}
+                </td>
+                <td className="px-3 py-1.5">
+                  <div className="flex flex-wrap items-center gap-1">
+                    {best && (
+                      <Badge className="bg-primary text-primary-foreground shadow-none">
+                        <Crown className="size-3" />
+                        Найкраща
+                      </Badge>
+                    )}
+                    {link.auction && (
+                      <Badge className="bg-muted text-foreground shadow-none">
+                        <Gavel className="size-3" />
+                        Аукціон
+                      </Badge>
+                    )}
+                    {link.foil && <Badge className={cn(FOIL_BADGE, "shadow-none")}>FOIL</Badge>}
+                    {discount !== null && <Badge className="bg-rose-600 text-white shadow-none">−{discount}%</Badge>}
+                    {link.language && (
+                      <Badge className="border border-border bg-transparent font-mono text-foreground shadow-none" title="Мова">
+                        {link.language}
+                      </Badge>
+                    )}
+                    {link.condition && (
+                      <Badge className="bg-sky-600/90 text-white shadow-none" title="Стан">
+                        {link.condition}
+                      </Badge>
+                    )}
+                  </div>
+                </td>
+                <td className="px-3 py-1.5">
+                  <ShopBadge shop={link.shop} className="whitespace-nowrap" />
+                </td>
+                <td className="whitespace-nowrap px-3 py-1.5 text-right text-xs text-muted-foreground">
+                  {link.stock !== undefined && <span className="text-emerald-400">{link.stock} шт.</span>}
+                  {link.printings && <div>{plural(link.printings, VERSIONS)}</div>}
+                  {link.stock === undefined && !link.printings && "—"}
+                </td>
+                <td className="py-1.5 pl-3 pr-4">
+                  <PriceBlock link={link} best={best} />
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function ResultTile({ link, best }: { link: CardResult; best: boolean }) {
-  const discount =
-    link.oldPrice && link.price !== null ? Math.round((1 - link.price / link.oldPrice) * 100) || null : null;
+  const discount = discountOf(link);
   return (
     <a
       href={link.url}
@@ -165,7 +287,7 @@ function ResultTile({ link, best }: { link: CardResult; best: boolean }) {
             </Badge>
           )}
           {link.foil && (
-            <Badge className="bg-[linear-gradient(110deg,#f0abfc,#93c5fd_35%,#86efac_60%,#fde68a)] tracking-wider text-slate-900">
+            <Badge className={FOIL_BADGE}>
               FOIL
             </Badge>
           )}
@@ -211,19 +333,7 @@ function ResultTile({ link, best }: { link: CardResult; best: boolean }) {
         )}
         <div className="mt-auto flex items-end justify-between gap-2">
           <ShopBadge shop={link.shop} />
-          <span className="flex flex-col items-end leading-tight">
-            {link.oldPrice !== undefined && (
-              <span className="text-xs text-muted-foreground line-through tabular-nums">{formatPrice(link.oldPrice)}</span>
-            )}
-            <span className={cn("text-sm font-semibold tabular-nums", best ? "text-primary" : "text-foreground")}>
-              {(link.auction || link.fromPrice) && (
-                <span className="mr-1 text-xs font-normal text-muted-foreground">
-                  {link.auction ? (link.auction.currentBid !== null ? "ставка" : "старт") : "від"}
-                </span>
-              )}
-              {link.price === null ? "—" : formatPrice(link.price)}
-            </span>
-          </span>
+          <PriceBlock link={link} best={best} />
         </div>
       </div>
     </a>
@@ -251,7 +361,9 @@ function GroupDivider({ label, count }: { label: string; count: number }) {
   );
 }
 
-export function CardSection({ result }: { result: SearchResult }) {
+export type ResultsView = "grid" | "table";
+
+export function CardSection({ result, view = "grid" }: { result: SearchResult; view?: ResultsView }) {
   const { exact, auctions, art, other, pricing, min } = splitMatches(result);
   const links = result.links;
   const isBest = (link: CardResult) =>
@@ -293,11 +405,17 @@ export function CardSection({ result }: { result: SearchResult }) {
             group.links.length > 0 && (
               <Fragment key={group.key}>
                 {group.label && <GroupDivider label={group.label} count={group.links.length} />}
-                <div className={cn(grid, group.dim && "opacity-70 transition-opacity hover:opacity-100")}>
-                  {group.links.map(link => (
-                    <ResultTile key={link.url} link={link} best={isBest(link)} />
-                  ))}
-                </div>
+                {view === "table" ? (
+                  <div className={cn(group.dim && "opacity-70 transition-opacity hover:opacity-100")}>
+                    <ResultTable links={group.links} isBest={isBest} />
+                  </div>
+                ) : (
+                  <div className={cn(grid, group.dim && "opacity-70 transition-opacity hover:opacity-100")}>
+                    {group.links.map(link => (
+                      <ResultTile key={link.url} link={link} best={isBest(link)} />
+                    ))}
+                  </div>
+                )}
               </Fragment>
             ),
         )
