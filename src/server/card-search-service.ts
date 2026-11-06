@@ -1,5 +1,6 @@
 import { normalize, type SearchResult } from '../shops';
 import type { CardSearcher } from './card-searcher';
+import { HttpError } from './shop-client';
 
 // Searches every shop for every card. A failing shop doesn't fail the card — it's reported in `errors`.
 export class CardSearchService {
@@ -23,7 +24,11 @@ export class CardSearchService {
                         links: [],
                         error: {
                             shop: searcher.shop,
-                            message: (err as Error).message
+                            message: (err as Error).message,
+                            status:
+                                err instanceof HttpError
+                                    ? err.status
+                                    : undefined
                         }
                     };
                 }

@@ -2,6 +2,13 @@
 // once gets us rate-limited (HTTP 429). So requests to each host are spaced out: each one starts at least
 // `intervalMs` after the previous one to that host. Different hosts don't wait on each other.
 
+// Keeps the status so callers can tell a block (403) from other failures.
+export class HttpError extends Error {
+    constructor(readonly status: number) {
+        super(`HTTP ${status}`);
+    }
+}
+
 export type ShopClientOptions = {
     defaultIntervalMs?: number;
     intervalMs?: Record<string, number>; // per-host overrides, e.g. { "kartoteka.in.ua": 500 }
@@ -42,13 +49,13 @@ export class ShopClient {
 
     async fetchHtml(url: string): Promise<string> {
         const res = await this.fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) throw new HttpError(res.status);
         return res.text();
     }
 
     async fetchJson<T = unknown>(url: string): Promise<T> {
         const res = await this.fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) throw new HttpError(res.status);
         return res.json() as Promise<T>;
     }
 

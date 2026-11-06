@@ -18,6 +18,7 @@ import {
     describeError,
     isArtSeries,
     isExactMatch,
+    manualSearchUrl,
     SHOP_INFO,
     type AuctionInfo,
     type CardResult,
@@ -168,7 +169,15 @@ export function ShopBadge({
     );
 }
 
-function CardImage({ src, alt }: { src: string | null; alt: string }) {
+function CardImage({
+    src,
+    alt,
+    className
+}: {
+    src: string | null;
+    alt: string;
+    className?: string;
+}) {
     const [failed, setFailed] = useState(false);
     if (!src || failed) {
         return (
@@ -184,7 +193,10 @@ function CardImage({ src, alt }: { src: string | null; alt: string }) {
             alt={alt}
             loading='lazy'
             onError={() => setFailed(true)}
-            className='size-full rounded-[4.75%/3.5%] object-cover transition duration-500 ease-out group-hover:scale-[1.04]'
+            className={cn(
+                'size-full rounded-[4.75%/3.5%] object-cover transition duration-500 ease-out group-hover:scale-[1.04]',
+                className
+            )}
         />
     );
 }
@@ -498,6 +510,65 @@ function ResultTile({ link, best }: { link: CardResult; best: boolean }) {
     );
 }
 
+// Redirects to the card's image; the shop's own image is unknown since its search failed.
+const scryfallImage = (card: string) =>
+    `https://api.scryfall.com/cards/named?${new URLSearchParams({ exact: card, format: 'image', version: 'normal' })}`;
+
+// Stands in for a shop whose search was blocked (see manualSearchUrl): greyed out, no price, links to the
+// shop's search page. Not a CardResult, so it never counts as an offer or toward prices.
+function ManualCheckTile({
+    shop,
+    card,
+    url
+}: {
+    shop: ShopId;
+    card: string;
+    url: string;
+}) {
+    return (
+        <a
+            href={url}
+            target='_blank'
+            rel='noopener noreferrer'
+            className={cn(
+                'group relative flex flex-col overflow-hidden rounded-xl border border-dashed bg-card/40 backdrop-blur-sm transition duration-300 ease-out',
+                'hover:-translate-y-1 hover:border-primary/40 hover:bg-card',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+            )}
+        >
+            <div className='relative aspect-488/680 p-2 pb-0'>
+                <div className='size-full overflow-hidden rounded-[4.75%/3.5%] bg-muted'>
+                    <CardImage
+                        src={scryfallImage(card)}
+                        alt={card}
+                        className='opacity-50 grayscale group-hover:opacity-70'
+                    />
+                </div>
+                <div className='absolute inset-x-3.5 top-3.5'>
+                    <Badge className='rounded-md bg-amber-400 text-slate-900'>
+                        <SearchX className='size-3 shrink-0' />
+                        Автоматичний пошук не вдався, перевірте вручну
+                    </Badge>
+                </div>
+                <span className='absolute bottom-1.5 right-3.5 grid size-7 place-items-center rounded-full bg-black/60 text-white opacity-0 backdrop-blur transition group-hover:opacity-100'>
+                    <ExternalLink className='size-3.5' />
+                </span>
+            </div>
+            <div className='flex flex-1 flex-col gap-2 p-3'>
+                <span className='line-clamp-2 text-sm font-medium leading-snug text-muted-foreground'>
+                    {card}
+                </span>
+                <div className='mt-auto flex items-end justify-between gap-2'>
+                    <ShopBadge shop={shop} />
+                    <span className='text-xs text-muted-foreground group-hover:text-primary'>
+                        Шукати на сайті
+                    </span>
+                </div>
+            </div>
+        </a>
+    );
+}
+
 function SectionHeader({
     title,
     children
@@ -601,6 +672,10 @@ export const CardSection = memo(function CardSection({
             return next;
         });
     const idPrefix = useId();
+    const manualChecks = result.errors.flatMap((err) => {
+        const url = manualSearchUrl(err, result.card);
+        return url && err.shop ? [{ shop: err.shop, url }] : [];
+    });
     const groups = [
         { key: 'exact', label: null, links: exact, secondary: false },
         {
@@ -716,6 +791,25 @@ export const CardSection = memo(function CardSection({
                               </Fragment>
                           )
                   )}
+
+            {manualChecks.length > 0 && (
+                <>
+                    <GroupDivider
+                        label='Перевірте вручну'
+                        count={manualChecks.length}
+                    />
+                    <div className={grid}>
+                        {manualChecks.map((m) => (
+                            <ManualCheckTile
+                                key={m.shop}
+                                shop={m.shop}
+                                card={result.card}
+                                url={m.url}
+                            />
+                        ))}
+                    </div>
+                </>
+            )}
         </section>
     );
 });

@@ -5,7 +5,12 @@ export type ShopId =
 
 export const SHOP_INFO: Record<
     ShopId,
-    { label: string; homepage: string; icon: string }
+    {
+        label: string;
+        homepage: string;
+        icon: string;
+        searchUrl?: string; // search page taking `?q=<card>`, linked for manual checks when our search is blocked
+    }
 > = {
     gin: {
         label: 'MTGin',
@@ -25,12 +30,14 @@ export const SHOP_INFO: Record<
     nerdik: {
         label: 'Nerdik',
         homepage: 'https://nerdik.club',
-        icon: 'https://nerdik.club/assets/favicon.ico'
+        icon: 'https://nerdik.club/assets/favicon.ico',
+        searchUrl: 'https://nerdik.club/katalog/search/'
     },
     kartoteka: {
         label: 'Kartoteka',
         homepage: 'https://kartoteka.in.ua',
-        icon: 'https://kartoteka.in.ua/assets/favicon.ico'
+        icon: 'https://kartoteka.in.ua/assets/favicon.ico',
+        searchUrl: 'https://kartoteka.in.ua/ua/search/'
     },
     paytowin: {
         label: 'PayToWin',
@@ -121,12 +128,22 @@ export const isArtSeries = (l: CardResult) =>
 export type SearchError = {
     shop?: ShopId;
     message: string; // short technical reason, e.g. "HTTP 429"
+    status?: number; // HTTP status, when the shop answered with an error
 };
 
 export const describeError = (e: SearchError) =>
     e.shop
         ? `Пошук у ${SHOP_INFO[e.shop].label} не вдався (${e.message})`
         : `Не вдалося виконати пошук: ${e.message}`;
+
+// Horoshop shops (Nerdik, Kartoteka) answer 403 to some server IPs, e.g. Railway's, but still work in the
+// user's browser. So for a blocked search, link the shop's own search page for the user to check by hand.
+export function manualSearchUrl(e: SearchError, card: string) {
+    const base = e.shop && SHOP_INFO[e.shop].searchUrl;
+    return e.status === 403 && base
+        ? `${base}?${new URLSearchParams({ q: card })}`
+        : null;
+}
 
 export type SearchResult = {
     card: string;
