@@ -126,7 +126,7 @@ export function App() {
         <p className="flex flex-wrap items-center gap-x-3 gap-y-2 text-muted-foreground">
           Порівнюємо ціни в магазинах
           {(Object.keys(SHOP_INFO) as ShopId[]).map(shop => (
-            <ShopBadge key={shop} shop={shop} className="rounded-full border bg-card/60 px-2.5 py-1 text-foreground" />
+            <ShopBadge key={shop} shop={shop} link className="rounded-full border bg-card/60 px-2.5 py-1 text-foreground" />
           ))}
         </p>
       </header>

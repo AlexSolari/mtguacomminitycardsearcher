@@ -74,13 +74,28 @@ function AuctionMeta({ auction }: { auction: AuctionInfo }) {
 }
 const cheapest = (r: SearchResult) => splitMatches(r).min;
 
-export function ShopBadge({ shop, className }: { shop: ShopId; className?: string }) {
+export function ShopBadge({ shop, className, link }: { shop: ShopId; className?: string; link?: boolean }) {
   const info = SHOP_INFO[shop];
-  return (
-    <span className={cn("inline-flex items-center gap-1.5 text-xs text-muted-foreground", className)}>
+  const content = (
+    <>
       <img src={info.icon} alt="" className="size-4 rounded-sm bg-white/5" loading="lazy" />
       {info.label}
-    </span>
+    </>
+  );
+  const base = "inline-flex items-center gap-1.5 text-xs text-muted-foreground";
+  // `link` → opens the shop's homepage. Not used inside result tiles: those are already <a>s and links can't nest.
+  return link ? (
+    <a
+      href={info.homepage}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={`${info.label} — ${info.homepage.replace(/^https?:\/\//, "")}`}
+      className={cn(base, "transition hover:border-primary/50 hover:text-primary", className)}
+    >
+      {content}
+    </a>
+  ) : (
+    <span className={cn(base, className)}>{content}</span>
   );
 }
 
@@ -374,7 +389,7 @@ export function EmptyState() {
       </div>
       <div className="flex flex-wrap justify-center gap-4 pt-2">
         {(Object.keys(SHOP_INFO) as ShopId[]).map(shop => (
-          <ShopBadge key={shop} shop={shop} />
+          <ShopBadge key={shop} shop={shop} link />
         ))}
       </div>
     </div>
