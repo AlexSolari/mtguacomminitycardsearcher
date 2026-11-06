@@ -1,0 +1,47 @@
+@import "../styles/globals.css";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Cinzel", ui-serif, Georgia, serif;
+}
+
+/* Arcane dark theme: ink-indigo surfaces with a gold accent. */
+.dark {
+  --background: oklch(0.15 0.02 285);
+  --foreground: oklch(0.96 0.01 285);
+  --card: oklch(0.2 0.025 285);
+  --card-foreground: oklch(0.96 0.01 285);
+  --popover: oklch(0.2 0.025 285);
+  --popover-foreground: oklch(0.96 0.01 285);
+  --primary: oklch(0.82 0.14 80);
+  --primary-foreground: oklch(0.2 0.04 70);
+  --secondary: oklch(0.25 0.03 285);
+  --secondary-foreground: oklch(0.96 0.01 285);
+  --muted: oklch(0.24 0.025 285);
+  --muted-foreground: oklch(0.7 0.03 285);
+  --accent: oklch(0.27 0.035 285);
+  --accent-foreground: oklch(0.96 0.01 285);
+  --destructive: oklch(0.7 0.18 25);
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: oklch(0.82 0.14 80);
+}
+
+@layer base {
+  :root {
+    @apply font-sans antialiased;
+    color-scheme: dark;
+  }
+
+  body {
+    @apply min-w-[320px] min-h-screen m-0 bg-background text-foreground;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -10%, oklch(0.42 0.12 290 / 0.35), transparent 70%),
+      radial-gradient(ellipse 50% 40% at 100% 100%, oklch(0.6 0.12 70 / 0.08), transparent 70%);
+    background-attachment: fixed;
+  }
+
+  ::selection {
+    @apply bg-primary/30;
+  }
+}
