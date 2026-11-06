@@ -3,26 +3,23 @@ import type { SearchEntry } from '@/hooks/use-card-search';
 import {
     CardSection,
     CardSectionSkeleton,
-    EmptyState,
     SearchSummary,
     type ResultsView
 } from '@/components/search-results';
 import { ViewToggle } from '@/components/view-toggle';
 
-// Right-hand side of the page: the summary and one section per searched card (a skeleton until it's done),
-// or the empty state before the first search.
+// The summary and one section per searched card (a skeleton until it's done).
 export function ResultsPanel({
     entries,
     finished,
     view,
     onViewChange
 }: {
-    entries: SearchEntry[] | null;
+    entries: SearchEntry[];
     finished: SearchResult[];
     view: ResultsView;
     onViewChange: (view: ResultsView) => void;
 }) {
-    if (!entries) return <EmptyState />;
     return (
         <>
             <div className='flex flex-col gap-3'>

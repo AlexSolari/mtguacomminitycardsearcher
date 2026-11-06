@@ -6,8 +6,8 @@ import { SHOP_INFO, type ShopId } from '@/shops';
 export function SiteHeader() {
     const easterEgg = useGreasefangEasterEgg();
     return (
-        <header className='flex flex-col gap-3'>
-            <div className='flex items-center gap-3'>
+        <header className='flex flex-col items-center gap-3 text-center'>
+            <div className='flex items-center justify-center gap-3'>
                 {/* click → Greasefang easter egg; hovering warms up the card images first */}
                 <div
                     onClick={easterEgg.play}
@@ -21,7 +21,7 @@ export function SiteHeader() {
                     <span className='text-primary'>Card Searcher</span>
                 </h1>
             </div>
-            <p className='flex flex-wrap items-center gap-x-3 gap-y-2 text-muted-foreground'>
+            <p className='flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-muted-foreground'>
                 Порівнюємо ціни в магазинах
                 {(Object.keys(SHOP_INFO) as ShopId[]).map((shop) => (
                     <ShopBadge

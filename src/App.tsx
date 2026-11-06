@@ -30,6 +30,15 @@ export function App() {
         if (search(cardNames)) setListCollapsed(true);
     };
 
+    // landing:   no search yet — just the card list, centered
+    // collapsed: results at full width, the list folded into a bar above them
+    // sidebar:   the list reopened for editing — a sticky column beside the results
+    const layout = !entries
+        ? 'landing'
+        : listCollapsed
+          ? 'collapsed'
+          : 'sidebar';
+
     return (
         <div className='mx-auto flex min-h-dvh max-w-7xl flex-col gap-10 px-4 py-10 sm:px-6 lg:py-8'>
             <SiteHeader />
@@ -37,10 +46,16 @@ export function App() {
             <main
                 className={cn(
                     'grid items-start gap-8',
-                    !listCollapsed && 'lg:grid-cols-[340px_1fr]'
+                    layout === 'landing' && 'justify-items-center',
+                    layout === 'sidebar' && 'lg:grid-cols-[340px_1fr]'
                 )}
             >
-                <aside className={cn(!listCollapsed && 'lg:sticky lg:top-8')}>
+                <aside
+                    className={cn(
+                        layout === 'landing' && 'w-full max-w-2xl',
+                        layout === 'sidebar' && 'lg:sticky lg:top-8'
+                    )}
+                >
                     {listCollapsed ? (
                         <CollapsedCardList
                             cardNames={cardNames}
@@ -64,14 +79,16 @@ export function App() {
                     )}
                 </aside>
 
-                <div className='flex min-w-0 flex-col gap-10'>
-                    <ResultsPanel
-                        entries={entries}
-                        finished={finished}
-                        view={view}
-                        onViewChange={setView}
-                    />
-                </div>
+                {entries && (
+                    <div className='flex min-w-0 flex-col gap-10'>
+                        <ResultsPanel
+                            entries={entries}
+                            finished={finished}
+                            view={view}
+                            onViewChange={setView}
+                        />
+                    </div>
+                )}
             </main>
 
             <SiteFooter />

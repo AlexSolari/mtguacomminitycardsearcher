@@ -10,8 +10,7 @@ import {
     Layers,
     Loader2,
     Package,
-    SearchX,
-    Sparkles
+    SearchX
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BIDS, CARDS, OFFERS, plural, VERSIONS } from '@/i18n';
@@ -851,29 +850,6 @@ export function SearchSummary({
                     ))}
                 </div>
             )}
-        </div>
-    );
-}
-
-export function EmptyState() {
-    return (
-        <div className='flex min-h-80 flex-col items-center justify-center gap-4 rounded-2xl border border-dashed bg-card/20 p-10 text-center'>
-            <div className='grid size-14 place-items-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/20'>
-                <Sparkles className='size-7' />
-            </div>
-            <div className='flex flex-col gap-1'>
-                <p className='font-display text-lg font-semibold tracking-wide'>
-                    Тут з'являться результати
-                </p>
-                <p className='text-sm text-muted-foreground'>
-                    Вставте список карт — і ми перевіримо всі магазини одразу.
-                </p>
-            </div>
-            <div className='flex flex-wrap justify-center gap-4 pt-2'>
-                {(Object.keys(SHOP_INFO) as ShopId[]).map((shop) => (
-                    <ShopBadge key={shop} shop={shop} link />
-                ))}
-            </div>
         </div>
     );
 }
