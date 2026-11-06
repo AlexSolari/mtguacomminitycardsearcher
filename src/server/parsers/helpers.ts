@@ -34,15 +34,21 @@ export const decodeEntities = (s: string) =>
     s
         .replace(/&quot;/g, '"')
         .replace(/&mdash;/g, '—')
-        .replace(/&#0?39;/g, "'")
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&#x([0-9a-f]+);/gi, (_, hex) => codePoint(parseInt(hex, 16)))
+        .replace(/&#(\d+);/g, (_, dec) => codePoint(Number(dec)))
         .replace(/&lt;/g, '<')
         .replace(/&gt;/g, '>')
         .replace(/&amp;/g, '&');
 
+// out-of-range numeric entities would make String.fromCodePoint throw
+const codePoint = (n: number) =>
+    n <= 0x10ffff ? String.fromCodePoint(n) : '�';
+
+// "1 234 ₴" → 1234; text without digits ("—", "Немає") → null, not 0
 export const parsePrice = (s: string | undefined) => {
-    if (!s) return null;
-    const n = Number(s.replace(/[^\d]/g, ''));
-    return Number.isFinite(n) && s.trim() ? n : null;
+    const digits = s?.replace(/[^\d]/g, '');
+    return digits ? Number(digits) : null;
 };
 
 export const abs = (base: string, path: string | undefined) =>

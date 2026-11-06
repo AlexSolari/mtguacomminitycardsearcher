@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import {
     AlertTriangle,
     Crown,
@@ -56,8 +56,18 @@ function splitMatches(r: SearchResult) {
     return { exact, auctions, art, other, pricing, min: minPrice(pricing) };
 }
 
-function timeLeft(iso: string) {
-    const ms = new Date(iso).getTime() - Date.now();
+// Current time, refreshed every `intervalMs` — keeps countdowns moving while the page stays open.
+function useNow(intervalMs: number) {
+    const [now, setNow] = useState(Date.now);
+    useEffect(() => {
+        const id = setInterval(() => setNow(Date.now()), intervalMs);
+        return () => clearInterval(id);
+    }, [intervalMs]);
+    return now;
+}
+
+function timeLeft(iso: string, now: number) {
+    const ms = new Date(iso).getTime() - now;
     if (!(ms > 0)) return 'завершено';
     const m = Math.floor(ms / 60_000);
     const d = Math.floor(m / 1440);
@@ -70,11 +80,12 @@ function timeLeft(iso: string) {
 }
 
 function AuctionMeta({ auction }: { auction: AuctionInfo }) {
+    const now = useNow(30_000); // minute precision is all the countdown shows
     return (
         <div className='flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground'>
             <span className='inline-flex items-center gap-1'>
                 <Hourglass className='size-3' />
-                {timeLeft(auction.endsAt)}
+                {timeLeft(auction.endsAt, now)}
             </span>
             <span>·</span>
             <span>{plural(auction.bids, BIDS)}</span>

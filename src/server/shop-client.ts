@@ -5,24 +5,39 @@
 export type ShopClientOptions = {
     defaultIntervalMs?: number;
     intervalMs?: Record<string, number>; // per-host overrides, e.g. { "kartoteka.in.ua": 500 }
+    timeoutMs?: number; // per request, counted from when it actually starts (after waiting for its slot)
 };
 
 export class ShopClient {
     private readonly defaultIntervalMs: number;
     private readonly intervalMs: Record<string, number>;
+    private readonly timeoutMs: number;
     private readonly nextSlot = new Map<string, number>(); // host → earliest time the next request may start
 
     constructor({
         defaultIntervalMs = 200,
-        intervalMs = {}
+        intervalMs = {},
+        timeoutMs = 15_000
     }: ShopClientOptions = {}) {
         this.defaultIntervalMs = defaultIntervalMs;
         this.intervalMs = intervalMs;
+        this.timeoutMs = timeoutMs;
     }
 
+    // A hanging shop would otherwise keep its card's search (and the UI spinner) waiting forever.
+    // The signal also covers reading the body, so a stalled res.text() times out too.
     async fetch(url: string, init?: RequestInit): Promise<Response> {
         await this.waitForSlot(new URL(url).host);
-        return fetch(url, init);
+        try {
+            return await fetch(url, {
+                signal: AbortSignal.timeout(this.timeoutMs),
+                ...init
+            });
+        } catch (err) {
+            if ((err as Error).name === 'TimeoutError')
+                throw new Error(`timeout after ${this.timeoutMs / 1000}s`);
+            throw err;
+        }
     }
 
     async fetchHtml(url: string): Promise<string> {

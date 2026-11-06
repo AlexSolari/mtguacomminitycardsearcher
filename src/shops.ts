@@ -39,10 +39,13 @@ export const SHOP_INFO: Record<
     }
 };
 
-// "Jace, the Mind-Sculptor" → "jace the mind sculptor"
+// "Jace, the Mind-Sculptor" → "jace the mind sculptor"; "Æther Vial" / "Lim-Dûl's Vault" → "aether vial" / "lim dul s vault"
 export const normalize = (s: string) =>
     s
         .toLowerCase()
+        .replace(/æ/g, 'ae') // a ligature, not a letter with an accent, so NFKD leaves it alone
+        .normalize('NFKD')
+        .replace(/\p{M}/gu, '')
         .replace(/[^\p{L}\p{N}]+/gu, ' ')
         .trim();
 
