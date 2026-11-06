@@ -1,4 +1,4 @@
-import { parseNerdik } from "../../parsers";
+import { parseNerdik } from "../parsers/nerdik";
 import type { CardResult } from "../../shops";
 import { withQuery, type CardSearcher } from "../card-searcher";
 import type { ShopClient } from "../shop-client";

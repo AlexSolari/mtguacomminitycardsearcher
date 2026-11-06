@@ -1,4 +1,4 @@
-import { parseGin, parseGinPrintings } from "../../parsers";
+import { parseGin, parseGinPrintings } from "../parsers/gin";
 import { isExactMatch, type CardResult } from "../../shops";
 import { withQuery, type CardSearcher } from "../card-searcher";
 import type { ShopClient } from "../shop-client";

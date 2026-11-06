@@ -1,4 +1,4 @@
-import { parseKartoteka } from "../../parsers";
+import { parseKartoteka } from "../parsers/kartoteka";
 import type { CardResult } from "../../shops";
 import { withQuery, type CardSearcher } from "../card-searcher";
 import type { ShopClient } from "../shop-client";

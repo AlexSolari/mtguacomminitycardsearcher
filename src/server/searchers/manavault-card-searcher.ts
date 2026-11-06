@@ -1,4 +1,4 @@
-import { parseManavault, parseManavaultVersions } from "../../parsers";
+import { parseManavault, parseManavaultVersions } from "../parsers/manavault";
 import { isExactMatch, type CardResult } from "../../shops";
 import { withQuery, type CardSearcher } from "../card-searcher";
 import type { ShopClient } from "../shop-client";

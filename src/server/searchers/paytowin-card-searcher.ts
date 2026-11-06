@@ -1,4 +1,4 @@
-import { parsePaytowin } from "../../parsers";
+import { parsePaytowin } from "../parsers/paytowin";
 import type { CardResult } from "../../shops";
 import { withQuery, type CardSearcher } from "../card-searcher";
 import type { ShopClient } from "../shop-client";
