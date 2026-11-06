@@ -590,31 +590,50 @@ export const CardSection = memo(function CardSection({
         link.price !== null &&
         link.price === min;
     const hasExact = exact.length > 0;
-    // Fuzzy "other matches" ("The Walls of Ba Sing Se" for "Ba Sing Se") start collapsed — but only when there
-    // are exact matches to show instead; otherwise they're the whole result.
-    const [otherOpen, setOtherOpen] = useState(false);
+    // Secondary groups — fuzzy "other matches" ("The Walls of Ba Sing Se" for "Ba Sing Se") and Art Series — are
+    // dimmed and start collapsed, but only when something better is shown above them; otherwise they're the result.
+    const [openGroups, setOpenGroups] = useState<ReadonlySet<string>>(
+        () => new Set()
+    );
+    const toggleGroup = (key: string) =>
+        setOpenGroups((prev) => {
+            const next = new Set(prev);
+            if (!next.delete(key)) next.add(key);
+            return next;
+        });
     const idPrefix = useId();
     const groups = [
-        { key: 'exact', label: null, links: exact, dim: false },
-        { key: 'auctions', label: 'Аукціони', links: auctions, dim: false },
+        { key: 'exact', label: null, links: exact, secondary: false },
+        {
+            key: 'auctions',
+            label: 'Аукціони',
+            links: auctions,
+            secondary: false
+        },
         {
             key: 'other',
             label: hasExact
                 ? 'Інші збіги'
                 : 'Точних збігів немає · схожі назви',
             links: other,
-            dim: hasExact,
-            collapse: hasExact
-                ? { open: otherOpen, toggle: () => setOtherOpen((o) => !o) }
-                : undefined
+            secondary: hasExact
         },
         {
             key: 'art',
             label: 'Art Series',
             links: art,
-            dim: hasExact || other.length > 0
+            secondary: hasExact || other.length > 0
         }
-    ];
+    ].map((group) => ({
+        ...group,
+        dim: group.secondary,
+        collapse: group.secondary
+            ? {
+                  open: openGroups.has(group.key),
+                  toggle: () => toggleGroup(group.key)
+              }
+            : undefined
+    }));
 
     return (
         <section className='flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-2 duration-500'>
