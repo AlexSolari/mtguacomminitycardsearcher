@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, memo, useEffect, useState } from 'react';
 import {
     AlertTriangle,
     Crown,
@@ -41,19 +41,44 @@ const minPrice = (links: CardResult[]) =>
 // "Best price" / "from" / totals use the first non-empty of exact → other → art, so neither "School Daze"
 // (for "Daze") nor a 16 ₴ Art Series card (for "Sol Ring") wins "Best price". Auction bids aren't fixed
 // prices, so auctions never count toward pricing.
-function splitMatches(r: SearchResult) {
-    const auctions = r.links.filter((l) => l.auction).sort(byPrice);
-    const offers = r.links.filter((l) => !l.auction);
-    const art = offers.filter(isArtSeries).sort(byPrice);
-    const playable = offers.filter((l) => !isArtSeries(l));
-    const exact = playable
-        .filter((l) => isExactMatch(l.name, r.card))
-        .sort(byPrice);
-    const other = playable
-        .filter((l) => !isExactMatch(l.name, r.card))
-        .sort(byPrice);
+// A finished result never changes, so the split is computed once per result object and shared by
+// CardSection and SearchSummary.
+type Split = {
+    exact: CardResult[];
+    auctions: CardResult[];
+    art: CardResult[];
+    other: CardResult[];
+    pricing: Set<CardResult>;
+    min: number | null;
+};
+const splits = new WeakMap<SearchResult, Split>();
+function splitMatches(r: SearchResult): Split {
+    let split = splits.get(r);
+    if (split) return split;
+
+    const exact: CardResult[] = [];
+    const auctions: CardResult[] = [];
+    const art: CardResult[] = [];
+    const other: CardResult[] = [];
+    for (const l of r.links) {
+        if (l.auction) auctions.push(l);
+        else if (isArtSeries(l)) art.push(l);
+        else if (isExactMatch(l.name, r.card)) exact.push(l);
+        else other.push(l);
+    }
+    for (const group of [exact, auctions, art, other]) group.sort(byPrice);
     const pricing = exact.length > 0 ? exact : other.length > 0 ? other : art;
-    return { exact, auctions, art, other, pricing, min: minPrice(pricing) };
+
+    split = {
+        exact,
+        auctions,
+        art,
+        other,
+        pricing: new Set(pricing),
+        min: minPrice(pricing)
+    };
+    splits.set(r, split);
+    return split;
 }
 
 // Current time, refreshed every `intervalMs` — keeps countdowns moving while the page stays open.
@@ -508,7 +533,9 @@ function GroupDivider({ label, count }: { label: string; count: number }) {
 
 export type ResultsView = 'grid' | 'table';
 
-export function CardSection({
+// Memoized: the page re-renders on every keystroke in the card list, and a big deck can have
+// thousands of tiles on screen. A section only needs to re-render when its result or the view changes.
+export const CardSection = memo(function CardSection({
     result,
     view = 'grid'
 }: {
@@ -519,7 +546,7 @@ export function CardSection({
     const links = result.links;
     const isBest = (link: CardResult) =>
         links.length > 1 &&
-        pricing.includes(link) &&
+        pricing.has(link) &&
         link.price !== null &&
         link.price === min;
     const hasExact = exact.length > 0;
@@ -619,7 +646,7 @@ export function CardSection({
                   )}
         </section>
     );
-}
+});
 
 export function CardSectionSkeleton({ name }: { name: string }) {
     return (

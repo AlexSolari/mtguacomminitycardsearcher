@@ -5,7 +5,8 @@ import type { ShopClient } from '../shop-client';
 
 // Mana Vault's search returns one tile per card. For exact matches, swap it for the card's versions page, which
 // lists every in-stock printing with its own price. That page wants the exact, case-sensitive full name
-// ("Daze", "Emeritus of Woe // Demonic Tutor"), so we take names from the search results — plus the query as typed.
+// ("Daze", "Emeritus of Woe // Demonic Tutor"), so we take names from the search results. Only when none of them
+// match exactly do we try the query as typed — otherwise it's an extra request that usually 404s ("sol ring").
 export class ManavaultCardSearcher implements CardSearcher {
     readonly shop = 'manavault';
 
@@ -18,7 +19,8 @@ export class ManavaultCardSearcher implements CardSearcher {
             )
         );
         const exact = found.filter((l) => isExactMatch(l.name, card));
-        const names = [...new Set([card, ...exact.map((l) => l.name)])];
+        const names =
+            exact.length > 0 ? [...new Set(exact.map((l) => l.name))] : [card];
 
         const versions = await Promise.all(
             names.map(

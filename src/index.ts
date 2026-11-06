@@ -1,5 +1,6 @@
 import { serve } from 'bun';
 import index from './index.html';
+import { CachedCardSearcher } from './server/cached-card-searcher';
 import { CardSearchService } from './server/card-search-service';
 import { ShopClient } from './server/shop-client';
 import { CartonCardSearcher } from './server/searchers/carton-card-searcher';
@@ -14,14 +15,16 @@ import { normalize } from './shops';
 const MAX_CARDS_PER_REQUEST = 100;
 
 const shopClient = new ShopClient();
-const cardSearch = new CardSearchService([
-    new GinCardSearcher(shopClient),
-    new CartonCardSearcher(shopClient),
-    new ManavaultCardSearcher(shopClient),
-    new NerdikCardSearcher(shopClient),
-    new KartotekaCardSearcher(shopClient),
-    new PaytowinCardSearcher(shopClient)
-]);
+const cardSearch = new CardSearchService(
+    [
+        new GinCardSearcher(shopClient),
+        new CartonCardSearcher(shopClient),
+        new ManavaultCardSearcher(shopClient),
+        new NerdikCardSearcher(shopClient),
+        new KartotekaCardSearcher(shopClient),
+        new PaytowinCardSearcher(shopClient)
+    ].map((searcher) => new CachedCardSearcher(searcher))
+);
 
 const server = serve({
     routes: {
