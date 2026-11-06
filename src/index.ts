@@ -1,13 +1,45 @@
 import { serve } from "bun";
 import index from "./index.html";
-import { parseCarton, parseGin, parseManavault, parseNerdik } from "./parsers";
-import { normalize, type CardResult, type SearchResult, type ShopId } from "./shops";
+import { parseCarton, parseGin, parseManavault, parseManavaultVersions, parseNerdik } from "./parsers";
+import { isExactMatch, normalize, type CardResult, type SearchResult, type ShopId } from "./shops";
 
-const SHOPS:{ name: ShopId; searchUrl: string; parse: (html: string) => CardResult[] }[] = [
-  { name: "gin", searchUrl: "https://mtgin.kyiv.ua/", parse: parseGin },
-  { name: "carton", searchUrl: "https://carton.cards/search", parse: parseCarton },
-  { name: "manavault", searchUrl: "https://manavaultstore.com/cards", parse: parseManavault },
-  { name: "nerdik", searchUrl: "https://nerdik.club/katalog/search/", parse: parseNerdik },
+async function fetchHtml(url: string): Promise<string> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.text();
+}
+
+const searchBy = (searchUrl: string, parse: (html: string) => CardResult[]) => async (card: string) =>
+  parse(await fetchHtml(`${searchUrl}?${new URLSearchParams({ q: card })}`));
+
+// Mana Vault's search returns one tile per card. For exact matches, swap it for the card's versions page, which
+// lists every in-stock printing with its own price. That page wants the exact, case-sensitive full name
+// ("Daze", "Emeritus of Woe // Demonic Tutor"), so we take names from the search results — plus the query as typed.
+async function searchManavault(card: string): Promise<CardResult[]> {
+  const found = await searchBy("https://manavaultstore.com/cards", parseManavault)(card);
+  const exact = found.filter(l => isExactMatch(l.name, card));
+  const names = [...new Set([card, ...exact.map(l => l.name)])];
+
+  const versions = await Promise.all(
+    names.map(name =>
+      fetchHtml(`https://manavaultstore.com/cards/versions?${new URLSearchParams({ name })}`)
+        .then(parseManavaultVersions)
+        .catch(() => null), // 404 = no card by that exact name
+    ),
+  );
+  const printings = versions.flatMap(v => v ?? []);
+  if (printings.length === 0) return found; // versions lookup failed / nothing in stock there — keep search results
+
+  const byUrl = new Map(printings.map(p => [p.url, p]));
+  for (const l of found) if (!isExactMatch(l.name, card)) byUrl.set(l.url, l); // keep fuzzy "other matches"
+  return [...byUrl.values()];
+}
+
+const SHOPS: { name: ShopId; search: (card: string) => Promise<CardResult[]> }[] = [
+  { name: "gin", search: searchBy("https://mtgin.kyiv.ua/", parseGin) },
+  { name: "carton", search: searchBy("https://carton.cards/search", parseCarton) },
+  { name: "manavault", search: searchManavault },
+  { name: "nerdik", search: searchBy("https://nerdik.club/katalog/search/", parseNerdik) },
 ];
 
 const server = serve({
@@ -22,13 +54,10 @@ const server = serve({
 
         const results = await Promise.all(
           cards.map(async (card): Promise<SearchResult> => {
-            const q = new URLSearchParams({ q: card }).toString();
             const shops = await Promise.all(
               SHOPS.map(async shop => {
                 try {
-                  const res = await fetch(`${shop.searchUrl}?${q}`);
-                  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                  return { links: shop.parse(await res.text()), error: null };
+                  return { links: await shop.search(card), error: null };
                 } catch (err) {
                   console.error(`[${shop.name}] search for "${card}" failed:`, err);
                   return { links: [], error: `${shop.name}: ${(err as Error).message}` };

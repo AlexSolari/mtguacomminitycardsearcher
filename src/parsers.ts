@@ -36,6 +36,8 @@ export function parseGin(html: string): CardResult[] {
           image: abs(base, block.match(/<img[^>]*src="([^"]+)"/)?.[1]),
           // single printing: <div class="buy"><strong>; multiple printings: <div class="marketplacePrice"><small>…</small><strong> ("from" price)
           price: parsePrice(block.match(/<div class="(?:buy|marketplacePrice)">(?:<small>[^<]*<\/small>)?<strong>([^<]+)<\/strong>/)?.[1]),
+          // single-printing tiles name their set: <a class="catalogSetLink" href="/sets/ddc">Duel Decks: …</a>
+          artSeries: /class="catalogSetLink"[^>]*>[^<]*Art Series/i.test(block),
         },
       ];
     });
@@ -54,6 +56,7 @@ export function parseCarton(html: string): CardResult[] {
     url: abs(base, p.url_path)!,
     image: p.image ?? null,
     price: typeof p.min_price === "number" ? p.min_price : null,
+    artSeries: p.property_set?.layout === "art_series" || /art_series/.test(p.property_set?.set_name ?? ""),
   }));
 }
 
@@ -79,6 +82,46 @@ export function parseNerdik(html: string): CardResult[] {
           image: abs(base, block.match(/<img[^>]*class='catalogCard-img'[^>]*src='([^']+)'/)?.[1]),
           // exact class match so the struck-through catalogCard-oldPrice is skipped
           price: parsePrice(block.match(/<div class="catalogCard-price(?: __light)?">([^<]+)</)?.[1]),
+        },
+      ];
+    });
+}
+
+// manavaultstore.com/cards/versions?name=<exact name> — every printing of one card, one tile each:
+//   <a class="group flex flex-col rounded-xl border …" href="/cards/<scryfall id>">
+//     <img alt="Sol Ring" src="/api/card-img/front/…webp">
+//     <p><img set-icon/>Outlaws of Thunder Junction Commander</p> <p>OTC · №267</p> <p>Borderless?</p>
+//     <p>у продажу 1 шт. · від 100 ₴</p>   — or "немає в продажу" (not for sale), which we drop
+export function parseManavaultVersions(html: string): CardResult[] {
+  const base = "https://manavaultstore.com";
+  return html
+    .split('<a class="group flex flex-col rounded-xl border')
+    .slice(1)
+    .flatMap((chunk) => {
+      const block = chunk.slice(0, chunk.indexOf("</a>"));
+      const href = block.match(/href="(\/cards\/[^"]+)"/)?.[1];
+      if (!href || !block.includes("у продажу")) return [];
+
+      const text = block
+        .replace(/<!-- -->/g, "")
+        .split(/<[^>]+>/)
+        .map((s) => decodeEntities(s).trim())
+        .filter(Boolean);
+      const numIdx = text.findIndex((s) => s.includes("№"));
+      const set = numIdx > 0 ? text[numIdx - 1] : undefined;
+      const number = text[numIdx]?.match(/№\s*(\S+)/)?.[1];
+      const finish = text[numIdx + 1] && !text[numIdx + 1]!.includes("продажу") ? text[numIdx + 1] : undefined;
+      const card = decodeEntities(block.match(/<img alt="([^"]+)"/)?.[1] ?? "");
+
+      // "Sol Ring — Outlaws of Thunder Junction Commander #267, Borderless" (same shape as Nerdik's names)
+      const edition = [set && number ? `${set} #${number}` : set, finish].filter(Boolean).join(", ");
+      return [
+        {
+          shop: "manavault" as const,
+          name: edition ? `${card} — ${edition}` : card,
+          url: abs(base, href)!,
+          image: abs(base, block.match(/<img alt="[^"]*"[^>]*src="([^"]+)"/)?.[1]),
+          price: parsePrice(text.join(" ").match(/від\s*([\d\s  ]+)\s*₴/)?.[1]),
         },
       ];
     });

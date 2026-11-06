@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { AlertTriangle, Crown, ExternalLink, ImageOff, Loader2, SearchX, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { isExactMatch, SHOP_INFO, type CardResult, type SearchResult, type ShopId } from "@/shops";
+import { isArtSeries, isExactMatch, SHOP_INFO, type CardResult, type SearchResult, type ShopId } from "@/shops";
 
 export const formatPrice = (price: number) => `${price.toLocaleString("uk-UA")} ₴`;
 
@@ -9,13 +9,16 @@ const byPrice = (a: CardResult, b: CardResult) => (a.price ?? Infinity) - (b.pri
 const minPrice = (links: CardResult[]) =>
   links.reduce<number | null>((min, l) => (l.price !== null && (min === null || l.price < min) ? l.price : min), null);
 
-// Exact matches first (each group by price). "Best price" / "from" / totals use the exact group when there is one,
-// so e.g. "School Daze" doesn't win "Best price" for a "Daze" search.
+// Groups, each sorted by price: exact matches → Art Series → other (fuzzy) matches.
+// "Best price" / "from" / totals use the first non-empty of exact → other → art, so neither "School Daze"
+// (for "Daze") nor a 16 ₴ Art Series card (for "Sol Ring") wins "Best price".
 function splitMatches(r: SearchResult) {
-  const exact = r.links.filter(l => isExactMatch(l.name, r.card)).sort(byPrice);
-  const other = r.links.filter(l => !isExactMatch(l.name, r.card)).sort(byPrice);
-  const pricing = exact.length > 0 ? exact : other;
-  return { exact, other, pricing, min: minPrice(pricing) };
+  const art = r.links.filter(isArtSeries).sort(byPrice);
+  const playable = r.links.filter(l => !isArtSeries(l));
+  const exact = playable.filter(l => isExactMatch(l.name, r.card)).sort(byPrice);
+  const other = playable.filter(l => !isExactMatch(l.name, r.card)).sort(byPrice);
+  const pricing = exact.length > 0 ? exact : other.length > 0 ? other : art;
+  return { exact, art, other, pricing, min: minPrice(pricing) };
 }
 const cheapest = (r: SearchResult) => splitMatches(r).min;
 
@@ -112,10 +115,16 @@ function GroupDivider({ label, count }: { label: string; count: number }) {
 }
 
 export function CardSection({ result }: { result: SearchResult }) {
-  const { exact, other, pricing, min } = splitMatches(result);
+  const { exact, art, other, pricing, min } = splitMatches(result);
   const links = result.links;
   const isBest = (link: CardResult) =>
     links.length > 1 && pricing.includes(link) && link.price !== null && link.price === min;
+  const hasExact = exact.length > 0;
+  const groups = [
+    { key: "exact", label: null, links: exact, dim: false },
+    { key: "other", label: hasExact ? "Other matches" : "No exact match · similar names", links: other, dim: hasExact },
+    { key: "art", label: "Art Series", links: art, dim: hasExact || other.length > 0 },
+  ];
 
   return (
     <section className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -143,25 +152,19 @@ export function CardSection({ result }: { result: SearchResult }) {
           Not found in any shop.
         </div>
       ) : (
-        <>
-          {exact.length > 0 && (
-            <div className={grid}>
-              {exact.map(link => (
-                <ResultTile key={link.url} link={link} best={isBest(link)} />
-              ))}
-            </div>
-          )}
-          {other.length > 0 && (
-            <>
-              <GroupDivider label={exact.length > 0 ? "Other matches" : "No exact match · similar names"} count={other.length} />
-              <div className={cn(grid, exact.length > 0 && "opacity-70 transition-opacity hover:opacity-100")}>
-                {other.map(link => (
-                  <ResultTile key={link.url} link={link} best={isBest(link)} />
-                ))}
-              </div>
-            </>
-          )}
-        </>
+        groups.map(
+          group =>
+            group.links.length > 0 && (
+              <Fragment key={group.key}>
+                {group.label && <GroupDivider label={group.label} count={group.links.length} />}
+                <div className={cn(grid, group.dim && "opacity-70 transition-opacity hover:opacity-100")}>
+                  {group.links.map(link => (
+                    <ResultTile key={link.url} link={link} best={isBest(link)} />
+                  ))}
+                </div>
+              </Fragment>
+            ),
+        )
       )}
     </section>
   );

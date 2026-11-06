@@ -28,7 +28,11 @@ export type CardResult = {
   url: string;
   image: string | null;
   price: number | null; // UAH
+  artSeries?: boolean; // set by parsers that know the set/layout (CartOn, MTGin); otherwise inferred from the name
 };
+
+// Art Series cards are collectible art cards, not playable copies — grouped separately and kept out of pricing.
+export const isArtSeries = (l: CardResult) => l.artSeries === true || /\bart series\b/i.test(l.name);
 
 export type SearchResult = {
   card: string;
