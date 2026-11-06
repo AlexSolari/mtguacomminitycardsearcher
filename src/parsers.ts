@@ -82,6 +82,50 @@ export function parseGin(html: string): CardResult[] {
     });
 }
 
+// mtgin.kyiv.ua/cards/oracle/<id>-<slug> — all printings of one card, one <article class="marketplacePrinting"> each:
+//   <h2>Fifth Edition</h2> <p>#77 · EN · Звичайна|Foil</p> <img alt="Counterspell" src="/api/card-images/…">
+//   then one offer per seller: <a href="/shops/mtgin/cards/1235-counterspell">MTGin</a> <small>В наявності: 3</small> <strong>124 ₴</strong>
+export function parseGinPrintings(html: string): CardResult[] {
+  const base = "https://mtgin.kyiv.ua";
+  return html
+    .replace(/<!-- -->/g, "")
+    .split('<article class="marketplacePrinting"')
+    .slice(1)
+    .flatMap((chunk) => {
+      const block = chunk.slice(0, chunk.indexOf("</article>"));
+      const set = decodeEntities(block.match(/<h2[^>]*>([^<]+)<\/h2>/)?.[1] ?? "").trim();
+      const [number, lang, finish] = (block.match(/<p[^>]*>#([^<]+)<\/p>/)?.[1] ?? "").split("·").map((s) => s.trim());
+      const card = decodeEntities(block.match(/<img alt="([^"]+)"/)?.[1] ?? "");
+      const image = abs(base, block.match(/<img[^>]*src="([^"]+)"/)?.[1]);
+      const foil = finish ? /foil|фольг|фойл|etched/i.test(finish) : undefined;
+      const edition = [set && number ? `${set} #${number}` : set, foil || !finish || /звичайн/i.test(finish) ? null : finish]
+        .filter(Boolean)
+        .join(", ");
+
+      // one result per seller offer for this printing
+      return block
+        .split(/(?=<a[^>]*href="\/shops\/)/)
+        .slice(1)
+        .flatMap((offer) => {
+          const href = offer.match(/href="(\/shops\/[^"]+)"/)?.[1];
+          if (!href || !card) return [];
+          return [
+            {
+              shop: "gin" as const,
+              name: edition ? `${card} — ${edition}` : card,
+              url: abs(base, href)!,
+              image,
+              price: parsePrice(offer.match(/<strong[^>]*>([^<]+)<\/strong>/)?.[1]),
+              stock: Number(offer.match(/В наявності:\s*(\d+)/)?.[1]) || undefined,
+              foil,
+              language: languageCode(lang),
+              artSeries: /art series/i.test(set),
+            },
+          ];
+        });
+    });
+}
+
 function parseGinHtml(html: string): CardResult[] {
   const base = "https://mtgin.kyiv.ua";
   return html

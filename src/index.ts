@@ -3,6 +3,7 @@ import index from "./index.html";
 import {
   parseCarton,
   parseGin,
+  parseGinPrintings,
   parseKartoteka,
   parseManavault,
   parseManavaultVersions,
@@ -43,8 +44,27 @@ async function searchManavault(card: string): Promise<CardResult[]> {
   return [...byUrl.values()];
 }
 
-const SHOPS: { name: ShopId; search: (card: string) => Promise<CardResult[]> }[] = [
-  { name: "gin", search: searchBy("https://mtgin.kyiv.ua/", parseGin) },
+// MTGin's search shows one summary tile per card when it has several printings ("4 версії · від 42 ₴"), linking to
+// /cards/oracle/<id>. For exact matches, expand that page into one result per printing (and seller), like Mana Vault.
+// If the expansion fails or comes back empty, the summary tile stays.
+async function searchGin(card: string): Promise<CardResult[]> {
+  const found = await searchBy("https://mtgin.kyiv.ua/", parseGin)(card);
+  const expanded = await Promise.all(
+    found.map(async l => {
+      if (!l.printings || !isExactMatch(l.name, card)) return [l];
+      try {
+        const printings = parseGinPrintings(await fetchHtml(l.url));
+        return printings.length > 0 ? printings : [l];
+      } catch {
+        return [l];
+      }
+    }),
+  );
+  return expanded.flat();
+}
+
+const SHOPS:{ name: ShopId; search: (card: string) => Promise<CardResult[]> }[] = [
+  { name: "gin", search: searchGin },
   { name: "carton", search: searchBy("https://carton.cards/search", parseCarton) },
   { name: "manavault", search: searchManavault },
   { name: "nerdik", search: searchBy("https://nerdik.club/katalog/search/", parseNerdik) },
