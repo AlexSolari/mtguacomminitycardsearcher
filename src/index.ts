@@ -14,6 +14,22 @@ import { normalize } from './shops';
 // The frontend sends one card per request; this only bounds what a hand-made request can trigger.
 const MAX_CARDS_PER_REQUEST = 100;
 
+// 2026-11-06T12:00:00.000Z [search] "Sol Ring"   (long lists: the first few names, then "… +95 more")
+const LOGGED_NAMES = 5;
+function logSearch(cards: string[]) {
+    const names = cards
+        .slice(0, LOGGED_NAMES)
+        .map((c) => JSON.stringify(c))
+        .join(', ');
+    const more =
+        cards.length > LOGGED_NAMES
+            ? ` … +${cards.length - LOGGED_NAMES} more`
+            : '';
+    console.log(
+        `${new Date().toISOString()} [search] ${names || '(no cards)'}${more}`
+    );
+}
+
 const shopClient = new ShopClient();
 const cardSearch = new CardSearchService(
     [
@@ -41,6 +57,7 @@ const server = serve({
                     .filter((c): c is string => typeof c === 'string')
                     .map((c) => c.trim())
                     .filter((c) => normalize(c) !== '');
+                logSearch(cards);
                 // each card fans out to every shop — don't let one request flood them
                 if (cards.length > MAX_CARDS_PER_REQUEST)
                     return Response.json(
