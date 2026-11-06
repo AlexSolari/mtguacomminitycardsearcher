@@ -35,6 +35,76 @@ import { parseCardList } from './decklist';
 import { DeckFileError, deckFileToNames } from './deckfile';
 import { CARDS, FILES, plural } from './i18n';
 
+// lucide is dropping brand icons, so the Telegram and GitHub marks are inlined (official paths, 24×24).
+function TelegramIcon({ className }: { className?: string }) {
+    return (
+        <svg
+            viewBox='0 0 24 24'
+            fill='currentColor'
+            aria-hidden='true'
+            className={className}
+        >
+            <path d='M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z' />
+        </svg>
+    );
+}
+
+function GithubIcon({ className }: { className?: string }) {
+    return (
+        <svg
+            viewBox='0 0 24 24'
+            fill='currentColor'
+            aria-hidden='true'
+            className={className}
+        >
+            <path d='M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2.2c-3.3.7-4-1.4-4-1.4-.6-1.4-1.4-1.8-1.4-1.8-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-6 0-1.2.5-2.3 1.3-3.1-.2-.4-.6-1.6 0-3.2 0 0 1-.3 3.4 1.2a11.5 11.5 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.8.1 3.2.8.8 1.3 1.9 1.3 3.2 0 4.6-2.8 5.6-5.5 5.9.5.4.9 1 .9 2.2v3.3c0 .3.1.7.8.6A12 12 0 0 0 12 .3' />
+        </svg>
+    );
+}
+
+// Footer contact links.
+const CONTACTS: {
+    label: string;
+    href: string;
+    icon: (props: { className?: string }) => React.ReactNode;
+}[] = [
+    {
+        label: 'CheeseSolari',
+        href: 'https://t.me/CheeseSolari',
+        icon: TelegramIcon
+    },
+    {
+        label: 'Повідомити про помилку',
+        href: 'https://github.com/AlexSolari/mtguacomminitycardsearcher/issues',
+        icon: GithubIcon
+    }
+];
+
+function Footer() {
+    return (
+        <footer className='mt-auto flex flex-col items-center justify-between gap-3 border-t pt-4 text-sm text-muted-foreground sm:flex-row'>
+            <p>MTG UA Community Card Searcher</p>
+            <nav
+                aria-label='Контакти'
+                className='flex flex-wrap items-center gap-x-5 gap-y-2'
+            >
+                {CONTACTS.map(({ label, href, icon: Icon }) => (
+                    <a
+                        key={href}
+                        href={href}
+                        target='_blank'
+                        rel='noopener noreferrer'
+                        className='inline-flex items-center gap-1.5 transition-colors hover:text-primary'
+                    >
+                        <Icon className='size-4' />
+                        {label}
+                    </a>
+                ))}
+            </nav>
+        </footer>
+    );
+}
+
 // Results layout (tiles / table), remembered per browser.
 const VIEW_KEY = 'searcher:view';
 function loadView(): ResultsView {
@@ -237,7 +307,7 @@ export function App() {
     }
 
     return (
-        <div className='mx-auto flex max-w-7xl flex-col gap-10 px-4 py-10 sm:px-6 lg:py-14'>
+        <div className='mx-auto flex min-h-dvh max-w-7xl flex-col gap-10 px-4 py-10 sm:px-6 lg:py-8'>
             <header className='flex flex-col gap-3'>
                 <div className='flex items-center gap-3'>
                     <div className='grid size-11 place-items-center rounded-xl bg-linear-to-br from-primary to-amber-600 text-primary-foreground shadow-lg shadow-primary/20'>
@@ -504,6 +574,8 @@ export function App() {
                     )}
                 </div>
             </main>
+
+            <Footer />
         </div>
     );
 }
