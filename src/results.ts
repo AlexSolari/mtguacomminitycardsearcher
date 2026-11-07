@@ -1,10 +1,6 @@
 // How a card's offers are grouped and priced, for the result sections and the summary. Browser-only, pure.
-import {
-    isArtSeries,
-    isExactMatch,
-    type CardResult,
-    type SearchResult
-} from './shops';
+import { isArtSeries, isExactMatch } from './matching';
+import type { CardResult, SearchResult } from './search-result';
 
 // React key for an offer. The URL alone isn't unique: Nerdik lists one printing's offers at different
 // prices, and they all share the printing's URL.

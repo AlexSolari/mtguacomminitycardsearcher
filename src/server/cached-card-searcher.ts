@@ -1,4 +1,6 @@
-import { normalize, type CardResult, type ShopId } from '../shops';
+import { normalize } from '../matching';
+import type { CardResult } from '../search-result';
+import type { ShopId } from '../shops';
 import type { CardSearcher } from './card-searcher';
 
 type Entry = {

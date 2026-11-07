@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Hourglass, ImageOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BIDS, plural } from '@/i18n';
-import type { AuctionInfo, CardResult } from '@/shops';
+import type { AuctionInfo, CardResult } from '@/search-result';
 
 export const formatPrice = (price: number) =>
     `${price.toLocaleString('uk-UA')} ₴`;

@@ -3,16 +3,17 @@ import { AlertTriangle, ChevronRight, Loader2, SearchX } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { OFFERS, plural } from '@/i18n';
 import { offerKey, splitMatches } from '@/results';
-import {
-    describeError,
-    manualSearchUrl,
-    type CardResult,
-    type SearchResult
-} from '@/shops';
+import type { CardResult, SearchError, SearchResult } from '@/search-result';
+import { manualSearchUrl, SHOP_INFO } from '@/shops';
 import { formatPrice } from '@/components/offer-parts';
 import { ResultTable } from '@/components/result-table';
 import { ManualCheckTile, ResultTile } from '@/components/result-tile';
 import type { ResultsView } from '@/components/view-toggle';
+
+const describeError = (e: SearchError) =>
+    e.shop
+        ? `Пошук у ${SHOP_INFO[e.shop].label} не вдався (${e.message})`
+        : `Не вдалося виконати пошук: ${e.message}`;
 
 function SectionHeader({
     title,

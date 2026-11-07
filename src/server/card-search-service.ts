@@ -1,4 +1,5 @@
-import { normalize, type SearchResult } from '../shops';
+import { normalize } from '../matching';
+import type { SearchResult } from '../search-result';
 import type { CardSearcher } from './card-searcher';
 import { HttpError } from './shop-client';
 

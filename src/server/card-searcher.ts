@@ -1,4 +1,5 @@
-import type { CardResult, ShopId } from '../shops';
+import type { CardResult } from '../search-result';
+import type { ShopId } from '../shops';
 import { HttpError } from './shop-client';
 
 // Searches one shop for a card. Implementations own a ShopClient, which rate-limits requests to their shop.

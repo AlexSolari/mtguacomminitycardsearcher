@@ -1,4 +1,5 @@
-import { languageCode, type CardResult } from '../../shops';
+import type { CardResult } from '../../search-result';
+import { languageCode } from './helpers';
 
 // hub.nerdik.club/api/singles/search — JSON, one entry per printing, each with its in-stock offers:
 //   {"cards":[{"name":"Sol Ring","game":"mtg","set_name":"Fallout","number":"359","language":"en",

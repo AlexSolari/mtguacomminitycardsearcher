@@ -1,5 +1,6 @@
 import { parseManavault, parseManavaultVersions } from '../parsers/manavault';
-import { isExactMatch, type CardResult } from '../../shops';
+import { isExactMatch } from '../../matching';
+import type { CardResult } from '../../search-result';
 import { warnFallback, warnIfEmpty, type CardSearcher } from '../card-searcher';
 import { ShopClient } from '../shop-client';
 

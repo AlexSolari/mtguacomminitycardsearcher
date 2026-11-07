@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CardEntry } from '@/decklist';
-import type { SearchResult } from '@/shops';
+import type { SearchResult } from '@/search-result';
 
 // One entry per searched card, in list order. Each card is fetched by its own request, so sections fill in
 // as soon as their card is done instead of waiting for the slowest one.

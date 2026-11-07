@@ -9,7 +9,7 @@ import { KartotekaCardSearcher } from './server/searchers/kartoteka-card-searche
 import { ManavaultCardSearcher } from './server/searchers/manavault-card-searcher';
 import { NerdikCardSearcher } from './server/searchers/nerdik-card-searcher';
 import { PaytowinCardSearcher } from './server/searchers/paytowin-card-searcher';
-import { normalize } from './shops';
+import { normalize } from './matching';
 
 // The frontend sends one card per request; this only bounds what a hand-made request can queue up.
 const MAX_CARDS_PER_REQUEST = 100;

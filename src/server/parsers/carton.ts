@@ -1,5 +1,5 @@
-import { abs, decodeEntities } from './helpers';
-import { languageCode, type CardResult } from '../../shops';
+import { abs, decodeEntities, languageCode } from './helpers';
+import type { CardResult } from '../../search-result';
 
 // carton.cards — Inertia.js app, results are JSON in <div id="app" data-page="...">.
 export function parseCarton(html: string, base: string): CardResult[] {

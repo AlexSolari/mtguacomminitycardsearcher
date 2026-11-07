@@ -1,4 +1,5 @@
-// Shared between server and frontend — keep free of server-only imports.
+// The shop registry. Shared between server and frontend — keep free of server-only imports.
+import type { SearchError } from './search-result';
 
 export type ShopId =
     'gin' | 'carton' | 'manavault' | 'nerdik' | 'kartoteka' | 'paytowin';
@@ -46,96 +47,6 @@ export const SHOP_INFO: Record<
     }
 };
 
-// "Jace, the Mind-Sculptor" → "jace the mind sculptor"; "Æther Vial" / "Lim-Dûl's Vault" → "aether vial" / "lim dul s vault"
-export const normalize = (s: string) =>
-    s
-        .toLowerCase()
-        .replace(/æ/g, 'ae') // a ligature, not a letter with an accent, so NFKD leaves it alone
-        .normalize('NFKD')
-        .replace(/\p{M}/gu, '')
-        .replace(/[^\p{L}\p{N}]+/gu, ' ')
-        .trim();
-
-// Is `listing` exactly the searched card, ignoring shop decorations? Handles:
-//   "Daze (PLST-DD2-23)"                         (CartOn set suffix)
-//   "Daze — Nemesis #29, Foil, English"          (Nerdik edition suffix)
-//   "Emeritus of Woe // Demonic Tutor"           (either face of a split / MDFC card, or the full name)
-export function isExactMatch(listing: string, query: string) {
-    const q = normalize(query);
-    const name = listing
-        .split(' — ')[0]!
-        .replace(/\s+\([A-Z0-9]+-[^)]*\)$/i, '');
-    return [name, ...name.split(' // ')].some((n) => normalize(n) === q);
-}
-
-export type CardResult = {
-    shop: ShopId;
-    name: string;
-    url: string;
-    image: string | null;
-    price: number | null; // UAH
-    artSeries?: boolean; // set by parsers that know the set/layout (CartOn, MTGin); otherwise inferred from the name
-    auction?: AuctionInfo; // auction lot rather than a fixed-price offer (PayToWin) — `price` is the current/starting bid
-
-    // Optional details — each shop fills in what it exposes (see the parsers).
-    fromPrice?: boolean; // `price` is the cheapest of several offers/conditions ("від …")
-    oldPrice?: number; // pre-discount price
-    stock?: number; // copies for sale
-    printings?: number; // >1 when the tile stands for several printings and links to an all-versions page (MTGin)
-    foil?: boolean;
-    language?: string; // upper-case code: EN, RU, JA…
-    condition?: string; // short grade: NM, M, LP…
-};
-
-// Some shops spell languages out; normalise to codes for the badge.
-const LANGUAGE_CODES: Record<string, string> = {
-    english: 'EN',
-    russian: 'RU',
-    japanese: 'JA',
-    german: 'DE',
-    french: 'FR',
-    italian: 'IT',
-    spanish: 'ES',
-    portuguese: 'PT',
-    korean: 'KO',
-    chinese: 'ZH',
-    'simplified chinese': 'ZHS',
-    'traditional chinese': 'ZHT',
-    ukrainian: 'UK'
-};
-export const languageCode = (s: string | null | undefined) => {
-    if (!s) return undefined;
-    const t = s.trim();
-    return (
-        LANGUAGE_CODES[t.toLowerCase()] ??
-        (t.length <= 3 ? t.toUpperCase() : undefined)
-    );
-};
-
-export type AuctionInfo = {
-    currentBid: number | null; // null until someone bids
-    startingPrice: number;
-    buyNow: number | null;
-    endsAt: string; // ISO timestamp
-    bids: number;
-};
-
-// Art Series cards are collectible art cards, not playable copies — grouped separately and kept out of pricing.
-export const isArtSeries = (l: CardResult) =>
-    l.artSeries === true || /\bart series\b/i.test(l.name);
-
-// A search that failed — on one shop (`shop` set), or the whole request for the card (no `shop`).
-export type SearchError = {
-    shop?: ShopId;
-    message: string; // short technical reason, e.g. "HTTP 429"
-    status?: number; // HTTP status, when the shop answered with an error
-};
-
-export const describeError = (e: SearchError) =>
-    e.shop
-        ? `Пошук у ${SHOP_INFO[e.shop].label} не вдався (${e.message})`
-        : `Не вдалося виконати пошук: ${e.message}`;
-
 // Horoshop shops (Nerdik, Kartoteka) answer 403 to some server IPs, e.g. Railway's, but still work in the
 // user's browser. So for a blocked search, link the shop's own search page for the user to check by hand.
 export function manualSearchUrl(e: SearchError, card: string) {
@@ -144,9 +55,3 @@ export function manualSearchUrl(e: SearchError, card: string) {
         ? `${base}?${new URLSearchParams({ q: card })}`
         : null;
 }
-
-export type SearchResult = {
-    card: string;
-    links: CardResult[];
-    errors: SearchError[];
-};

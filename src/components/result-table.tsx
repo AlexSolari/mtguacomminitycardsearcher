@@ -2,7 +2,7 @@ import { Crown, Gavel } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { plural, VERSIONS } from '@/i18n';
 import { offerKey } from '@/results';
-import type { CardResult } from '@/shops';
+import type { CardResult } from '@/search-result';
 import {
     AuctionMeta,
     Badge,

@@ -8,7 +8,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { plural, VERSIONS } from '@/i18n';
-import type { CardResult, ShopId } from '@/shops';
+import type { CardResult } from '@/search-result';
+import type { ShopId } from '@/shops';
 import {
     AuctionMeta,
     Badge,

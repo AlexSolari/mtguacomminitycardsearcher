@@ -40,10 +40,12 @@ Anything else is yours.
 
 ## Architecture rules
 
-- **`src/shops.ts` is shared with the browser:** it must not import anything server-only.
-  It holds `CardResult`, `SHOP_INFO`, `normalize` and `isExactMatch`.
+- **Three modules are shared with the browser** and must not import anything server-only:
+    - `src/shops.ts`: the shop registry (`ShopId`, `SHOP_INFO`, `manualSearchUrl`)
+    - `src/search-result.ts`: the API types (`CardResult`, `SearchResult`, `SearchError`), types only
+    - `src/matching.ts`: name matching (`normalize`, `isExactMatch`, `isArtSeries`)
 - **Parsers** (`src/server/parsers/<shop>.ts`) are pure: string/JSON in, `CardResult[]` out, no fetching.
-  Shared helpers (`decodeEntities`, `parsePrice`, `abs`, Next.js flight-data readers) live in `parsers/helpers.ts`.
+  Shared helpers (`decodeEntities`, `parsePrice`, `abs`, `languageCode`, Next.js flight-data readers) live in `parsers/helpers.ts`.
   Parsers that resolve relative links take a `base` argument (the searcher passes `client.baseUrl`); don't hardcode the shop's URL.
 - **Searchers** (`src/server/searchers/<shop>-card-searcher.ts`) decide which URLs to fetch and call the parsers.
   They **must** fetch through their own `ShopClient` (created in the constructor with the shop's base URL), never `fetch` directly; it provides the shop's rate limit, timeout and queue cap.

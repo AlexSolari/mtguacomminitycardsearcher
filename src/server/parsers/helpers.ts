@@ -53,3 +53,28 @@ export const parsePrice = (s: string | undefined) => {
 
 export const abs = (base: string, path: string | undefined) =>
     path ? new URL(decodeEntities(path), base).href : null;
+
+// Some shops spell languages out; normalise to codes for the badge.
+const LANGUAGE_CODES: Record<string, string> = {
+    english: 'EN',
+    russian: 'RU',
+    japanese: 'JA',
+    german: 'DE',
+    french: 'FR',
+    italian: 'IT',
+    spanish: 'ES',
+    portuguese: 'PT',
+    korean: 'KO',
+    chinese: 'ZH',
+    'simplified chinese': 'ZHS',
+    'traditional chinese': 'ZHT',
+    ukrainian: 'UK'
+};
+export const languageCode = (s: string | null | undefined) => {
+    if (!s) return undefined;
+    const t = s.trim();
+    return (
+        LANGUAGE_CODES[t.toLowerCase()] ??
+        (t.length <= 3 ? t.toUpperCase() : undefined)
+    );
+};

@@ -83,7 +83,9 @@ browser ──POST /api/search {cards:[name]}──▶ Bun server
 ```
 src/
   index.ts                  Bun server: /api/search + serves the frontend
-  shops.ts                  shared types, shop list, name matching (used by server and browser)
+  shops.ts                  shop list (used by server and browser)
+  search-result.ts          API result types (used by server and browser)
+  matching.ts               card name matching (used by server and browser)
   decklist.ts, deckfile.ts  card list / deck file parsing, with counts (browser)
   results.ts                grouping offers per card, best price, the cheapest total (browser)
   i18n.ts                   Ukrainian plural forms

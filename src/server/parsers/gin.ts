@@ -2,10 +2,11 @@ import {
     abs,
     decodeEntities,
     extractJsonArray,
+    languageCode,
     parsePrice,
     readNextFlight
 } from './helpers';
-import { languageCode, type CardResult } from '../../shops';
+import type { CardResult } from '../../search-result';
 
 // mtgin.kyiv.ua — Next.js; the result grid's props carry structured items:
 //   { href, name, image, printings, copies, price, language: "en", finish: "nonfoil"|"foil"|…, set_name, collector_number }
