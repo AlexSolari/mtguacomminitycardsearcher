@@ -1,6 +1,6 @@
 import { parseGin, parseGinPrintings } from '../parsers/gin';
 import { isExactMatch, type CardResult } from '../../shops';
-import { warnIfEmpty, type CardSearcher } from '../card-searcher';
+import { warnFallback, warnIfEmpty, type CardSearcher } from '../card-searcher';
 import { ShopClient } from '../shop-client';
 
 // MTGin's search shows one summary tile per card when it has several printings ("4 версії · від 42 ₴"), linking to
@@ -13,12 +13,13 @@ export class GinCardSearcher implements CardSearcher {
         private readonly client = new ShopClient('https://mtgin.kyiv.ua')
     ) {}
 
-    async search(card: string): Promise<CardResult[]> {
+    async search(card: string, signal?: AbortSignal): Promise<CardResult[]> {
+        const base = this.client.baseUrl;
         const url = this.client.url('/', { q: card });
         const found = warnIfEmpty(
             this.shop,
             url,
-            parseGin(await this.client.fetchHtml(url))
+            parseGin(await this.client.fetchHtml(url, { signal }), base)
         );
         const expanded = await Promise.all(
             found.map(async (l) => {
@@ -27,10 +28,14 @@ export class GinCardSearcher implements CardSearcher {
                     const printings = warnIfEmpty(
                         this.shop,
                         l.url,
-                        parseGinPrintings(await this.client.fetchHtml(l.url))
+                        parseGinPrintings(
+                            await this.client.fetchHtml(l.url, { signal }),
+                            base
+                        )
                     );
                     return printings.length > 0 ? printings : [l];
-                } catch {
+                } catch (err) {
+                    warnFallback(this.shop, l.url, err, signal);
                     return [l];
                 }
             })

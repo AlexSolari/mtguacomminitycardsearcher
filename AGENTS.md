@@ -44,10 +44,13 @@ Anything else is yours.
   It holds `CardResult`, `SHOP_INFO`, `normalize` and `isExactMatch`.
 - **Parsers** (`src/server/parsers/<shop>.ts`) are pure: string/JSON in, `CardResult[]` out, no fetching.
   Shared helpers (`decodeEntities`, `parsePrice`, `abs`, Next.js flight-data readers) live in `parsers/helpers.ts`.
+  Parsers that resolve relative links take a `base` argument (the searcher passes `client.baseUrl`); don't hardcode the shop's URL.
 - **Searchers** (`src/server/searchers/<shop>-card-searcher.ts`) decide which URLs to fetch and call the parsers.
   They **must** fetch through their own `ShopClient` (created in the constructor with the shop's base URL), never `fetch` directly; it provides the shop's rate limit, timeout and queue cap.
   Build URLs with `client.url(path, params)`. The client refuses URLs on other hosts.
   Pass every parser result through `warnIfEmpty`: an empty parse is how a shop redesign shows up, so it's logged.
+  Pass `search()`'s `signal` to every client call (`{ signal }`), so abandoned searches leave the shop's queue.
+  An optional follow-up request that falls back on failure goes through `warnFallback` in its `catch`, never a silent catch.
 - **Wiring:** searchers are registered in `src/index.ts`, each wrapped in `CachedCardSearcher`.
 - **Prices:**
     - `price` is in UAH, or `null` when unknown; never `0` for "unknown"

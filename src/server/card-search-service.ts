@@ -2,20 +2,21 @@ import { normalize, type SearchResult } from '../shops';
 import type { CardSearcher } from './card-searcher';
 import { HttpError } from './shop-client';
 
-// Searches every shop for every card. A failing shop doesn't fail the card — it's reported in `errors`.
+// Searches every shop for a card. A failing shop doesn't fail the card — it's reported in `errors`.
+// `signal` is the client's request: when it disconnects, the search rejects and its queued shop requests are dropped.
 export class CardSearchService {
     constructor(private readonly searchers: CardSearcher[]) {}
 
-    search(cards: string[]): Promise<SearchResult[]> {
-        return Promise.all(cards.map((card) => this.searchCard(card)));
-    }
-
-    private async searchCard(card: string): Promise<SearchResult> {
+    async search(card: string, signal?: AbortSignal): Promise<SearchResult> {
         const shops = await Promise.all(
             this.searchers.map(async (searcher) => {
                 try {
-                    return { links: await searcher.search(card), error: null };
+                    return {
+                        links: await searcher.search(card, signal),
+                        error: null
+                    };
                 } catch (err) {
+                    if (signal?.aborted) throw err;
                     console.error(
                         `[${searcher.shop}] search for "${card}" failed:`,
                         err

@@ -6,8 +6,7 @@ import type { CardResult } from '../../shops';
 // and renders a catalogCard per product, whose image alt carries the treatment/finish ("Twin Bolt, Normal, Regular Foil").
 // MTG singles are WotC products with a SET-NUMBER article ("f" suffix = foil); sealed MTG and board games are skipped.
 // Product pages sit behind a bot challenge, so everything comes from the search page.
-export function parseKartoteka(html: string): CardResult[] {
-    const base = 'https://kartoteka.in.ua';
+export function parseKartoteka(html: string, base: string): CardResult[] {
     // `var products = [...],` — one line, part of a multi-variable declaration
     const raw = html.match(/var products = (\[.*\])[,;]?\s*$/m)?.[1];
     if (!raw) return [];

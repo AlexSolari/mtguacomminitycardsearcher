@@ -133,11 +133,12 @@ export function CardListForm({
 
             <Button
                 type='submit'
-                disabled={submitting || cardNames.length === 0}
+                disabled={cardNames.length === 0}
                 className='h-11 bg-linear-to-r from-primary to-amber-500 font-semibold shadow-lg shadow-primary/20 transition hover:brightness-110'
             >
+                {/* still clickable while searching: it restarts the search with the edited list */}
                 {submitting ? <Loader2 className='animate-spin' /> : <Search />}
-                {submitting ? 'Шукаємо…' : 'Шукати в магазинах'}
+                {submitting ? 'Шукати заново' : 'Шукати в магазинах'}
             </Button>
             <SearchHint />
         </form>

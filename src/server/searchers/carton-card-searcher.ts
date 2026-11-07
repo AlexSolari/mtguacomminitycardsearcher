@@ -10,12 +10,15 @@ export class CartonCardSearcher implements CardSearcher {
         private readonly client = new ShopClient('https://carton.cards')
     ) {}
 
-    async search(card: string): Promise<CardResult[]> {
+    async search(card: string, signal?: AbortSignal): Promise<CardResult[]> {
         const url = this.client.url('/search', { q: card });
         return warnIfEmpty(
             this.shop,
             url,
-            parseCarton(await this.client.fetchHtml(url))
+            parseCarton(
+                await this.client.fetchHtml(url, { signal }),
+                this.client.baseUrl
+            )
         );
     }
 }

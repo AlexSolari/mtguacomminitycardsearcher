@@ -10,7 +10,7 @@ export class PaytowinCardSearcher implements CardSearcher {
         private readonly client = new ShopClient('https://api.paytowin.club')
     ) {}
 
-    async search(card: string): Promise<CardResult[]> {
+    async search(card: string, signal?: AbortSignal): Promise<CardResult[]> {
         const url = this.client.url('/auctions', {
             q: card,
             game: 'magic',
@@ -19,7 +19,7 @@ export class PaytowinCardSearcher implements CardSearcher {
         return warnIfEmpty(
             this.shop,
             url,
-            parsePaytowin(await this.client.fetchJson(url))
+            parsePaytowin(await this.client.fetchJson(url, { signal }))
         );
     }
 }

@@ -11,13 +11,12 @@ import { languageCode, type CardResult } from '../../shops';
 //   { href, name, image, printings, copies, price, language: "en", finish: "nonfoil"|"foil"|…, set_name, collector_number }
 // A tile with printings > 1 is a summary linking to the card's all-versions page, priced "from".
 // Falls back to scraping the rendered HTML if the payload shape changes.
-export function parseGin(html: string): CardResult[] {
-    const base = 'https://mtgin.kyiv.ua';
+export function parseGin(html: string, base: string): CardResult[] {
     let items: any[] | null = null;
     try {
         items = extractJsonArray(readNextFlight(html), 'items');
     } catch {}
-    if (!items) return parseGinHtml(html);
+    if (!items) return parseGinHtml(html, base);
 
     return items
         .filter((i) => i?.href && i?.name)
@@ -47,8 +46,7 @@ export function parseGin(html: string): CardResult[] {
 // mtgin.kyiv.ua/cards/oracle/<id>-<slug> — all printings of one card, one <article class="marketplacePrinting"> each:
 //   <h2>Fifth Edition</h2> <p>#77 · EN · Звичайна|Foil</p> <img alt="Counterspell" src="/api/card-images/…">
 //   then one offer per seller: <a href="/shops/mtgin/cards/1235-counterspell">MTGin</a> <small>В наявності: 3</small> <strong>124 ₴</strong>
-export function parseGinPrintings(html: string): CardResult[] {
-    const base = 'https://mtgin.kyiv.ua';
+export function parseGinPrintings(html: string, base: string): CardResult[] {
     return html
         .replace(/<!-- -->/g, '')
         .split('<article class="marketplacePrinting"')
@@ -108,8 +106,7 @@ export function parseGinPrintings(html: string): CardResult[] {
         });
 }
 
-function parseGinHtml(html: string): CardResult[] {
-    const base = 'https://mtgin.kyiv.ua';
+function parseGinHtml(html: string, base: string): CardResult[] {
     return html
         .split('<article class="card marketplaceCard"')
         .slice(1)

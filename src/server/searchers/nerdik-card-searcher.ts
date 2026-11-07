@@ -12,7 +12,7 @@ export class NerdikCardSearcher implements CardSearcher {
         private readonly apiKey = process.env.NERDIK_API_KEY
     ) {}
 
-    async search(card: string): Promise<CardResult[]> {
+    async search(card: string, signal?: AbortSignal): Promise<CardResult[]> {
         if (!this.apiKey) throw new Error('NERDIK_API_KEY is not set');
         // 60 is the API's maximum page size; one page covers every printing of all but the basic lands
         const url = this.client.url('/api/singles/search', {
@@ -24,7 +24,8 @@ export class NerdikCardSearcher implements CardSearcher {
             url,
             parseNerdik(
                 await this.client.fetchJson<NerdikResponse>(url, {
-                    headers: { 'X-API-Key': this.apiKey }
+                    headers: { 'X-API-Key': this.apiKey },
+                    signal
                 })
             )
         );

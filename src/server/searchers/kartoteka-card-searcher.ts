@@ -10,14 +10,17 @@ export class KartotekaCardSearcher implements CardSearcher {
         private readonly client = new ShopClient('https://kartoteka.in.ua')
     ) {}
 
-    async search(card: string): Promise<CardResult[]> {
+    async search(card: string, signal?: AbortSignal): Promise<CardResult[]> {
         const url = this.client.url('/ua/search/', {
             q: card
         });
         return warnIfEmpty(
             this.shop,
             url,
-            parseKartoteka(await this.client.fetchHtml(url))
+            parseKartoteka(
+                await this.client.fetchHtml(url, { signal }),
+                this.client.baseUrl
+            )
         );
     }
 }

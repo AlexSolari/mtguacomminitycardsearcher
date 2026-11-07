@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CardEntry } from '@/decklist';
 import type { SearchResult } from '@/shops';
 
@@ -46,11 +46,15 @@ export function useCardSearch() {
 
     const submitting = entries?.some((e) => e.result === null) ?? false;
 
-    // Returns whether a search was started.
-    function search(cards: CardEntry[]) {
-        if (cards.length === 0 || submitting) return false;
+    // Leaving the page cancels the search, which also frees its place in the server's shop queues.
+    useEffect(() => () => searchRef.current?.abort(), []);
 
-        searchRef.current?.abort(); // drop any responses still in flight from a previous search
+    // Returns whether a search was started. A search started while another is running replaces it.
+    function search(cards: CardEntry[]) {
+        if (cards.length === 0) return false;
+
+        // cancel the previous search: its pending requests, and any responses still on their way
+        searchRef.current?.abort();
         const controller = new AbortController();
         searchRef.current = controller;
 

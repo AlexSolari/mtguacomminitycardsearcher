@@ -1,6 +1,6 @@
 import { parseManavault, parseManavaultVersions } from '../parsers/manavault';
 import { isExactMatch, type CardResult } from '../../shops';
-import { warnIfEmpty, type CardSearcher } from '../card-searcher';
+import { warnFallback, warnIfEmpty, type CardSearcher } from '../card-searcher';
 import { ShopClient } from '../shop-client';
 
 // Mana Vault's search returns one tile per card. For exact matches, swap it for the card's versions page, which
@@ -14,14 +14,18 @@ export class ManavaultCardSearcher implements CardSearcher {
         private readonly client = new ShopClient('https://manavaultstore.com')
     ) {}
 
-    async search(card: string): Promise<CardResult[]> {
+    async search(card: string, signal?: AbortSignal): Promise<CardResult[]> {
+        const base = this.client.baseUrl;
         const searchUrl = this.client.url('/cards', {
             q: card
         });
         const found = warnIfEmpty(
             this.shop,
             searchUrl,
-            parseManavault(await this.client.fetchHtml(searchUrl))
+            parseManavault(
+                await this.client.fetchHtml(searchUrl, { signal }),
+                base
+            )
         );
         const exact = found.filter((l) => isExactMatch(l.name, card));
         const names =
@@ -31,15 +35,21 @@ export class ManavaultCardSearcher implements CardSearcher {
             names.map((name) => {
                 const url = this.client.url('/cards/versions', { name });
                 return this.client
-                    .fetchHtml(url)
+                    .fetchHtml(url, { signal })
                     .then((html) =>
                         warnIfEmpty(
                             this.shop,
                             url,
-                            parseManavaultVersions(html)
+                            parseManavaultVersions(html, base)
                         )
                     )
-                    .catch(() => null); // 404 = no card by that exact name
+                    .catch((err) => {
+                        // 404 = no card by that exact name
+                        warnFallback(this.shop, url, err, signal, {
+                            expect404: true
+                        });
+                        return null;
+                    });
             })
         );
         const printings = versions.flatMap((v) => v ?? []);

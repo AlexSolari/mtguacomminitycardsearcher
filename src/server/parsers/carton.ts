@@ -2,8 +2,7 @@ import { abs, decodeEntities } from './helpers';
 import { languageCode, type CardResult } from '../../shops';
 
 // carton.cards — Inertia.js app, results are JSON in <div id="app" data-page="...">.
-export function parseCarton(html: string): CardResult[] {
-    const base = 'https://carton.cards';
+export function parseCarton(html: string, base: string): CardResult[] {
     const raw = html.match(/data-page="([^"]*)"/)?.[1];
     if (!raw) return [];
     const page = JSON.parse(decodeEntities(raw));

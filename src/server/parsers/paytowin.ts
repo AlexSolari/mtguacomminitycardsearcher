@@ -1,4 +1,4 @@
-import { languageCode, type CardResult } from '../../shops';
+import { languageCode, SHOP_INFO, type CardResult } from '../../shops';
 
 const CONDITIONS: Record<string, string> = {
     mint: 'M',
@@ -27,7 +27,8 @@ export function parsePaytowin(json: any): CardResult[] {
             return {
                 shop: 'paytowin' as const,
                 name: String(a.title ?? '').trim(),
-                url: `https://paytowin.club/a/${a.id}`,
+                // the API host isn't the site: lots live at paytowin.club/a/<id>
+                url: `${SHOP_INFO.paytowin.homepage}/a/${a.id}`,
                 image:
                     a.photos?.[0]?.urls?.medium ??
                     a.photos?.[0]?.urls?.thumb ??

@@ -6,8 +6,10 @@ import type { CardResult } from '../../shops';
 //     <img alt="Sol Ring" src="/api/card-img/front/…webp">
 //     <p><img set-icon/>Outlaws of Thunder Junction Commander</p> <p>OTC · №267</p> <p>Borderless?</p>
 //     <p>у продажу 1 шт. · від 100 ₴</p>   — or "немає в продажу" (not for sale), which we drop
-export function parseManavaultVersions(html: string): CardResult[] {
-    const base = 'https://manavaultstore.com';
+export function parseManavaultVersions(
+    html: string,
+    base: string
+): CardResult[] {
     return html
         .split('<a class="group flex flex-col rounded-xl border')
         .slice(1)
@@ -60,8 +62,7 @@ export function parseManavaultVersions(html: string): CardResult[] {
 }
 
 // manavaultstore.com — server-rendered Next.js, one <a class="group flex flex-col" href="/cards/<scryfall id>"> per card.
-export function parseManavault(html: string): CardResult[] {
-    const base = 'https://manavaultstore.com';
+export function parseManavault(html: string, base: string): CardResult[] {
     return html
         .split('<a class="group flex flex-col" href="')
         .slice(1)
