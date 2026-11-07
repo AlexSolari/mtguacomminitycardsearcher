@@ -16,7 +16,7 @@ The UI is in Ukrainian.
 | Kartoteka           | [kartoteka.in.ua](https://kartoteka.in.ua)       |
 | PayToWin (auctions) | [paytowin.club](https://paytowin.club)           |
 
-None of the shops offer a public product API (PayToWin's auction API aside), so prices are scraped from their search pages.
+Nerdik and PayToWin (auctions) are read from their APIs; the other shops don't offer one, so prices are scraped from their search pages.
 A shop redesign can break its parser. If one shop stops returning results, that's the likely cause.
 
 ## Features
@@ -44,6 +44,9 @@ bun dev        # dev server with hot reload, http://localhost:3000
 ```
 
 Set `PORT` to use another port, e.g. `PORT=4000 bun dev`.
+
+Nerdik's API needs a key: set `NERDIK_API_KEY`, e.g. in a `.env` file (Bun loads it; it's gitignored).
+Without it, Nerdik searches fail with "NERDIK_API_KEY is not set" and the other shops still work.
 
 ### Production
 

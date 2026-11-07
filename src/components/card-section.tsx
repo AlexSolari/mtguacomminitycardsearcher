@@ -2,7 +2,7 @@ import { Fragment, memo, useId, useState } from 'react';
 import { AlertTriangle, ChevronRight, Loader2, SearchX } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { OFFERS, plural } from '@/i18n';
-import { splitMatches } from '@/results';
+import { offerKey, splitMatches } from '@/results';
 import {
     describeError,
     manualSearchUrl,
@@ -233,7 +233,7 @@ export const CardSection = memo(function CardSection({
                                       >
                                           {group.links.map((link) => (
                                               <ResultTile
-                                                  key={link.url}
+                                                  key={offerKey(link)}
                                                   link={link}
                                                   best={isBest(link)}
                                               />

@@ -70,8 +70,8 @@ export class ShopClient {
         return res.text();
     }
 
-    async fetchJson<T = unknown>(url: string): Promise<T> {
-        const res = await this.fetch(url);
+    async fetchJson<T = unknown>(url: string, init?: RequestInit): Promise<T> {
+        const res = await this.fetch(url, init);
         if (!res.ok) throw new HttpError(res.status);
         return res.json() as Promise<T>;
     }

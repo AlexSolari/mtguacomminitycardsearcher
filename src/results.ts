@@ -6,6 +6,10 @@ import {
     type SearchResult
 } from './shops';
 
+// React key for an offer. The URL alone isn't unique: Nerdik lists one printing's offers at different
+// prices, and they all share the printing's URL.
+export const offerKey = (l: CardResult) => `${l.url}|${l.price}`;
+
 const byPrice = (a: CardResult, b: CardResult) =>
     (a.price ?? Infinity) - (b.price ?? Infinity);
 const minPrice = (links: CardResult[]) =>

@@ -1,6 +1,7 @@
 import { Crown, Gavel } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { plural, VERSIONS } from '@/i18n';
+import { offerKey } from '@/results';
 import type { CardResult } from '@/shops';
 import {
     AuctionMeta,
@@ -48,7 +49,7 @@ export function ResultTable({
                             );
                         return (
                             <tr
-                                key={link.url}
+                                key={offerKey(link)}
                                 onClick={open}
                                 className={cn(
                                     'group cursor-pointer border-b transition-colors last:border-0 hover:bg-primary/5',

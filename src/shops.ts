@@ -79,7 +79,7 @@ export type CardResult = {
 
     // Optional details — each shop fills in what it exposes (see the parsers).
     fromPrice?: boolean; // `price` is the cheapest of several offers/conditions ("від …")
-    oldPrice?: number; // pre-discount price (Nerdik)
+    oldPrice?: number; // pre-discount price
     stock?: number; // copies for sale
     printings?: number; // >1 when the tile stands for several printings and links to an all-versions page (MTGin)
     foil?: boolean;
@@ -87,7 +87,7 @@ export type CardResult = {
     condition?: string; // short grade: NM, M, LP…
 };
 
-// Nerdik and others spell languages out; normalise to codes for the badge.
+// Some shops spell languages out; normalise to codes for the badge.
 const LANGUAGE_CODES: Record<string, string> = {
     english: 'EN',
     russian: 'RU',
