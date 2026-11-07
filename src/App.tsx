@@ -42,7 +42,7 @@ export function App() {
 
     return (
         <div className='mx-auto flex min-h-dvh max-w-7xl flex-col gap-10 px-4 py-10 sm:px-6 lg:py-8'>
-            <SiteHeader />
+            <SiteHeader onTitleClick={expandList} />
 
             {/* grid-cols-1 = minmax(0, 1fr): without it the single column grows to fit its widest content
                 (e.g. the collapsed bar's long line of card names) and the whole page overflows */}

@@ -3,7 +3,8 @@ import { ShopBadge } from '@/components/shop-badge';
 import { useGreasefangEasterEgg } from '@/components/greasefang-easter-egg';
 import { SHOP_INFO, type ShopId } from '@/shops';
 
-export function SiteHeader() {
+// `onTitleClick` reopens the card list, so the title doubles as a "back to the search" button.
+export function SiteHeader({ onTitleClick }: { onTitleClick: () => void }) {
     const easterEgg = useGreasefangEasterEgg();
     return (
         <header className='flex flex-col items-center gap-3 text-center'>
@@ -17,8 +18,16 @@ export function SiteHeader() {
                     <Sparkles className='size-5' />
                 </div>
                 <h1 className='font-display text-2xl font-bold leading-tight tracking-wide sm:text-3xl lg:text-4xl'>
-                    MTG UA Community{' '}
-                    <span className='text-primary'>Card Searcher</span>
+                    <button
+                        type='button'
+                        onClick={onTitleClick}
+                        title='Змінити список карт'
+                        aria-controls='card-list-form'
+                        className='cursor-pointer rounded-lg outline-none transition-opacity hover:opacity-80 focus-visible:ring-[3px] focus-visible:ring-ring/50'
+                    >
+                        MTG UA Community{' '}
+                        <span className='text-primary'>Card Searcher</span>
+                    </button>
                 </h1>
             </div>
             <p className='flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-muted-foreground'>
