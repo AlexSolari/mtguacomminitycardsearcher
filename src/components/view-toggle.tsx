@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { LayoutGrid, Rows3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { ResultsView } from '@/components/search-results';
 
 // Results layout (tiles / table), remembered per browser.
+export type ResultsView = 'grid' | 'table';
 const VIEW_KEY = 'searcher:view';
 
 function loadView(): ResultsView {

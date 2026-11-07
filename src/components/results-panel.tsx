@@ -1,29 +1,22 @@
-import type { SearchResult } from '@/shops';
 import type { SearchEntry } from '@/hooks/use-card-search';
-import {
-    CardSection,
-    CardSectionSkeleton,
-    SearchSummary,
-    type ResultsView
-} from '@/components/search-results';
-import { ViewToggle } from '@/components/view-toggle';
+import { CardSection, CardSectionSkeleton } from '@/components/card-section';
+import { SearchSummary } from '@/components/search-summary';
+import { ViewToggle, type ResultsView } from '@/components/view-toggle';
 
 // The summary and one section per searched card (a skeleton until it's done).
 export function ResultsPanel({
     entries,
-    finished,
     view,
     onViewChange
 }: {
     entries: SearchEntry[];
-    finished: SearchResult[];
     view: ResultsView;
     onViewChange: (view: ResultsView) => void;
 }) {
     return (
         <>
             <div className='flex flex-col gap-3'>
-                <SearchSummary results={finished} total={entries.length} />
+                <SearchSummary entries={entries} />
                 <div className='flex justify-end'>
                     <ViewToggle view={view} onChange={onViewChange} />
                 </div>
@@ -33,10 +26,15 @@ export function ResultsPanel({
                     <CardSection
                         key={entry.card}
                         result={entry.result}
+                        count={entry.count}
                         view={view}
                     />
                 ) : (
-                    <CardSectionSkeleton key={entry.card} name={entry.card} />
+                    <CardSectionSkeleton
+                        key={entry.card}
+                        name={entry.card}
+                        count={entry.count}
+                    />
                 )
             )}
         </>

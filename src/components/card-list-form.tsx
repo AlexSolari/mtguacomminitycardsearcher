@@ -11,6 +11,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { formatCardList } from '@/decklist';
 import { useDeckImport, type ImportNote } from '@/hooks/use-deck-import';
 import { useFileDrop } from '@/hooks/use-file-drop';
 import { CARDS, plural } from '@/i18n';
@@ -41,7 +42,9 @@ export function CardListForm({
     textareaRef?: Ref<HTMLTextAreaElement>;
 }) {
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const deckImport = useDeckImport((names) => onTextChange(names.join('\n')));
+    const deckImport = useDeckImport((cards) =>
+        onTextChange(formatCardList(cards))
+    );
     const drop = useFileDrop(deckImport.importFiles);
 
     function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {

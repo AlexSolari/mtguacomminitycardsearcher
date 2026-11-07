@@ -13,8 +13,9 @@ import './index.css';
 
 export function App() {
     const [text, setText] = useState('');
-    const { names: cardNames, links } = parseCardList(text);
-    const { entries, finished, submitting, search } = useCardSearch();
+    const { cards, links } = parseCardList(text);
+    const cardNames = cards.map((c) => c.name);
+    const { entries, submitting, search } = useCardSearch();
     const [view, setView] = useResultsView();
     usePreventFileDropNavigation();
 
@@ -27,7 +28,7 @@ export function App() {
     };
 
     const startSearch = () => {
-        if (search(cardNames)) setListCollapsed(true);
+        if (search(cards)) setListCollapsed(true);
     };
 
     // landing:   no search yet — just the card list, centered
@@ -86,7 +87,6 @@ export function App() {
                     <div className='flex min-w-0 flex-col gap-10'>
                         <ResultsPanel
                             entries={entries}
-                            finished={finished}
                             view={view}
                             onViewChange={setView}
                         />

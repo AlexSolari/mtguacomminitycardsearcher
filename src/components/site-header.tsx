@@ -1,5 +1,5 @@
 import { Sparkles } from 'lucide-react';
-import { ShopBadge } from '@/components/search-results';
+import { ShopBadge } from '@/components/shop-badge';
 import { useGreasefangEasterEgg } from '@/components/greasefang-easter-egg';
 import { SHOP_INFO, type ShopId } from '@/shops';
 

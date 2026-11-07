@@ -2,7 +2,6 @@ import { serve } from 'bun';
 import index from './index.html';
 import { CachedCardSearcher } from './server/cached-card-searcher';
 import { CardSearchService } from './server/card-search-service';
-import { ShopClient } from './server/shop-client';
 import { CartonCardSearcher } from './server/searchers/carton-card-searcher';
 import { GinCardSearcher } from './server/searchers/gin-card-searcher';
 import { KartotekaCardSearcher } from './server/searchers/kartoteka-card-searcher';
@@ -30,15 +29,15 @@ function logSearch(cards: string[]) {
     );
 }
 
-const shopClient = new ShopClient();
+// Each searcher creates its own ShopClient, so each shop has its own rate limit and request queue.
 const cardSearch = new CardSearchService(
     [
-        new GinCardSearcher(shopClient),
-        new CartonCardSearcher(shopClient),
-        new ManavaultCardSearcher(shopClient),
-        new NerdikCardSearcher(shopClient),
-        new KartotekaCardSearcher(shopClient),
-        new PaytowinCardSearcher(shopClient)
+        new GinCardSearcher(),
+        new CartonCardSearcher(),
+        new ManavaultCardSearcher(),
+        new NerdikCardSearcher(),
+        new KartotekaCardSearcher(),
+        new PaytowinCardSearcher()
     ].map((searcher) => new CachedCardSearcher(searcher))
 );
 

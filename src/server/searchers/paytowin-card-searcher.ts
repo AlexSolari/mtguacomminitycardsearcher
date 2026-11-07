@@ -1,19 +1,25 @@
 import { parsePaytowin } from '../parsers/paytowin';
 import type { CardResult } from '../../shops';
-import { withQuery, type CardSearcher } from '../card-searcher';
-import type { ShopClient } from '../shop-client';
+import { warnIfEmpty, type CardSearcher } from '../card-searcher';
+import { ShopClient } from '../shop-client';
 
 export class PaytowinCardSearcher implements CardSearcher {
     readonly shop = 'paytowin';
 
-    constructor(private readonly client: ShopClient) {}
+    constructor(
+        private readonly client = new ShopClient('https://api.paytowin.club')
+    ) {}
 
     async search(card: string): Promise<CardResult[]> {
-        const url = withQuery('https://api.paytowin.club/auctions', {
+        const url = this.client.url('/auctions', {
             q: card,
             game: 'magic',
             limit: '50'
         });
-        return parsePaytowin(await this.client.fetchJson(url));
+        return warnIfEmpty(
+            this.shop,
+            url,
+            parsePaytowin(await this.client.fetchJson(url))
+        );
     }
 }

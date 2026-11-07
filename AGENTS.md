@@ -45,12 +45,15 @@ Anything else is yours.
 - **Parsers** (`src/server/parsers/<shop>.ts`) are pure: string/JSON in, `CardResult[]` out, no fetching.
   Shared helpers (`decodeEntities`, `parsePrice`, `abs`, Next.js flight-data readers) live in `parsers/helpers.ts`.
 - **Searchers** (`src/server/searchers/<shop>-card-searcher.ts`) decide which URLs to fetch and call the parsers.
-  They **must** fetch through the shared `ShopClient`, never `fetch` directly; it provides the per-host rate limit and timeout.
+  They **must** fetch through their own `ShopClient` (created in the constructor with the shop's base URL), never `fetch` directly; it provides the shop's rate limit, timeout and queue cap.
+  Build URLs with `client.url(path, params)`. The client refuses URLs on other hosts.
+  Pass every parser result through `warnIfEmpty`: an empty parse is how a shop redesign shows up, so it's logged.
 - **Wiring:** searchers are registered in `src/index.ts`, each wrapped in `CachedCardSearcher`.
 - **Prices:**
     - `price` is in UAH, or `null` when unknown; never `0` for "unknown"
     - set `fromPrice` when the price is the cheapest of several offers
     - auctions set `auction`, and their price never counts toward best price or totals
+    - the summary total uses exact matches only, times the list quantity, within stock (`cheapestCopies` in `src/results.ts`)
 
 ### Adding a shop
 
@@ -80,6 +83,6 @@ Anything else is yours.
 
 ## Scraping etiquette
 
-- **Request rate:** keep it at or below today's (≥200 ms between requests per host).
+- **Request rate:** keep it at or below today's (≥200 ms between requests per shop, at most 6 cards in flight per browser tab).
 - **Bot challenges:** some shop pages sit behind one, like Kartoteka's product pages and Nerdik's "in stock" filter URL. Work from the pages that don't, rather than trying to get around the challenge.
 - **Live testing:** a few searches at most; don't loop over many cards against the real shops.

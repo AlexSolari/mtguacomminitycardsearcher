@@ -1,18 +1,21 @@
 import { parseCarton } from '../parsers/carton';
 import type { CardResult } from '../../shops';
-import { withQuery, type CardSearcher } from '../card-searcher';
-import type { ShopClient } from '../shop-client';
+import { warnIfEmpty, type CardSearcher } from '../card-searcher';
+import { ShopClient } from '../shop-client';
 
 export class CartonCardSearcher implements CardSearcher {
     readonly shop = 'carton';
 
-    constructor(private readonly client: ShopClient) {}
+    constructor(
+        private readonly client = new ShopClient('https://carton.cards')
+    ) {}
 
     async search(card: string): Promise<CardResult[]> {
-        return parseCarton(
-            await this.client.fetchHtml(
-                withQuery('https://carton.cards/search', { q: card })
-            )
+        const url = this.client.url('/search', { q: card });
+        return warnIfEmpty(
+            this.shop,
+            url,
+            parseCarton(await this.client.fetchHtml(url))
         );
     }
 }

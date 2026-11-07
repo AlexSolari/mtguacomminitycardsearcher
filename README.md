@@ -1,7 +1,7 @@
 # MTG UA Community Card Searcher
 
 Paste a Magic: The Gathering card list or deck, and the app checks Ukrainian online shops for every card at once.
-It shows each card's offers side by side, the best price, and the cheapest total for the whole list.
+It shows each card's offers side by side, the best price, and the cheapest total for the whole list (quantities included).
 
 The UI is in Ukrainian.
 
@@ -22,7 +22,7 @@ A shop redesign can break its parser. If one shop stops returning results, that'
 ## Features
 
 - **Card list input**: plain names (one per line), MTGGoldfish/MTGO text exports, or MTG Arena exports.
-  Quantities, set codes, collector numbers, foil markers and section headers are stripped automatically.
+  Quantities are kept for the total; set codes, collector numbers, foil markers and section headers are stripped automatically.
 - **Deck files**: drop or upload `.txt`, `.dec`, `.dek` (MTGO XML) or `.csv` (Moxfield, Deckbox, spreadsheets).
   Files are read in the browser and are never uploaded.
 - **Results per card**:
@@ -30,7 +30,8 @@ A shop redesign can break its parser. If one shop stops returning results, that'
     - auctions, fuzzy "other matches" and Art Series cards in separate groups; the last two are collapsed by default
     - foil, language, condition, discount and stock badges where the shop provides them
 - **Grid or table view**, remembered per browser.
-- **Summary**: how many cards were found, the number of offers, the cheapest total, and which shops failed.
+- **Summary**: how many cards have an exact match, the number of offers, the cheapest total and which shops failed.
+  The total counts exact matches only, for the quantity in the list, within each shop's stock. Cards with no exact match or too few copies are listed separately.
 - Results for each card appear as soon as that card is done; there's no waiting for the whole list.
 
 ## Running locally
@@ -57,19 +58,20 @@ bun start      # NODE_ENV=production, serves the app and the API
 
 ```
 browser ──POST /api/search {cards:[name]}──▶ Bun server
-                                               │  one request per card, sent in parallel by the frontend
+                                               │  one request per card, up to 6 at a time from the frontend
                                                ▼
                                      CardSearchService
                                                │  every shop, in parallel; a failing shop is reported, not fatal
                                                ▼
                          CachedCardSearcher (5 min per shop + card)
                                                ▼
-                         <Shop>CardSearcher ──▶ ShopClient (≥200 ms between requests per host, 15 s timeout)
+                         <Shop>CardSearcher ──▶ ShopClient, one per shop (≥200 ms between requests, 15 s timeout, ≤30 s queue)
                                                ▼
                          parser: shop HTML/JSON → CardResult[]
 ```
 
-- **Rate limiting:** a deck fans out to (cards × shops) requests. `ShopClient` spaces requests to each host so the shops don't rate-limit us (HTTP 429).
+- **Rate limiting:** a deck fans out to (cards × shops) requests. Each searcher's own `ShopClient` spaces out its shop's requests so the shops don't rate-limit us (HTTP 429).
+  The queues are shared by every user, so a request that would wait more than 30 s fails as "server busy", and the frontend keeps at most 6 cards in flight.
 - **Filtering:** the server keeps only listings whose name contains the searched card. Shop search is fuzzy, so "Sol Ring" also matches "Soldier of the Grey Host".
 - **Grouping:** the browser groups the results.
 
@@ -79,16 +81,17 @@ browser ──POST /api/search {cards:[name]}──▶ Bun server
 src/
   index.ts                  Bun server: /api/search + serves the frontend
   shops.ts                  shared types, shop list, name matching (used by server and browser)
-  decklist.ts, deckfile.ts  card list / deck file parsing (browser)
+  decklist.ts, deckfile.ts  card list / deck file parsing, with counts (browser)
+  results.ts                grouping offers per card, best price, the cheapest total (browser)
   i18n.ts                   Ukrainian plural forms
   server/
-    shop-client.ts          rate-limited fetch with timeout
+    shop-client.ts          rate-limited fetch with timeout, one per shop
     card-search-service.ts  searches all shops for one card
     cached-card-searcher.ts result cache
     searchers/              one per shop: which URLs to fetch
     parsers/                one per shop: turns a page into CardResult[]
   App.tsx                   page layout and state
-  components/               UI (search-results.tsx renders the result sections)
+  components/               UI (card-section.tsx renders a card's results, search-summary.tsx the totals)
   hooks/                    search, deck import, drag-and-drop
 ```
 

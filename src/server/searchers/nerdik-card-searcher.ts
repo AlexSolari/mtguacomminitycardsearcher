@@ -1,18 +1,23 @@
 import { parseNerdik } from '../parsers/nerdik';
 import type { CardResult } from '../../shops';
-import { withQuery, type CardSearcher } from '../card-searcher';
-import type { ShopClient } from '../shop-client';
+import { warnIfEmpty, type CardSearcher } from '../card-searcher';
+import { ShopClient } from '../shop-client';
 
 export class NerdikCardSearcher implements CardSearcher {
     readonly shop = 'nerdik';
 
-    constructor(private readonly client: ShopClient) {}
+    constructor(
+        private readonly client = new ShopClient('https://nerdik.club')
+    ) {}
 
     async search(card: string): Promise<CardResult[]> {
-        return parseNerdik(
-            await this.client.fetchHtml(
-                withQuery('https://nerdik.club/katalog/search/', { q: card })
-            )
+        const url = this.client.url('/katalog/search/', {
+            q: card
+        });
+        return warnIfEmpty(
+            this.shop,
+            url,
+            parseNerdik(await this.client.fetchHtml(url))
         );
     }
 }
