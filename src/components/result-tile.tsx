@@ -33,8 +33,9 @@ export function ResultTile({
             )}
         >
             <div className='relative aspect-488/680 p-2 pb-0'>
-                <div className='size-full overflow-hidden rounded-[4.75%/3.5%] bg-muted'>
+                <div className='relative size-full overflow-hidden rounded-[4.75%/3.5%] bg-muted'>
                     <CardImage src={link.image} alt={link.name} />
+                    {link.foil && <div className='foil-shimmer' />}
                 </div>
                 {/* left: status + finish/discount badges, stacked */}
                 <div className='absolute left-3.5 top-3.5 flex flex-col items-start gap-1'>
