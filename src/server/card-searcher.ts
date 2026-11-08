@@ -38,3 +38,39 @@ export function warnFallback(
         error: err
     });
 }
+
+// Product pages fetched per search at most. Each costs a request; Sol Ring has 15 printings in stock at CartOn
+// alone, and a few such cards in flight would push the shop's queue past its wait limit.
+export const MAX_PRODUCT_PAGES = 10;
+
+// For scrapers whose search lists one tile per printing with only its cheapest price: swaps the tiles that
+// `canExpand` picks, the cheapest MAX_PRODUCT_PAGES of them, for the offers on each one's own page (`offers`
+// fetches and parses it). A tile whose page fails or lists no offers stays as it is, and so does every other
+// tile. The results keep the tiles' order.
+export async function expandCheapest(
+    shop: ShopId,
+    tiles: CardResult[],
+    canExpand: (tile: CardResult) => boolean,
+    offers: (tile: CardResult) => Promise<CardResult[]>,
+    signal?: AbortSignal
+): Promise<CardResult[]> {
+    const expand = new Set(
+        tiles
+            .filter(canExpand)
+            .sort((a, b) => (a.price ?? Infinity) - (b.price ?? Infinity))
+            .slice(0, MAX_PRODUCT_PAGES)
+    );
+    const results = await Promise.all(
+        tiles.map(async (tile) => {
+            if (!expand.has(tile)) return [tile];
+            try {
+                const found = warnIfEmpty(shop, tile.url, await offers(tile));
+                return found.length > 0 ? found : [tile];
+            } catch (err) {
+                warnFallback(shop, tile.url, err, signal);
+                return [tile];
+            }
+        })
+    );
+    return results.flat();
+}

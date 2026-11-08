@@ -65,6 +65,7 @@ See [README.md](README.md) for what the app does and the request flow.
   API searchers don't: an empty API response just means nothing is in stock.
   Pass `search()`'s `signal` to every client call (`{ signal }`), so abandoned searches leave the shop's queue.
   An optional follow-up request that falls back on failure goes through `warnFallback` in its `catch`, never a silent catch.
+  Prefer a page that lists every offer at once (Mana Vault's `/cards/versions?…&view=offers`). Where a shop has none and its search shows only a printing's cheapest price (CartOn), fetch each printing's page through `expandCheapest`, which caps them at `MAX_PRODUCT_PAGES` per search; don't fetch product pages around it.
 - **Wiring:** searchers are registered in `src/index.ts`, each wrapped in `CachedCardSearcher`.
   The `/api/search` handler lives in `src/server/search-route.ts` (input checks, `InFlightLimiter`, 499 on disconnect), so it's tested without starting a server.
 - **One instance only:** the shop rate limits, the result cache, the per-client limiter and MTGin's batching all live in process memory.
