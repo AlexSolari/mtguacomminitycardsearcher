@@ -1,0 +1,46 @@
+{
+  "items": [
+    {
+      "id": "96c20503-c0f4-4b92-b8c6-0f9d6e15d043",
+      "title": "2x - Undercity Sewers #270",
+      "status": "live",
+      "condition": null,
+      "foil": false,
+      "language": null,
+      "starting_price_uah": 1000,
+      "buy_now_uah": null,
+      "current_high_uah": 1000,
+      "bid_count": 1,
+      "end_time": "2026-11-08T20:00:00.000Z",
+      "photos": [
+        {
+          "urls": {
+            "medium": "https://pub-1b700fdfb43c4870990c8bdcfd294806.r2.dev/photos/f9b862c7-e850-4d9d-bd22-2fd119dbe677/medium.webp",
+            "thumb": "https://pub-1b700fdfb43c4870990c8bdcfd294806.r2.dev/photos/f9b862c7-e850-4d9d-bd22-2fd119dbe677/thumb.webp"
+          }
+        }
+      ]
+    },
+    {
+      "id": "fb57b945-e96c-4e5f-bdbb-11360b6b739c",
+      "title": "Raucous Theater #266",
+      "status": "live",
+      "condition": "mint",
+      "foil": false,
+      "language": "EN",
+      "starting_price_uah": 350,
+      "buy_now_uah": null,
+      "current_high_uah": 350,
+      "bid_count": 1,
+      "end_time": "2026-11-08T20:00:00.000Z",
+      "photos": [
+        {
+          "urls": {
+            "medium": "https://pub-1b700fdfb43c4870990c8bdcfd294806.r2.dev/photos/46c76a1f-0b42-4fcc-aa29-689f674e3457/medium.webp",
+            "thumb": "https://pub-1b700fdfb43c4870990c8bdcfd294806.r2.dev/photos/46c76a1f-0b42-4fcc-aa29-689f674e3457/thumb.webp"
+          }
+        }
+      ]
+    }
+  ]
+}

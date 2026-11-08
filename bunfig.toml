@@ -1,3 +1,13 @@
 [serve.static]
 plugins = ["bun-plugin-tailwind"]
 env = "BUN_PUBLIC_*"
+
+# `bun run test:coverage`. Bun only counts files the tests import, so untested files (src/index.ts, the frontend)
+# are missing from the report rather than at 0%: the number covers the server and shared code.
+# Use the script, not a bare `bun test --coverage`: scripts run the project's Bun (node_modules), which counts each
+# branch of a condition; an older global Bun counts fewer lines and reports a different number.
+[test]
+coverageSkipTestFiles = true
+# checked per file, not on the total: one untested helper in a small file is ~6% of its functions
+coverageThreshold = { lines = 0.95, functions = 0.9 }
+coverageReporter = ["text", "lcov"] # lcov → coverage/lcov.info (gitignored), for editor gutters

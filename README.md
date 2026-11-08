@@ -41,6 +41,7 @@ Requires [Bun](https://bun.com) 1.3 or newer.
 ```bash
 bun install
 bun dev        # dev server with hot reload, http://localhost:3000
+bun test       # offline test suite; parsers run against saved shop pages
 ```
 
 Set `PORT` to use another port, e.g. `PORT=4000 bun dev`.

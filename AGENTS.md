@@ -6,23 +6,30 @@ See [README.md](README.md) for what the app does and the request flow.
 
 ## Commands
 
-| Task                                                 | Command                                                                             |
-| ---------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| Dev server (hot reload, port 3000, `PORT` overrides) | `bun dev`                                                                           |
-| Production server                                    | `bun start`                                                                         |
-| Type-check                                           | `bunx tsc --noEmit`                                                                 |
-| Format                                               | `bun run format` (or `bunx prettier --write <files>`)                               |
-| Static frontend bundle                               | `bun run build -- --outdir=<dir>` (defaults to `dist/`, which it **deletes first**) |
+| Task                                                         | Command                                                                             |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| Dev server (hot reload, port 3000, `PORT` overrides)         | `bun dev`                                                                           |
+| Production server                                            | `bun start`                                                                         |
+| Type-check                                                   | `bunx tsc --noEmit`                                                                 |
+| Format                                                       | `bun run format` (or `bunx prettier --write <files>`)                               |
+| Static frontend bundle                                       | `bun run build -- --outdir=<dir>` (defaults to `dist/`, which it **deletes first**) |
+| Tests                                                        | `bun test` (offline, ~3 s)                                                          |
+| Coverage (fails under 95% lines / 90% functions in any file) | `bun run test:coverage`                                                             |
+| Refresh the parser fixtures from the real shops              | `bun scripts/update-fixtures.ts` (~8 requests)                                      |
 
-**Type-check baseline:** `tsc` always reports about 7 errors in `build.ts`, which come from the Bun template.
-Anything else is yours.
+**Type-check baseline:** zero errors. `bun dev`, `bun run build` and `bun run test` run `bun check` first and stop on any type error.
 
-**No tests:** there is no test suite.
+**Tests** live in `tests/`, mirroring `src/` (`src/server/shop-client.ts` → `tests/server/shop-client.test.ts`), import with `@/`, and never touch the real shops.
 
-- **Parsers and matching:** verify with a throwaway script that imports the function and runs it on sample input. Put it outside the repo.
-- **Server:** start it on a spare port (`PORT=3917 bun src/index.ts`) and `curl -X POST localhost:3917/api/search -d '{"cards":["Sol Ring"]}'`.
+- **Parsers** run against saved shop pages in `tests/fixtures/`, checked by snapshots.
+  A parser change that alters output fails its snapshot. If the change is intended, review the diff and run `bun test --update-snapshots`.
+  When a shop redesigns, refresh the fixtures, fix the parser, then update the snapshots.
+  Prettier ignores `tests/fixtures/` and `__snapshots__/`, so formatting never rewrites them.
+- **Fixtures hold no personal data:** `update-fixtures.ts` keeps only the PayToWin fields the parser reads, dropping sellers, bidders and descriptions. Keep it that way for any new source.
+- **New code:** add tests for it at the mirrored path in `tests/`. For a new shop, add its page to `update-fixtures.ts` and a case to `tests/server/parsers/parsers.test.ts`.
+- **Server:** for an end-to-end check, start it on a spare port (`PORT=3917 bun src/index.ts`) and `curl -X POST localhost:3917/api/search -d '{"cards":["Sol Ring"]}'`.
   This hits the real shops, so keep it to a handful of requests.
-- **UI:** say so when a change hasn't been checked in a browser.
+- **UI:** there are no component tests. Say so when a change hasn't been checked in a browser.
 
 ## Code style
 
@@ -35,7 +42,7 @@ Anything else is yours.
     - counts go through `plural(n, FORMS)` in `src/i18n.ts`; never hand-write "карт/карти"
     - add new plural forms there
 - **Imports:** `@/` = `src/`. In type-only imports, use `import type`; `verbatimModuleSyntax` is on.
-- **Files:** kebab-case file names. Components go in `src/components/`, hooks in `src/hooks/`, shadcn primitives in `src/components/ui/`.
+- **Files:** kebab-case file names. Components go in `src/components/`, hooks in `src/hooks/`, shadcn primitives in `src/components/ui/`, tests in `tests/`.
 - **Icons:** lucide-react, except brand logos. lucide is removing those, so they're inline SVGs in `components/icons.tsx`.
 
 ## Architecture rules
@@ -68,7 +75,7 @@ Anything else is yours.
     - Drop out-of-stock items unless the shop only lists in-stock ones.
 3. **Searcher:** write `src/server/searchers/<shop>-card-searcher.ts`, following an existing one.
 4. **Register it:** add it to the list in `src/index.ts`.
-5. **Check:** test the parser on a saved page and run one live search.
+5. **Check:** add the shop's page to `scripts/update-fixtures.ts` and a case to `tests/server/parsers/parsers.test.ts`, then run one live search.
 
 ## Traps (each of these has bitten before)
 
@@ -79,6 +86,8 @@ Anything else is yours.
 - **Decimal prices:** `"1 234,50"` parses as 123450. No shop shows kopecks today. Handle it per shop if one starts.
 - **Mana Vault's versions page needs the exact, case-sensitive card name.** The typed query is only used when the search found no exact tile.
 - **MTGin summary tiles:** a tile with `printings > 1` is a summary. For exact matches, the searcher expands it via the card's printings page.
+- **Two Bun versions:** `bun-plugin-tailwind` pulls a project-local Bun into `node_modules` (1.4.4 today), and `bun run <script>` (`bun dev`, `bun start`, `bun run test:coverage`) uses it.
+  A bare `bun …` uses the global install, which may be older. Behaviour and coverage numbers can differ between them; when in doubt, go through a script.
 - **The result cache is 5 minutes.** When testing parser changes against a running server, restart it, or you'll see cached results.
 - **Frontend performance relies on stable `SearchResult` objects:**
     - `CardSection` is `memo`ized

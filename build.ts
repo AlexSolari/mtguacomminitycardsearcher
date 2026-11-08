@@ -34,7 +34,7 @@ Example:
 }
 
 const toCamelCase = (str: string): string =>
-    str.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+    str.replace(/-([a-z])/g, (_, letter: string) => letter.toUpperCase());
 
 const parseValue = (value: string): any => {
     if (value === 'true') return true;
@@ -49,7 +49,8 @@ const parseValue = (value: string): any => {
 };
 
 function parseArgs(): Partial<Bun.BuildConfig> {
-    const config: Partial<Bun.BuildConfig> = {};
+    // Keys come from arbitrary CLI flags, so build a loose record and trust the user
+    const config: Record<string, any> = {};
     const args = process.argv.slice(2);
 
     for (let i = 0; i < args.length; i++) {
@@ -85,7 +86,7 @@ function parseArgs(): Partial<Bun.BuildConfig> {
         key = toCamelCase(key);
 
         if (key.includes('.')) {
-            const [parentKey, childKey] = key.split('.');
+            const [parentKey, childKey] = key.split('.') as [string, string];
             config[parentKey] = config[parentKey] || {};
             config[parentKey][childKey] = parseValue(value);
         } else {
@@ -93,7 +94,7 @@ function parseArgs(): Partial<Bun.BuildConfig> {
         }
     }
 
-    return config;
+    return config as Partial<Bun.BuildConfig>;
 }
 
 const formatFileSize = (bytes: number): string => {

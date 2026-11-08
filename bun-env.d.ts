@@ -15,3 +15,6 @@ declare module '*.module.css' {
     const classes: { readonly [key: string]: string };
     export = classes;
 }
+
+// Plain stylesheets imported for their side effects (bundled by Bun)
+declare module '*.css';

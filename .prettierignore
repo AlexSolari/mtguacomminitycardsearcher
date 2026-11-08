@@ -1,3 +1,6 @@
 bun.lock
 dist/
 responses/
+# saved shop pages and test snapshots must stay byte-for-byte as written
+tests/fixtures/
+__snapshots__/

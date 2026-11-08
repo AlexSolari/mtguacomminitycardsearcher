@@ -1,0 +1,320 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`carton search page 1`] = `
+[
+  {
+    "artSeries": false,
+    "foil": undefined,
+    "fromPrice": true,
+    "image": "https://storage.carton.cards/wezvk7w6980f6a57tyxnc638vozy",
+    "language": "EN",
+    "name": "Counterspell (FDC-61)",
+    "price": 146,
+    "shop": "carton",
+    "url": "https://carton.cards/magic-the-gathering/singles/foundations-commander-fdc/counterspell-fdc-61-en-v1",
+  },
+  {
+    "artSeries": false,
+    "foil": undefined,
+    "fromPrice": true,
+    "image": "https://storage.carton.cards/wowu89rh7hebrw9607snnmbhg158",
+    "language": "EN",
+    "name": "Counterspell (STA-15)",
+    "price": 270,
+    "shop": "carton",
+    "url": "https://carton.cards/magic-the-gathering/singles/strixhaven-mystical-archive-sta/counterspell-sta-15-en-v1",
+  },
+  {
+    "artSeries": false,
+    "foil": undefined,
+    "fromPrice": true,
+    "image": "https://storage.carton.cards/7dsqt1uzf9xvj19qzzg0kasgc3kk",
+    "language": "EN",
+    "name": "Counterspell (MAR-9)",
+    "price": 480,
+    "shop": "carton",
+    "url": "https://carton.cards/magic-the-gathering/singles/marvel-universe-mar/counterspell-mar-9-en-v1",
+  },
+]
+`;
+
+exports[`gin search page: several printings make one summary tile 1`] = `
+[
+  {
+    "artSeries": false,
+    "foil": undefined,
+    "fromPrice": true,
+    "image": "https://mtgin.kyiv.ua/api/card-images/b2227782-6709-4d0a-82b4-5070a7ddb647.jpg",
+    "language": undefined,
+    "name": "Counterspell",
+    "price": 114,
+    "printings": 3,
+    "shop": "gin",
+    "stock": 6,
+    "url": "https://mtgin.kyiv.ua/cards/oracle/cc187110-1148-4090-bbb8-e205694a39f5-counterspell",
+  },
+]
+`;
+
+exports[`gin printings page: one offer per printing and seller 1`] = `
+[
+  {
+    "artSeries": false,
+    "foil": false,
+    "image": "https://mtgin.kyiv.ua/api/card-images/b975289d-d8b8-46b4-8c60-d6ed4b594519.jpg",
+    "language": "EN",
+    "name": "Counterspell — Fifth Edition #77",
+    "price": 125,
+    "shop": "gin",
+    "stock": 3,
+    "url": "https://mtgin.kyiv.ua/shops/mtgin/cards/1235-counterspell",
+  },
+  {
+    "artSeries": false,
+    "foil": false,
+    "image": "https://mtgin.kyiv.ua/api/card-images/1920dae4-fb92-4f19-ae4b-eb3276b8dac7.jpg",
+    "language": "EN",
+    "name": "Counterspell — Modern Horizons 2 #267",
+    "price": 125,
+    "shop": "gin",
+    "stock": 2,
+    "url": "https://mtgin.kyiv.ua/shops/mtgin/cards/9258-counterspell",
+  },
+  {
+    "artSeries": false,
+    "foil": false,
+    "image": "https://mtgin.kyiv.ua/api/card-images/b2227782-6709-4d0a-82b4-5070a7ddb647.jpg",
+    "language": "EN",
+    "name": "Counterspell — Starter 1999 #34",
+    "price": 114,
+    "shop": "gin",
+    "stock": 1,
+    "url": "https://mtgin.kyiv.ua/shops/mtgin/cards/6673-counterspell",
+  },
+]
+`;
+
+exports[`manavault search page: one tile per card 1`] = `
+[
+  {
+    "fromPrice": true,
+    "image": "https://manavaultstore.com/api/card-img/front/8118282a-1473-4c0b-a283-1f58e0d0209a-400.webp?v=4",
+    "name": "Counterspell",
+    "price": 2719,
+    "shop": "manavault",
+    "url": "https://manavaultstore.com/cards/versions?name=Counterspell",
+  },
+]
+`;
+
+exports[`manavault versions page: one offer per printing 1`] = `
+[
+  {
+    "foil": undefined,
+    "fromPrice": true,
+    "image": "https://manavaultstore.com/api/card-img/front/1920dae4-fb92-4f19-ae4b-eb3276b8dac7-400.webp?v=4",
+    "name": "Counterspell — Modern Horizons 2 #267",
+    "price": 119,
+    "shop": "manavault",
+    "stock": 9,
+    "url": "https://manavaultstore.com/cards/1920dae4-fb92-4f19-ae4b-eb3276b8dac7",
+  },
+  {
+    "foil": undefined,
+    "fromPrice": true,
+    "image": "https://manavaultstore.com/api/card-img/front/ee0d3f5f-7790-4772-bead-5d7114a23e94-400.webp?v=4",
+    "name": "Counterspell — Classic Sixth Edition #61",
+    "price": 126,
+    "shop": "manavault",
+    "stock": 1,
+    "url": "https://manavaultstore.com/cards/ee0d3f5f-7790-4772-bead-5d7114a23e94",
+  },
+  {
+    "foil": undefined,
+    "fromPrice": true,
+    "image": "https://manavaultstore.com/api/card-img/front/7bd03c80-7812-4704-9e07-9cf73b49c01f-400.webp?v=4",
+    "name": "Counterspell — Mercadian Masques #69",
+    "price": 130,
+    "shop": "manavault",
+    "stock": 1,
+    "url": "https://manavaultstore.com/cards/7bd03c80-7812-4704-9e07-9cf73b49c01f",
+  },
+  {
+    "foil": undefined,
+    "fromPrice": true,
+    "image": "https://manavaultstore.com/api/card-img/front/cca8eb95-d071-46a4-885c-3da25b401806-400.webp?v=4",
+    "name": "Counterspell — Masters 25 #50",
+    "price": 131,
+    "shop": "manavault",
+    "stock": 1,
+    "url": "https://manavaultstore.com/cards/cca8eb95-d071-46a4-885c-3da25b401806",
+  },
+  {
+    "foil": undefined,
+    "fromPrice": true,
+    "image": "https://manavaultstore.com/api/card-img/front/aedbcbaa-40f0-485f-8427-778edc2d2ec0-400.webp?v=4",
+    "name": "Counterspell — Ice Age #64",
+    "price": 144,
+    "shop": "manavault",
+    "stock": 1,
+    "url": "https://manavaultstore.com/cards/aedbcbaa-40f0-485f-8427-778edc2d2ec0",
+  },
+  {
+    "foil": undefined,
+    "fromPrice": true,
+    "image": "https://manavaultstore.com/api/card-img/front/16b0b5e6-ac30-417b-938a-31cda2f697f8-400.webp?v=4",
+    "name": "Counterspell — Signature Spellbook: Jace #4",
+    "price": 173,
+    "shop": "manavault",
+    "stock": 1,
+    "url": "https://manavaultstore.com/cards/16b0b5e6-ac30-417b-938a-31cda2f697f8",
+  },
+  {
+    "foil": undefined,
+    "fromPrice": true,
+    "image": "https://manavaultstore.com/api/card-img/front/4f616706-ec97-4923-bb1e-11a69fbaa1f8-400.webp?v=4",
+    "name": "Counterspell — Duskmourn: House of Horror Commander #114",
+    "price": 186,
+    "shop": "manavault",
+    "stock": 1,
+    "url": "https://manavaultstore.com/cards/4f616706-ec97-4923-bb1e-11a69fbaa1f8",
+  },
+  {
+    "foil": undefined,
+    "fromPrice": true,
+    "image": "https://manavaultstore.com/api/card-img/front/e1e48b21-1a4f-4708-a4b4-e2e296df924c-400.webp?v=4",
+    "name": "Counterspell — Final Fantasy: Through the Ages #4, Borderless",
+    "price": 301,
+    "shop": "manavault",
+    "stock": 1,
+    "url": "https://manavaultstore.com/cards/e1e48b21-1a4f-4708-a4b4-e2e296df924c",
+  },
+  {
+    "foil": undefined,
+    "fromPrice": true,
+    "image": "https://manavaultstore.com/api/card-img/front/2c358d75-01ad-4487-8104-425124b96aae-400.webp?v=4",
+    "name": "Counterspell — Modern Horizons 2 #308, Borderless",
+    "price": 344,
+    "shop": "manavault",
+    "stock": 2,
+    "url": "https://manavaultstore.com/cards/2c358d75-01ad-4487-8104-425124b96aae",
+  },
+  {
+    "foil": undefined,
+    "fromPrice": true,
+    "image": "https://manavaultstore.com/api/card-img/front/ffdf9d2a-c163-43df-9a2f-20b8749c86ae-400.webp?v=4",
+    "name": "Counterspell — Strixhaven Mystical Archive #15, Borderless · Showcase",
+    "price": 770,
+    "shop": "manavault",
+    "stock": 2,
+    "url": "https://manavaultstore.com/cards/ffdf9d2a-c163-43df-9a2f-20b8749c86ae",
+  },
+  {
+    "foil": undefined,
+    "fromPrice": true,
+    "image": "https://manavaultstore.com/api/card-img/front/976f36ce-57b0-4364-9009-b3bbf5763050-400.webp?v=4",
+    "name": "Counterspell — Mystery Booster 2 #158",
+    "price": 1326,
+    "shop": "manavault",
+    "stock": 1,
+    "url": "https://manavaultstore.com/cards/976f36ce-57b0-4364-9009-b3bbf5763050",
+  },
+  {
+    "foil": undefined,
+    "fromPrice": true,
+    "image": "https://manavaultstore.com/api/card-img/front/8118282a-1473-4c0b-a283-1f58e0d0209a-400.webp?v=4",
+    "name": "Counterspell — Strixhaven Mystical Archive #78, Borderless",
+    "price": 2719,
+    "shop": "manavault",
+    "stock": 1,
+    "url": "https://manavaultstore.com/cards/8118282a-1473-4c0b-a283-1f58e0d0209a",
+  },
+]
+`;
+
+exports[`nerdik API response: one result per in-stock offer 1`] = `
+[
+  {
+    "foil": true,
+    "image": "https://cards.scryfall.io/grid/front/e/1/e1e48b21-1a4f-4708-a4b4-e2e296df924c.webp?1783906394",
+    "language": "EN",
+    "name": "Counterspell — Final Fantasy: Through the Ages #4",
+    "price": 301,
+    "shop": "nerdik",
+    "stock": 1,
+    "url": "https://nerdik.club/mtg/singles/fca/4/en/foil/",
+  },
+  {
+    "foil": false,
+    "image": "https://cards.scryfall.io/grid/front/1/9/1920dae4-fb92-4f19-ae4b-eb3276b8dac7.webp?1783926788",
+    "language": "RU",
+    "name": "Counterspell — Modern Horizons 2 #267",
+    "price": 159,
+    "shop": "nerdik",
+    "stock": 7,
+    "url": "https://nerdik.club/mtg/singles/mh2/267/ru/",
+  },
+  {
+    "foil": false,
+    "image": "https://cards.scryfall.io/grid/front/2/c/2c358d75-01ad-4487-8104-425124b96aae.webp?1783926771",
+    "language": "EN",
+    "name": "Counterspell — Modern Horizons 2 #308",
+    "price": 344,
+    "shop": "nerdik",
+    "stock": 2,
+    "url": "https://nerdik.club/mtg/singles/mh2/308/en/",
+  },
+]
+`;
+
+exports[`kartoteka search page 1`] = `
+[
+  {
+    "foil": undefined,
+    "image": "https://kartoteka.in.ua/content/images/19/287x400l85nn0/86131533750562.jpg",
+    "name": "Sol Ring — FRC #21",
+    "price": 73,
+    "shop": "kartoteka",
+    "url": "https://kartoteka.in.ua/sol-ring/",
+  },
+]
+`;
+
+exports[`paytowin auctions: price is the current or starting bid, links go to the site 1`] = `
+[
+  {
+    "auction": {
+      "bids": 1,
+      "buyNow": null,
+      "currentBid": 1000,
+      "endsAt": "2026-11-08T20:00:00.000Z",
+      "startingPrice": 1000,
+    },
+    "condition": undefined,
+    "foil": undefined,
+    "image": "https://pub-1b700fdfb43c4870990c8bdcfd294806.r2.dev/photos/f9b862c7-e850-4d9d-bd22-2fd119dbe677/medium.webp",
+    "language": undefined,
+    "name": "2x - Undercity Sewers #270",
+    "price": 1000,
+    "shop": "paytowin",
+    "url": "https://paytowin.club/a/96c20503-c0f4-4b92-b8c6-0f9d6e15d043",
+  },
+  {
+    "auction": {
+      "bids": 1,
+      "buyNow": null,
+      "currentBid": 350,
+      "endsAt": "2026-11-08T20:00:00.000Z",
+      "startingPrice": 350,
+    },
+    "condition": "M",
+    "foil": undefined,
+    "image": "https://pub-1b700fdfb43c4870990c8bdcfd294806.r2.dev/photos/46c76a1f-0b42-4fcc-aa29-689f674e3457/medium.webp",
+    "language": "EN",
+    "name": "Raucous Theater #266",
+    "price": 350,
+    "shop": "paytowin",
+    "url": "https://paytowin.club/a/fb57b945-e96c-4e5f-bdbb-11360b6b739c",
+  },
+]
+`;

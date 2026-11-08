@@ -4,9 +4,11 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "dev": "bun --hot src/index.ts",
+        "dev": "bun check && bun --hot src/index.ts",
         "start": "NODE_ENV=production bun src/index.ts",
-        "build": "bun run build.ts",
+        "build": "bun check && bun run build.ts",
+        "test": "bun check && bun test",
+        "test:coverage": "bun check && bun test --coverage",
         "format": "prettier --write ."
     },
     "dependencies": {
