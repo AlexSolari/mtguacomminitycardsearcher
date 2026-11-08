@@ -8,7 +8,8 @@ export type ShopId =
     | 'nerdik'
     | 'kartoteka'
     | 'paytowin'
-    | 'magicswamp';
+    | 'magicswamp'
+    | 'citadel';
 
 export const SHOP_INFO: Record<
     ShopId,
@@ -55,6 +56,11 @@ export const SHOP_INFO: Record<
         label: 'Magic Swamp',
         homepage: 'https://magicswamp.com.ua/mtg',
         icon: 'https://magicswamp.com.ua/images/froggowizard-flat.png?v=2'
+    },
+    citadel: {
+        label: 'Citadel',
+        homepage: 'https://citadel.kyiv.ua',
+        icon: 'https://citadel.kyiv.ua/citadelTower3.svg'
     }
 };
 

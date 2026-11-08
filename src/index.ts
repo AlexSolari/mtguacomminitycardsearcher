@@ -5,6 +5,7 @@ import { CardSearchService } from './server/card-search-service';
 import { InFlightLimiter } from './server/in-flight-limiter';
 import { logger } from './server/logger';
 import { CartonCardSearcher } from './server/searchers/carton-card-searcher';
+import { CitadelCardSearcher } from './server/searchers/citadel-card-searcher';
 import { GinCardSearcher } from './server/searchers/gin-card-searcher';
 import { KartotekaCardSearcher } from './server/searchers/kartoteka-card-searcher';
 import { MagicswampCardSearcher } from './server/searchers/magicswamp-card-searcher';
@@ -41,7 +42,8 @@ const cardSearch = new CardSearchService(
         new NerdikCardSearcher(),
         new KartotekaCardSearcher(),
         new PaytowinCardSearcher(),
-        new MagicswampCardSearcher()
+        new MagicswampCardSearcher(),
+        new CitadelCardSearcher()
     ].map((searcher) => new CachedCardSearcher(searcher))
 );
 

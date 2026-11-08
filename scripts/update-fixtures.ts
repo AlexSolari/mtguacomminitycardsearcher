@@ -1,9 +1,10 @@
 // Re-downloads the shop pages the parser tests run against (tests/fixtures/).
 // Run it when a shop changes its markup: `bun scripts/update-fixtures.ts`, then `bun test` shows what broke,
 // and `bun test --update-snapshots` accepts the new output once the parsers are fixed.
-// About 8 requests, through ShopClient so they're spaced like the app's. Nerdik and MTGin need their API keys
+// About 9 requests, through ShopClient so they're spaced like the app's. Nerdik and MTGin need their API keys
 // (NERDIK_API_KEY, MTGIN_API_KEY in .env); without one, that shop's fixture is left as it is.
 import { mkdir } from 'node:fs/promises';
+import { jsonEnd } from '../src/server/parsers/citadel';
 import { ShopClient } from '../src/server/shop-client';
 
 const dir = new URL('../tests/fixtures/', import.meta.url);
@@ -167,3 +168,47 @@ await save(
         }))
     })
 );
+
+// Citadel stocks few singles, so an empty search lists a page of everything. Its data sits in the page's
+// Server Components payload (see parsers/citadel.ts); the items there also carry cart reservations, so the
+// payload's `items` is cut down to the fields parseCitadel reads. The rendered markup holds no personal data.
+const CITADEL_ITEM_FIELDS = [
+    'scryfall_id',
+    'name',
+    'set_name',
+    'variant',
+    'foilType',
+    'isFoil',
+    'promo',
+    'faces',
+    'prices',
+    'quantity',
+    'availableQty',
+    'lang',
+    'condition'
+];
+const citadel = new ShopClient('https://citadel.kyiv.ua');
+let citadelItems = 0;
+const citadelPage = (
+    await citadel.fetchHtml(citadel.url('/singles', { q: '' }))
+).replace(
+    /(self\.__next_f\.push\(\[1,)("(?:[^"\\]|\\.)*")(\]\))/g,
+    (script, open: string, literal: string, close: string) => {
+        const data: string = JSON.parse(literal);
+        const at = data.indexOf('"items":[');
+        if (at < 0) return script;
+        const start = at + '"items":'.length;
+        const end = jsonEnd(data, start);
+        if (end < 0) throw new Error('Citadel: `items` spans several scripts');
+        const items = JSON.parse(data.slice(start, end)).map((it: any) =>
+            pick(it, CITADEL_ITEM_FIELDS)
+        );
+        citadelItems += items.length;
+        const payload =
+            data.slice(0, start) + JSON.stringify(items) + data.slice(end);
+        // as Next.js writes it: no "<" that could close the script early
+        return open + JSON.stringify(payload).replace(/</g, '\\u003c') + close;
+    }
+);
+if (!citadelItems) throw new Error('Citadel: no items in the search page');
+await save('citadel-search.html', citadelPage);

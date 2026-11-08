@@ -15,8 +15,10 @@ The UI is in Ukrainian.
 | Nerdik              | [nerdik.club](https://nerdik.club)               |
 | Kartoteka           | [kartoteka.in.ua](https://kartoteka.in.ua)       |
 | PayToWin (auctions) | [paytowin.club](https://paytowin.club)           |
+| Magic Swamp         | [magicswamp.com.ua](https://magicswamp.com.ua)   |
+| Citadel             | [citadel.kyiv.ua](https://citadel.kyiv.ua)       |
 
-MTGin, Nerdik and PayToWin (auctions) are read from their APIs; the other shops don't offer one, so prices are scraped from their search pages.
+MTGin, Nerdik, PayToWin (auctions) and Magic Swamp are read from their APIs; the other shops don't offer one, so prices are scraped from their search pages.
 MTGin's API matches card names exactly, so MTGin never contributes fuzzy "other matches".
 A shop redesign can break its parser. If one shop stops returning results, that's the likely cause.
 

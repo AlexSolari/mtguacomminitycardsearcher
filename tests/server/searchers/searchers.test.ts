@@ -3,6 +3,7 @@
 import { describe, expect, test } from 'bun:test';
 import { HttpError, ShopClient } from '@/server/shop-client';
 import { CartonCardSearcher } from '@/server/searchers/carton-card-searcher';
+import { CitadelCardSearcher } from '@/server/searchers/citadel-card-searcher';
 import { GinCardSearcher } from '@/server/searchers/gin-card-searcher';
 import { KartotekaCardSearcher } from '@/server/searchers/kartoteka-card-searcher';
 import { MagicswampCardSearcher } from '@/server/searchers/magicswamp-card-searcher';
@@ -377,6 +378,20 @@ describe('single-request searchers', () => {
         });
         const signal = new AbortController().signal;
         const results = await new MagicswampCardSearcher(client).search(
+            'Sol Ring',
+            signal
+        );
+        expect(results.length).toBeGreaterThan(0);
+        expect(requests).toEqual([{ url, init: { signal } }]);
+    });
+
+    test('CitadelCardSearcher', async () => {
+        const url = 'https://citadel.kyiv.ua/singles?q=Sol+Ring';
+        const { client, requests } = fakeClient('https://citadel.kyiv.ua', {
+            [url]: await fixture('citadel-search.html')
+        });
+        const signal = new AbortController().signal;
+        const results = await new CitadelCardSearcher(client).search(
             'Sol Ring',
             signal
         );
