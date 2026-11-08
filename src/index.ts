@@ -7,6 +7,7 @@ import { logger } from './server/logger';
 import { CartonCardSearcher } from './server/searchers/carton-card-searcher';
 import { GinCardSearcher } from './server/searchers/gin-card-searcher';
 import { KartotekaCardSearcher } from './server/searchers/kartoteka-card-searcher';
+import { MagicswampCardSearcher } from './server/searchers/magicswamp-card-searcher';
 import { ManavaultCardSearcher } from './server/searchers/manavault-card-searcher';
 import { NerdikCardSearcher } from './server/searchers/nerdik-card-searcher';
 import { PaytowinCardSearcher } from './server/searchers/paytowin-card-searcher';
@@ -39,7 +40,8 @@ const cardSearch = new CardSearchService(
         new ManavaultCardSearcher(),
         new NerdikCardSearcher(),
         new KartotekaCardSearcher(),
-        new PaytowinCardSearcher()
+        new PaytowinCardSearcher(),
+        new MagicswampCardSearcher()
     ].map((searcher) => new CachedCardSearcher(searcher))
 );
 

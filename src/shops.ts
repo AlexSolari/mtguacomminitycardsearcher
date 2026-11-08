@@ -2,7 +2,13 @@
 import type { SearchError } from './search-result';
 
 export type ShopId =
-    'gin' | 'carton' | 'manavault' | 'nerdik' | 'kartoteka' | 'paytowin';
+    | 'gin'
+    | 'carton'
+    | 'manavault'
+    | 'nerdik'
+    | 'kartoteka'
+    | 'paytowin'
+    | 'magicswamp';
 
 export const SHOP_INFO: Record<
     ShopId,
@@ -44,6 +50,11 @@ export const SHOP_INFO: Record<
         label: 'PayToWin',
         homepage: 'https://paytowin.club',
         icon: 'https://paytowin.club/favicon-96x96.png'
+    },
+    magicswamp: {
+        label: 'Magic Swamp',
+        homepage: 'https://magicswamp.com.ua/mtg',
+        icon: 'https://magicswamp.com.ua/images/froggowizard-flat.png?v=2'
     }
 };
 

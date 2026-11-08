@@ -1,0 +1,994 @@
+{
+  "data": [
+    {
+      "card_name": "Gleaming Bastion",
+      "set_name": "Marvel Super Heroes",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/msh/7c769658-0d99-4758-b8bd-4c8d03a09add.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "fb921f65-285c-490d-8e93-b07c4cd74284",
+          "price": 88,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": false,
+          "foil_type": "none",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Boltwave",
+      "set_name": "Foundations",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/fdn/8d1ec351-5e70-4eb2-b590-6bff94ef8178.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "51012868-3212-4188-91b5-8116265e6973",
+          "price": 104,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": false,
+          "foil_type": "none",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Royal Treatment",
+      "set_name": "Wilds of Eldraine",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/woe/b6516b8f-ecfb-401e-ba8e-bf561aa2be64.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "22465c0a-4f88-4398-a8dc-64e2b0dfc4b9",
+          "price": 15,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": false,
+          "foil_type": "none",
+          "quantity": 4,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Gleaming Splendor",
+      "set_name": "The Hobbit",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/hob/3b087bd4-bbb7-4963-bdb6-0a700ff19a04.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "17f62f1b-cbef-40d0-9f53-c96f76b1653a",
+          "price": 1598,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": true,
+          "foil_type": "foil",
+          "quantity": 1,
+          "language": "en"
+        },
+        {
+          "listing_id": "a8d65448-8a5a-42e3-980c-320feee9db23",
+          "price": 1617,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": true,
+          "foil_type": "foil",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Precise Redaction",
+      "set_name": "Reality Fracture",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/fra/4b15b2c1-c3fd-474e-872f-464083a0e0bf.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "8a48c6db-d1aa-4288-807f-97b4eccc9fdb",
+          "price": 14,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": false,
+          "foil_type": "none",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Rise of the Deathbringer",
+      "set_name": "Reality Fracture",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/fra/811719ad-b5a3-4d31-8c6f-5dbdfccf7c1f.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "831ad0ef-b41f-4a46-a7f2-d2326804caf4",
+          "price": 18,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": false,
+          "foil_type": "none",
+          "quantity": 2,
+          "language": "en"
+        },
+        {
+          "listing_id": "4a50167f-b3bb-43f1-8db3-9d4a0ba82639",
+          "price": 18,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": true,
+          "foil_type": "foil",
+          "quantity": 2,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Cultist of the Absolute",
+      "set_name": "Commander Legends: Battle for Baldur's Gate",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/clb/bd9b11ac-187c-4cda-9197-93244d6906c8.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "3d438122-0761-4d2d-9a4e-0bfd853c9a49",
+          "price": 22,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": true,
+          "foil_type": "etched",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Thranduil, the Elvenking",
+      "set_name": "The Hobbit",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/hob/fe2fe8fa-3b99-44c1-bab9-922e5c864952.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "4e30d5c2-aeb0-4aae-9885-bfd37f50e87c",
+          "price": 27,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": false,
+          "foil_type": "none",
+          "quantity": 2,
+          "language": "en"
+        },
+        {
+          "listing_id": "d335f769-f605-4e8f-a3a6-c5910f16e70c",
+          "price": 27,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": true,
+          "foil_type": "foil",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Malevolent Hermit // Benevolent Geist",
+      "set_name": "Innistrad: Midnight Hunt",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/mid/e79269af-63eb-43d2-afee-c38fa14a0c5b.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "6461d118-a0dd-4c6b-a361-566fbb41f7db",
+          "price": 40,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": false,
+          "foil_type": "none",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Ghostly Flicker",
+      "set_name": "Avacyn Restored",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/avr/f0a44373-0c50-4e14-a7c6-0de66796b81e.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "8d3fa124-0ce7-404a-9280-d2350250ce49",
+          "price": 70,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": false,
+          "foil_type": "none",
+          "quantity": 2,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Blot Out",
+      "set_name": "March of the Machine: The Aftermath",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/mat/7aaefcbb-98d4-40b8-b51c-2d26f6945b6f.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "1be9c08b-7d29-42f8-85f2-67c9d1595ceb",
+          "price": 79,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": true,
+          "foil_type": "halo",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Loading Zone",
+      "set_name": "Edge of Eternities",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/eoe/0d2c95bd-79af-4a23-b265-62cc0b164e3e.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "828107c5-ecdc-4ac7-8c58-189edd0f7816",
+          "price": 80,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": false,
+          "foil_type": "none",
+          "quantity": 1,
+          "language": "en"
+        },
+        {
+          "listing_id": "937a119b-dc38-46bb-88ca-1b1e903fb2d1",
+          "price": 99,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": false,
+          "foil_type": "none",
+          "quantity": 3,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Hullbreaker Horror",
+      "set_name": "Innistrad Remastered",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/inr/ad3732f1-26b2-4448-87ea-56a1524ecb0f.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "9d803a0e-6b9f-4388-9e8c-4bfdf964085c",
+          "price": 248,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": false,
+          "foil_type": "none",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Voja, Jaws of the Conclave",
+      "set_name": "Murders at Karlov Manor",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/mkm/bfa1bd2f-25bd-4fbd-877b-cef00ab7f92f.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "5992c6ec-b570-477f-a791-9979e46495ff",
+          "price": 283,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": true,
+          "foil_type": "foil",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Flickering Hound",
+      "set_name": "Reality Fracture",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/fra/686f3a25-305d-4f02-8972-eba7b8e9635f.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "2ef58b76-51c6-432d-a292-2da86b3f5d24",
+          "price": 322,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": false,
+          "foil_type": "none",
+          "quantity": 7,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Disruptor Flute",
+      "set_name": "Modern Horizons 3",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/mh3/e764e3e9-653c-44d7-b96a-530d51ca5c2f.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "6ebfe312-d340-406f-b3dc-4a5e10608af3",
+          "price": 439,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": true,
+          "foil_type": "foil",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Jin-Gitaxias, Progress Tyrant",
+      "set_name": "Kamigawa: Neon Dynasty Promos",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/pneo/b033e3bc-1cc8-4613-b046-c21d7fec1e6c.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "15e0a80d-8e97-42ca-8553-8b4332d55048",
+          "price": 451,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": false,
+          "foil_type": "none",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Ob Nixilis, Captive Kingpin",
+      "set_name": "March of the Machine: The Aftermath",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/mat/ddb68233-3683-41bd-9b6e-4f07a1b54244.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "e50044e0-240b-49da-9884-6766f31e9347",
+          "price": 644,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": false,
+          "foil_type": "none",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Nazgûl",
+      "set_name": "The Lord of the Rings: Tales of Middle-earth",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/ltr/833936c6-9381-4c0b-a81c-4a938be95040.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "1fd87710-8172-4e60-a5d5-06060e32764b",
+          "price": 655,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": false,
+          "foil_type": "none",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Ulamog, the Defiler",
+      "set_name": "Modern Horizons 3",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/mh3/fd00d56a-86bd-41d8-82b6-975404ef8067.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "3b42b63d-5a7a-440c-8fe8-b52e67ac75b7",
+          "price": 819,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": false,
+          "foil_type": "none",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "The Queen of Dale",
+      "set_name": "The Hobbit",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/hob/c977fb5f-4436-41d0-af68-93b6d05897e5.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "aab5e24d-2378-494e-afc4-83731b66bd1e",
+          "price": 904,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": false,
+          "foil_type": "none",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Consign to Memory",
+      "set_name": "Special Guests",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/spg/ec9ffeac-ae49-465e-9dc5-976db8252fe6.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "9c1e2354-a9eb-4f53-a061-9d00d640874d",
+          "price": 1115,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": false,
+          "foil_type": "none",
+          "quantity": 1,
+          "language": "en"
+        },
+        {
+          "listing_id": "5858cf04-e4dd-4f7b-a9ec-4c438b510fec",
+          "price": 1115,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": true,
+          "foil_type": "foil",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Tony Stark // The Invincible Iron Man",
+      "set_name": "Marvel Super Heroes",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/msh/7a85467d-5693-4cf7-b38d-d42c57242f48.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "45102595-e5b4-4836-ad1e-ff88947d70f2",
+          "price": 1116,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": true,
+          "foil_type": "foil",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Sauron, the Dark Lord",
+      "set_name": "The Lord of the Rings: Tales of Middle-earth",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/ltr/034e0929-b2c7-4b5f-94f2-8eaf4fb1a2a1.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "7263c1f6-6eac-4d95-a70d-142d3dbff029",
+          "price": 1248,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": true,
+          "foil_type": "foil",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Sauron, the Dark Lord",
+      "set_name": "The Hobbit Eternal",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/hoc/dd6dd9dc-ef2a-4806-a3e4-0597288a8162.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "c1a008de-6ea7-4d66-8dca-00227fec68f0",
+          "price": 1438,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": true,
+          "foil_type": "foil",
+          "quantity": 2,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Yuna, Grand Summoner",
+      "set_name": "Wizards Play Network 2025",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/pw25/31572625-b4a8-4ac0-8f08-999d6a6636d7.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "4e32c822-92c6-476d-b146-5bf44eb4bc2a",
+          "price": 1489,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": true,
+          "foil_type": "foil",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Bristly Bill, Spine Sower",
+      "set_name": "Outlaws of Thunder Junction",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/otj/52eef0d6-24b7-40b7-8403-e8e863d0cd55.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "a3afb1d4-63b2-40fe-a1f6-f186f677c86c",
+          "price": 1702,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": false,
+          "foil_type": "none",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Michelangelo, the Heart",
+      "set_name": "Teenage Mutant Ninja Turtles Eternal",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/tmc/4c6b7f78-3882-42cc-bac5-4df33938a6f2.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "70b1ada4-461c-4bf3-b320-1999fb947afd",
+          "price": 11643,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": true,
+          "foil_type": "surge",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Shock",
+      "set_name": "Marvel's Spider-Man",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/spm/760b41a1-c087-4b11-b8a0-fb01d8a4c0c6.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "0b0788f6-8902-4827-a404-18697be7554d",
+          "price": 5,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": false,
+          "foil_type": "none",
+          "quantity": 11,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Kylox, Visionary Inventor",
+      "set_name": "Murders at Karlov Manor",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/mkm/00faa272-91ad-407b-9175-8fa1d02585b8.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "7bfebd32-438c-4763-8f82-9b33f3227971",
+          "price": 9,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": false,
+          "foil_type": "none",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Thorin's Last Stand",
+      "set_name": "The Hobbit",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/hob/089e8e4b-c367-4d86-a69a-951f7d779aaf.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "47ac1dd7-80e8-4565-a4d1-78a1522b589c",
+          "price": 10,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": false,
+          "foil_type": "none",
+          "quantity": 3,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Drag the Canal",
+      "set_name": "Murders at Karlov Manor",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/mkm/508d7096-2be3-4d4b-a55c-d4dbd3c9019c.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "86081b23-8cfd-4f3d-927d-4fa40b520320",
+          "price": 10,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": false,
+          "foil_type": "none",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Gorion, Wise Mentor",
+      "set_name": "Commander Legends: Battle for Baldur's Gate",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/clb/001c648a-db66-47f3-8fee-3658b9e76ac2.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "b9f7b3cf-4915-4180-9ed5-7057d2697f78",
+          "price": 11,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": false,
+          "foil_type": "none",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Hardlight Containment",
+      "set_name": "Edge of Eternities",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/eoe/0b934241-4d6b-4b9c-99f1-c49cb387cf56.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "bd64519f-e8c6-4147-9d51-5e4ca1400ab6",
+          "price": 11,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": false,
+          "foil_type": "none",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Yarus, Roar of the Old Gods",
+      "set_name": "Murders at Karlov Manor",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/mkm/326845a7-7502-4dc3-8f3e-867d6c84e931.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "bc2bf48a-8016-41b7-91ff-ae19e49f92f3",
+          "price": 11,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": false,
+          "foil_type": "none",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Rage into the Valley",
+      "set_name": "The Hobbit",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/hob/349d7464-e778-4a24-a528-d31d36ff4799.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "c4596aea-16e5-47aa-9eb4-db1996bf76fc",
+          "price": 11,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": false,
+          "foil_type": "none",
+          "quantity": 1,
+          "language": "en"
+        },
+        {
+          "listing_id": "fdaec41c-ac01-43a8-be36-7d40875f8b6e",
+          "price": 12,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": true,
+          "foil_type": "foil",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Mazzy, Truesword Paladin",
+      "set_name": "Commander Legends: Battle for Baldur's Gate",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/clb/4d79c221-e07a-41e1-b92f-dc057802449c.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "607df395-2aa1-4d6a-a436-953931ed9352",
+          "price": 11,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": false,
+          "foil_type": "none",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Ezrim, Agency Chief",
+      "set_name": "Murders at Karlov Manor",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/mkm/9554d5f2-7a33-4734-8cf3-dfae2ccc3596.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "261b51f6-bcdc-4ddd-9ec6-27b103a663f2",
+          "price": 11,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": false,
+          "foil_type": "none",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Balthier and Fran",
+      "set_name": "Final Fantasy",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/fin/afcaed7d-7ea3-4f2a-a7f5-ee3315226369.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "8d44988c-9502-4f51-b54e-108ee20c8718",
+          "price": 11,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": false,
+          "foil_type": "none",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Alaundo the Seer",
+      "set_name": "Commander Legends: Battle for Baldur's Gate",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/clb/b22c33bb-47fe-4334-9105-00f4b87811bd.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "1d78eae5-62fb-4198-98b1-491a36787c93",
+          "price": 11,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": false,
+          "foil_type": "none",
+          "quantity": 1,
+          "language": "en"
+        },
+        {
+          "listing_id": "4d2311a1-c3d3-4e53-beb5-c64f5d5d6df7",
+          "price": 14,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": true,
+          "foil_type": "foil",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Emissary Escort",
+      "set_name": "Edge of Eternities",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/eoe/b52ba87f-3ac7-4f32-901c-d089df979f94.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "b551de33-5f1d-451d-b388-900d07ff2f80",
+          "price": 11,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": false,
+          "foil_type": "none",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Terminal Velocity",
+      "set_name": "Edge of Eternities",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/eoe/1d18dc06-16f0-4a3b-8d52-dbf4aa2c393d.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "7ae74dab-8eb5-4c21-b568-e6c9bcb5ba5b",
+          "price": 12,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": true,
+          "foil_type": "foil",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Possibility Technician",
+      "set_name": "Edge of Eternities",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/eoe/4b146c78-403f-48c8-941d-41114498bb89.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "693e4b3a-f0cc-49c9-a012-da182f99fe94",
+          "price": 12,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": true,
+          "foil_type": "foil",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Stone-Giant of High Pass",
+      "set_name": "The Hobbit",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/hob/5f4f4683-ffd2-447a-932b-276f7fa17cca.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "f59211e7-a300-4744-b948-4a19f5678804",
+          "price": 12,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": true,
+          "foil_type": "foil",
+          "quantity": 1,
+          "language": "en"
+        },
+        {
+          "listing_id": "8273b1e7-5474-4e93-b228-637bedecf92d",
+          "price": 12,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": false,
+          "foil_type": "none",
+          "quantity": 4,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Eclipsed Flamekin",
+      "set_name": "Lorwyn Eclipsed",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/ecl/6271b82d-5922-4de0-b763-129908ece6ee.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "050b9b21-2571-4a85-a47b-6d5f1da66dfb",
+          "price": 12,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": true,
+          "foil_type": "foil",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Iron Hills Blacksmith",
+      "set_name": "The Hobbit",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/hob/6b428a9a-3a59-4416-b00b-78e2cb73e2d6.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "e59d000a-f98f-4b88-8474-a7823e0abd39",
+          "price": 12,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": true,
+          "foil_type": "foil",
+          "quantity": 1,
+          "language": "en"
+        },
+        {
+          "listing_id": "6ee7ee1b-8b85-4840-9f21-1b938e515d75",
+          "price": 12,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": false,
+          "foil_type": "none",
+          "quantity": 2,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Fraying Line",
+      "set_name": "Commander Legends: Battle for Baldur's Gate",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/clb/75bf7702-c97d-4b88-b815-769c4906e014.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "f47c8770-afef-4d3f-a029-13ba446ff337",
+          "price": 12,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": false,
+          "foil_type": "none",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Terminal Criticism",
+      "set_name": "Reality Fracture",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/fra/7ebd7e38-b27c-4c6e-aaea-e8ee5ba5e5df.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "f17788c6-7e28-4da0-a0b2-1f4aa6628cec",
+          "price": 12,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": false,
+          "foil_type": "none",
+          "quantity": 2,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Slumbering Walker",
+      "set_name": "Lorwyn Eclipsed",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/ecl/81e82915-e734-4754-829f-f5da6a7c550d.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "cb1632d9-1abf-4dc9-8062-3c71bd6b6ee9",
+          "price": 12,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": true,
+          "foil_type": "foil",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "card_name": "Bhaal, Lord of Murder",
+      "set_name": "Commander Legends: Battle for Baldur's Gate",
+      "card_image_url": "https://img.magicswamp.com.ua/cards/clb/88b11da8-f9af-4ef3-9bc2-c28f0a8a5dd1.jpg",
+      "game": "mtg",
+      "sellers": [
+        {
+          "listing_id": "c3c21447-1b0a-46d8-91ea-96cbdc3d2b0e",
+          "price": 12,
+          "currency": "UAH",
+          "condition": "near_mint",
+          "is_foil": false,
+          "foil_type": "none",
+          "quantity": 1,
+          "language": "en"
+        }
+      ]
+    }
+  ]
+}

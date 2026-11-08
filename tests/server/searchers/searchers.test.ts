@@ -5,6 +5,7 @@ import { HttpError, ShopClient } from '@/server/shop-client';
 import { CartonCardSearcher } from '@/server/searchers/carton-card-searcher';
 import { GinCardSearcher } from '@/server/searchers/gin-card-searcher';
 import { KartotekaCardSearcher } from '@/server/searchers/kartoteka-card-searcher';
+import { MagicswampCardSearcher } from '@/server/searchers/magicswamp-card-searcher';
 import { ManavaultCardSearcher } from '@/server/searchers/manavault-card-searcher';
 import { NerdikCardSearcher } from '@/server/searchers/nerdik-card-searcher';
 import { PaytowinCardSearcher } from '@/server/searchers/paytowin-card-searcher';
@@ -366,6 +367,21 @@ describe('single-request searchers', () => {
         );
         expect(results.length).toBeGreaterThan(0);
         expect(requested()).toEqual([url]);
+    });
+
+    test('MagicswampCardSearcher', async () => {
+        const url =
+            'https://magicswamp.com.ua/api/listings/grouped/cards?game=mtg&search=Sol+Ring&limit=50';
+        const { client, requests } = fakeClient('https://magicswamp.com.ua', {
+            [url]: await fixture('magicswamp-search.json')
+        });
+        const signal = new AbortController().signal;
+        const results = await new MagicswampCardSearcher(client).search(
+            'Sol Ring',
+            signal
+        );
+        expect(results.length).toBeGreaterThan(0);
+        expect(requests).toEqual([{ url, init: { signal } }]);
     });
 
     test('NerdikCardSearcher sends its API key', async () => {

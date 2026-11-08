@@ -1,7 +1,7 @@
 // Re-downloads the shop pages the parser tests run against (tests/fixtures/).
 // Run it when a shop changes its markup: `bun scripts/update-fixtures.ts`, then `bun test` shows what broke,
 // and `bun test --update-snapshots` accepts the new output once the parsers are fixed.
-// About 7 requests, through ShopClient so they're spaced like the app's. Nerdik and MTGin need their API keys
+// About 8 requests, through ShopClient so they're spaced like the app's. Nerdik and MTGin need their API keys
 // (NERDIK_API_KEY, MTGIN_API_KEY in .env); without one, that shop's fixture is left as it is.
 import { mkdir } from 'node:fs/promises';
 import { ShopClient } from '../src/server/shop-client';
@@ -124,6 +124,46 @@ await save(
             photos: (a.photos ?? []).slice(0, 1).map((p: any) => ({
                 urls: { medium: p.urls?.medium, thumb: p.urls?.thumb }
             }))
+        }))
+    })
+);
+
+// Magic Swamp is a marketplace of private sellers with a small stock, so an empty search lists a page of
+// everything. Keep only the fields parseMagicswamp reads: no seller names, ids, ratings, photos or descriptions.
+const MAGICSWAMP_CARD_FIELDS = [
+    'card_name',
+    'set_name',
+    'card_image_url',
+    'game'
+];
+const MAGICSWAMP_OFFER_FIELDS = [
+    'listing_id',
+    'price',
+    'currency',
+    'condition',
+    'is_foil',
+    'foil_type',
+    'quantity',
+    'language'
+];
+const pick = (o: any, keys: string[]) =>
+    Object.fromEntries(keys.map((k) => [k, o[k]]));
+const magicswamp = new ShopClient('https://magicswamp.com.ua');
+const swamp = await magicswamp.fetchJson<{ data?: any[] }>(
+    magicswamp.url('/api/listings/grouped/cards', {
+        game: 'mtg',
+        search: '',
+        limit: '50'
+    })
+);
+await save(
+    'magicswamp-search.json',
+    json({
+        data: (swamp.data ?? []).map((c) => ({
+            ...pick(c, MAGICSWAMP_CARD_FIELDS),
+            sellers: (c.sellers ?? []).map((o: any) =>
+                pick(o, MAGICSWAMP_OFFER_FIELDS)
+            )
         }))
     })
 );
