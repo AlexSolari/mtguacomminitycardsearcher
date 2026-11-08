@@ -187,12 +187,12 @@ describe('GinCardSearcher', () => {
         ).toEqual(['HTTP 429', 'HTTP 429']);
     });
 
-    test('a lookup with nothing in stock gives [] and is logged', async () => {
+    test('a lookup with nothing in stock gives [], quietly', async () => {
         const { client } = fakeGin(() => ({ results: [{ offers: [] }] }));
         expect(
             await new GinCardSearcher(client, 'test-key').search('Daze')
         ).toEqual([]);
-        expect(logs).toHaveLength(1);
+        expect(logs).toEqual([]);
     });
 
     test('without a key it fails without a request', async () => {

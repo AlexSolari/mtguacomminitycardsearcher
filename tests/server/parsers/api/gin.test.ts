@@ -16,8 +16,7 @@ describe('gin', () => {
         expect(results).toMatchSnapshot();
     });
 
-    // A response without the shape the parser expects is how an API change shows up: it must give [] (logged by
-    // warnIfEmpty), not throw and fail the whole shop.
+    // A response without the shape the parser expects must give [], not throw and fail the whole shop.
     test('unexpected response → []', () => {
         expect(parseGin({}, base)).toEqual([]);
         expect(parseGin(undefined, base)).toEqual([]);

@@ -11,8 +11,9 @@ export interface CardSearcher {
     search(card: string, signal?: AbortSignal): Promise<CardResult[]>;
 }
 
-// An empty parse usually just means "not in stock", but it's also what a shop redesign looks like: the parser
-// finds none of the markup it expects. Log it, so a broken parser shows up as a run of these in the logs.
+// For scrapers: an empty parse usually just means "not in stock", but it's also what a shop redesign looks like:
+// the parser finds none of the markup it expects. Log it, so a broken parser shows up as a run of these in the logs.
+// API searchers don't use it: an empty API response is an ordinary "not in stock", and logging every one is noise.
 export function warnIfEmpty(shop: ShopId, url: string, results: CardResult[]) {
     if (results.length === 0)
         logger.warn('parser found nothing', { shop, url });

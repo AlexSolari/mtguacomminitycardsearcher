@@ -61,7 +61,8 @@ See [README.md](README.md) for what the app does and the request flow.
 - **Searchers** (`src/server/searchers/<shop>-card-searcher.ts`) decide which URLs to fetch and call the parsers.
   They **must** fetch through their own `ShopClient` (created in the constructor with the shop's base URL), never `fetch` directly; it provides the shop's rate limit, timeout and queue cap.
   Build URLs with `client.url(path, params)`. The client refuses URLs on other hosts.
-  Pass every parser result through `warnIfEmpty`: an empty parse is how a shop redesign shows up, so it's logged.
+  Scrapers pass every parser result through `warnIfEmpty`: an empty parse is how a shop redesign shows up, so it's logged.
+  API searchers don't: an empty API response just means nothing is in stock.
   Pass `search()`'s `signal` to every client call (`{ signal }`), so abandoned searches leave the shop's queue.
   An optional follow-up request that falls back on failure goes through `warnFallback` in its `catch`, never a silent catch.
 - **Wiring:** searchers are registered in `src/index.ts`, each wrapped in `CachedCardSearcher`.

@@ -3,7 +3,7 @@ import {
     type MagicswampResponse
 } from '../parsers/api/magicswamp';
 import type { CardResult } from '../../search-result';
-import { warnIfEmpty, type CardSearcher } from '../card-searcher';
+import type { CardSearcher } from '../card-searcher';
 import { ShopClient } from '../shop-client';
 
 // The site is a React app; its own JSON API is what the search page calls. `search` matches part of the name.
@@ -21,15 +21,9 @@ export class MagicswampCardSearcher implements CardSearcher {
             search: card,
             limit: '50'
         });
-        return warnIfEmpty(
-            this.shop,
-            url,
-            parseMagicswamp(
-                await this.client.fetchJson<MagicswampResponse>(url, {
-                    signal
-                }),
-                this.client.baseUrl
-            )
+        return parseMagicswamp(
+            await this.client.fetchJson<MagicswampResponse>(url, { signal }),
+            this.client.baseUrl
         );
     }
 }

@@ -1,6 +1,6 @@
 import { parseGin, type GinResponse } from '../parsers/api/gin';
 import type { CardResult } from '../../search-result';
-import { warnIfEmpty, type CardSearcher } from '../card-searcher';
+import type { CardSearcher } from '../card-searcher';
 import { ShopClient } from '../shop-client';
 
 // The API takes up to 100 lookups per request.
@@ -110,13 +110,7 @@ export class GinCardSearcher implements CardSearcher {
             });
             // results come back in request order
             lookups.forEach((l, i) =>
-                l.resolve(
-                    warnIfEmpty(
-                        this.shop,
-                        `${url} (${JSON.stringify(l.card)})`,
-                        parseGin(json?.results?.[i], this.client.baseUrl)
-                    )
-                )
+                l.resolve(parseGin(json?.results?.[i], this.client.baseUrl))
             );
         } catch (err) {
             // a 429 or timeout fails the whole batch; each card shows MTGin as failed
