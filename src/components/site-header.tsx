@@ -1,4 +1,4 @@
-import { Sparkles } from 'lucide-react';
+import logo from '@/favicon.svg';
 import { ShopBadge } from '@/components/shop-badge';
 import { useGreasefangEasterEgg } from '@/components/greasefang-easter-egg';
 import { SHOP_INFO, type ShopId } from '@/shops';
@@ -10,13 +10,14 @@ export function SiteHeader({ onTitleClick }: { onTitleClick: () => void }) {
         <header className='flex flex-col items-center gap-3 text-center'>
             <div className='flex items-center justify-center gap-3'>
                 {/* click → Greasefang easter egg; hovering warms up the card images first */}
-                <div
+                {/* the favicon doubles as the header logo, so the two always match */}
+                <img
+                    src={logo}
+                    alt=''
                     onClick={easterEgg.play}
                     onPointerEnter={easterEgg.preload}
-                    className='grid size-11 place-items-center rounded-xl bg-linear-to-br from-primary to-amber-600 text-primary-foreground shadow-lg shadow-primary/20 motion-safe:hover:animate-shake'
-                >
-                    <Sparkles className='size-5' />
-                </div>
+                    className='relative -top-[3px] size-11 rounded-[22%] shadow-[0_0_14px] shadow-primary/25 motion-safe:hover:animate-shake'
+                />
                 <h1 className='font-display text-2xl font-bold leading-tight tracking-wide sm:text-3xl lg:text-4xl'>
                     <button
                         type='button'

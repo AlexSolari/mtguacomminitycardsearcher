@@ -2,20 +2,34 @@
   <title>MTG UA Community Card Searcher</title>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#f8d474"/>
-      <stop offset="1" stop-color="#d97706"/>
+      <stop offset="0" stop-color="#3a2d63"/>
+      <stop offset="1" stop-color="#1a1530"/>
     </linearGradient>
-    <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#fff" stop-opacity=".35"/>
-      <stop offset=".5" stop-color="#fff" stop-opacity="0"/>
-    </linearGradient>
+    <!-- the card, tilted; reused as its own clip so the flag halves follow the rounded corners -->
+    <rect id="card" x="11" y="8" width="28" height="40" rx="4" transform="rotate(-12 25 28)"/>
+    <clipPath id="card-clip"><use href="#card"/></clipPath>
   </defs>
+  <!-- indigo tile with a thin gold rim, matching the app's dark theme -->
   <rect width="64" height="64" rx="14" fill="url(#bg)"/>
-  <rect width="64" height="64" rx="14" fill="url(#shine)"/>
-  <g fill="#2b1a06">
-    <!-- main four-point sparkle -->
-    <path d="M28 14 Q30.5 33.5 50 36 Q30.5 38.5 28 58 Q25.5 38.5 6 36 Q25.5 33.5 28 14Z"/>
-    <!-- small sparkle -->
-    <path d="M48 7 Q49.2 14.8 57 16 Q49.2 17.2 48 25 Q46.8 17.2 39 16 Q46.8 14.8 48 7Z"/>
+  <rect x=".75" y=".75" width="62.5" height="62.5" rx="13.25" fill="none" stroke="#f2c35b" stroke-opacity=".45" stroke-width="1.5"/>
+  <!-- artwork scaled in around the centre so the handle and card corner keep clear of the rim -->
+  <g transform="translate(32 32) scale(.86) translate(-32 -32)">
+  <!-- blue-and-yellow card -->
+  <g clip-path="url(#card-clip)">
+    <rect width="64" height="28" fill="#1f6fd1"/>
+    <rect y="28" width="64" height="36" fill="#ffd23f"/>
+  </g>
+  <use href="#card" fill="none" stroke="#f2f0f7" stroke-opacity=".9" stroke-width="2"/>
+  <!-- gold magnifier over the card's corner; the dark under-stroke separates it from the yellow -->
+  <g stroke="#1a1530" stroke-linecap="round">
+    <circle cx="41" cy="41" r="11.5" fill="#1a1530" stroke-width="9"/>
+    <path d="M49.5 49.5 L56 56" stroke-width="10"/>
+  </g>
+  <g stroke="#f2c35b" stroke-linecap="round">
+    <circle cx="41" cy="41" r="11.5" fill="none" stroke-width="4.5"/>
+    <path d="M49.5 49.5 L56 56" stroke-width="6"/>
+  </g>
+  <!-- sparkle in the lens -->
+  <path d="M41 34 Q41.8 40.2 48 41 Q41.8 41.8 41 48 Q40.2 41.8 34 41 Q40.2 40.2 41 34Z" fill="#fff"/>
   </g>
 </svg>
