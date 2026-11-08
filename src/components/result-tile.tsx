@@ -39,7 +39,7 @@ export function ResultTile({
                 {/* left: status + finish/discount badges, stacked */}
                 <div className='absolute left-3.5 top-3.5 flex flex-col items-start gap-1'>
                     {best && (
-                        <Badge className='bg-primary text-primary-foreground'>
+                        <Badge className='bg-primary-fill text-primary-foreground'>
                             <Crown className='size-3' />
                             Найкраща ціна
                         </Badge>
@@ -89,7 +89,7 @@ export function ResultTile({
                 {link.auction && <AuctionMeta auction={link.auction} />}
                 {link.stock !== undefined && (
                     <div className='flex flex-wrap items-center gap-1.5 text-xs'>
-                        <span className='inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-emerald-400'>
+                        <span className='inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-emerald-700 dark:text-emerald-400'>
                             <Package className='size-3' />
                             {link.stock} шт. в наявності
                         </span>

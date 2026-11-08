@@ -57,7 +57,7 @@ export function ViewToggle({
                     className={cn(
                         'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition',
                         view === value
-                            ? 'bg-primary text-primary-foreground shadow'
+                            ? 'bg-primary-fill text-primary-foreground shadow'
                             : 'text-muted-foreground hover:text-foreground'
                     )}
                 >

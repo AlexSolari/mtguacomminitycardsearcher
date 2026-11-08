@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react';
 import { GithubIcon, TelegramIcon, type IconProps } from '@/components/icons';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 const CONTACTS: {
     label: string;
@@ -18,13 +19,18 @@ const CONTACTS: {
     }
 ];
 
+// Wide screens: name on the left, then contacts and the theme toggle on the right.
+// Phones: a grid, so the name and toggle always share the first row (on the narrowest screens the name
+// wraps rather than pushing the toggle down), with the contacts in a full-width row below.
 export function SiteFooter() {
     return (
-        <footer className='mt-auto flex flex-col items-center justify-between gap-3 border-t pt-4 text-sm text-muted-foreground sm:flex-row'>
-            <p>MTG UA Community Card Searcher</p>
+        <footer className='mt-auto grid grid-cols-[minmax(0,max-content)_auto] items-center justify-center gap-3 border-t pt-4 text-sm text-muted-foreground sm:flex sm:gap-x-5'>
+            <p className='text-center sm:mr-auto sm:text-left'>
+                MTG UA Community Card Searcher
+            </p>
             <nav
                 aria-label='Контакти'
-                className='flex flex-wrap items-center gap-x-5 gap-y-2'
+                className='col-span-2 row-start-2 flex flex-wrap items-center justify-center gap-x-5 gap-y-2'
             >
                 {CONTACTS.map(({ label, href, icon: Icon }) => (
                     <a
@@ -39,6 +45,7 @@ export function SiteFooter() {
                     </a>
                 ))}
             </nav>
+            <ThemeToggle />
         </footer>
     );
 }

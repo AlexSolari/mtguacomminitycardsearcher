@@ -16,7 +16,7 @@ export function ShopBadge({
             <img
                 src={info.icon}
                 alt=''
-                className='size-4 rounded-sm bg-white/5'
+                className='size-4 rounded-sm bg-foreground/5'
                 loading='lazy'
             />
             {info.label}

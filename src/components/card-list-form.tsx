@@ -61,7 +61,7 @@ export function CardListForm({
                 e.preventDefault();
                 onSearch();
             }}
-            className='flex flex-col gap-4 rounded-2xl border bg-card/60 p-5 shadow-2xl shadow-black/30 backdrop-blur'
+            className='flex flex-col gap-4 rounded-2xl border bg-card/60 p-5 shadow-2xl shadow-black/10 dark:shadow-black/30 backdrop-blur'
         >
             <div className='flex items-center justify-between gap-2'>
                 <label htmlFor='card-list' className='text-sm font-semibold'>
@@ -123,7 +123,7 @@ export function CardListForm({
                     onKeyDown={handleKeyDown}
                     placeholder={PLACEHOLDER}
                     spellCheck={false}
-                    className='min-h-64 max-h-[55vh] resize-none bg-background/50 font-mono text-sm leading-relaxed'
+                    className='min-h-[14em] max-h-[55vh] resize-none bg-background/50 font-mono text-sm leading-relaxed'
                 />
                 {drop.dragging && <DropOverlay />}
             </div>
@@ -134,7 +134,7 @@ export function CardListForm({
             <Button
                 type='submit'
                 disabled={cardNames.length === 0}
-                className='h-11 bg-linear-to-r from-primary to-amber-500 font-semibold shadow-lg shadow-primary/20 transition hover:brightness-110'
+                className='h-11 font-semibold shadow-lg shadow-primary/20 transition hover:brightness-95 dark:bg-linear-to-r dark:from-primary dark:to-amber-500 dark:hover:brightness-110'
             >
                 {/* still clickable while searching: it restarts the search with the edited list */}
                 {submitting ? <Loader2 className='animate-spin' /> : <Search />}
@@ -165,7 +165,7 @@ function ImportNoteMessage({ note }: { note: ImportNote }) {
             className={cn(
                 'flex items-start gap-2 rounded-lg border px-3 py-2 text-xs',
                 note.ok
-                    ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+                    ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
                     : 'border-destructive/30 bg-destructive/10 text-destructive'
             )}
         >

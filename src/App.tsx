@@ -41,7 +41,7 @@ export function App() {
           : 'sidebar';
 
     return (
-        <div className='mx-auto flex min-h-dvh max-w-7xl flex-col gap-10 px-4 py-10 sm:px-6 lg:py-8'>
+        <div className='mx-auto flex min-h-dvh max-w-7xl flex-col gap-6 px-4 pt-6 pb-10 sm:gap-10 sm:px-6 sm:pt-10 lg:py-8'>
             <SiteHeader onTitleClick={expandList} />
 
             {/* grid-cols-1 = minmax(0, 1fr): without it the single column grows to fit its widest content

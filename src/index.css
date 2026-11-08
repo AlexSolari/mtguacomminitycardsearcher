@@ -1,5 +1,11 @@
 @import '../styles/globals.css';
 
+/* Filled controls (buttons, active toggles, badges) use `primary-fill`; text and accents use `primary`.
+   They match in the dark theme; the light theme pairs a pale gold fill with a darker gold for text. */
+@theme inline {
+    --color-primary-fill: var(--primary-fill);
+}
+
 @theme {
     --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
     /* Cinzel has no Cyrillic — the browser falls back per glyph to Forum for Ukrainian text */
@@ -27,6 +33,34 @@
     }
 }
 
+/* Parchment light theme: warm cream surfaces, ink-indigo text and a deeper gold, dark enough to read as text.
+   Overrides shadcn's greyscale defaults in styles/globals.css. */
+:root {
+    --background: oklch(0.975 0.01 85);
+    --foreground: oklch(0.22 0.025 285);
+    --card: oklch(0.995 0.004 85);
+    --card-foreground: oklch(0.22 0.025 285);
+    --popover: oklch(0.995 0.004 85);
+    --popover-foreground: oklch(0.22 0.025 285);
+    --primary: oklch(0.52 0.1 68);
+    --primary-fill: oklch(0.9 0.06 85);
+    --primary-foreground: oklch(0.4 0.09 65);
+    --secondary: oklch(0.94 0.015 85);
+    --secondary-foreground: oklch(0.22 0.025 285);
+    --muted: oklch(0.94 0.012 85);
+    --muted-foreground: oklch(0.48 0.025 285);
+    --accent: oklch(0.93 0.02 85);
+    --accent-foreground: oklch(0.22 0.025 285);
+    --destructive: oklch(0.577 0.245 27.325);
+    --border: oklch(0.22 0.025 285 / 12%);
+    --input: oklch(0.22 0.025 285 / 18%);
+    --ring: oklch(0.52 0.1 68);
+    /* the two soft glows behind the page (see body) */
+    --glow-top: oklch(0.86 0.09 85 / 0.55);
+    --glow-corner: oklch(0.7 0.1 290 / 0.1);
+    color-scheme: light;
+}
+
 /* Arcane dark theme: ink-indigo surfaces with a gold accent. */
 .dark {
     --background: oklch(0.15 0.02 285);
@@ -36,6 +70,7 @@
     --popover: oklch(0.2 0.025 285);
     --popover-foreground: oklch(0.96 0.01 285);
     --primary: oklch(0.82 0.14 80);
+    --primary-fill: oklch(0.82 0.14 80);
     --primary-foreground: oklch(0.2 0.04 70);
     --secondary: oklch(0.25 0.03 285);
     --secondary-foreground: oklch(0.96 0.01 285);
@@ -47,12 +82,14 @@
     --border: oklch(1 0 0 / 9%);
     --input: oklch(1 0 0 / 12%);
     --ring: oklch(0.82 0.14 80);
+    --glow-top: oklch(0.42 0.12 290 / 0.35);
+    --glow-corner: oklch(0.6 0.12 70 / 0.08);
+    color-scheme: dark;
 }
 
 @layer base {
     :root {
         @apply font-sans antialiased;
-        color-scheme: dark;
     }
 
     body {
@@ -60,12 +97,12 @@
         background-image:
             radial-gradient(
                 ellipse 80% 50% at 50% -10%,
-                oklch(0.42 0.12 290 / 0.35),
+                var(--glow-top),
                 transparent 70%
             ),
             radial-gradient(
                 ellipse 50% 40% at 100% 100%,
-                oklch(0.6 0.12 70 / 0.08),
+                var(--glow-corner),
                 transparent 70%
             );
         background-attachment: fixed;

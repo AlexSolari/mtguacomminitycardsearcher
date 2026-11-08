@@ -89,7 +89,7 @@ export function ResultTable({
                                 <td className='px-3 py-1.5'>
                                     <div className='flex flex-wrap items-center gap-1'>
                                         {best && (
-                                            <Badge className='bg-primary text-primary-foreground shadow-none'>
+                                            <Badge className='bg-primary-fill text-primary-foreground shadow-none'>
                                                 <Crown className='size-3' />
                                                 Найкраща
                                             </Badge>
@@ -141,7 +141,7 @@ export function ResultTable({
                                 </td>
                                 <td className='whitespace-nowrap px-3 py-1.5 text-right text-xs text-muted-foreground'>
                                     {link.stock !== undefined ? (
-                                        <span className='text-emerald-400'>
+                                        <span className='text-emerald-700 dark:text-emerald-400'>
                                             {link.stock} шт.
                                         </span>
                                     ) : (

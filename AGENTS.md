@@ -44,6 +44,9 @@ See [README.md](README.md) for what the app does and the request flow.
 - **Imports:** `@/` = `src/`. In type-only imports, use `import type`; `verbatimModuleSyntax` is on.
 - **Files:** kebab-case file names. Components go in `src/components/`, hooks in `src/hooks/`, shadcn primitives in `src/components/ui/`, tests in `tests/`.
 - **Icons:** lucide-react, except brand logos. lucide is removing those, so they're inline SVGs in `components/icons.tsx`.
+- **Light and dark themes:** colours must work in both. Use the theme tokens (`text-primary`, `bg-card`, …), which `src/index.css` defines for each; give a hard-coded colour a `dark:` variant (`text-emerald-700 dark:text-emerald-400`).
+  Overlays on card images (`bg-black/70 text-white`) are the exception: the image is behind them in both themes.
+  The theme choice logic is in `src/theme.ts`, and the inline script in `index.html` repeats it before first paint; change both together.
 
 ## Architecture rules
 

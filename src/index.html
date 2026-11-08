@@ -1,8 +1,23 @@
 <!doctype html>
-<html lang="uk" class="dark">
+<html lang="uk">
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <script>
+            // Apply the theme before first paint, so a light-mode visitor never sees a dark flash.
+            // Same rules as src/theme.ts: a stored 'light'/'dark' wins, anything else follows the OS.
+            (function () {
+                var stored;
+                try {
+                    stored = localStorage.getItem('searcher:theme');
+                } catch (e) {}
+                var dark =
+                    stored === 'dark' ||
+                    (stored !== 'light' &&
+                        matchMedia('(prefers-color-scheme: dark)').matches);
+                document.documentElement.classList.toggle('dark', dark);
+            })();
+        </script>
         <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
