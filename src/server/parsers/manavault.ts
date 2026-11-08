@@ -3,7 +3,7 @@ import type { CardResult } from '../../search-result';
 
 // manavaultstore.com/cards/versions?name=<exact name> — every printing of one card, one tile each:
 //   <a class="group flex flex-col rounded-xl border …" href="/cards/<scryfall id>">
-//     <img alt="Sol Ring" src="/api/card-img/front/…webp">
+//     <img src="/api/card-img/front/…webp" srcSet="…" alt="Sol Ring">   — attribute order varies, so read each separately
 //     <p><img set-icon/>Outlaws of Thunder Junction Commander</p> <p>OTC · №267</p> <p>Borderless?</p>
 //     <p>у продажу 1 шт. · від 100 ₴</p>   — or "немає в продажу" (not for sale), which we drop
 export function parseManavaultVersions(
@@ -30,8 +30,9 @@ export function parseManavaultVersions(
                 text[numIdx + 1] && !text[numIdx + 1]!.includes('продажу')
                     ? text[numIdx + 1]
                     : undefined;
+            const img = block.match(/<img\b[^>]*>/)?.[0] ?? '';
             const card = decodeEntities(
-                block.match(/<img alt="([^"]+)"/)?.[1] ?? ''
+                img.match(/\balt="([^"]*)"/)?.[1] ?? ''
             );
 
             // "Sol Ring — Outlaws of Thunder Junction Commander #267, Borderless" (same shape as Nerdik's names)
@@ -43,10 +44,7 @@ export function parseManavaultVersions(
                     shop: 'manavault' as const,
                     name: edition ? `${card} — ${edition}` : card,
                     url: abs(base, href)!,
-                    image: abs(
-                        base,
-                        block.match(/<img alt="[^"]*"[^>]*src="([^"]+)"/)?.[1]
-                    ),
+                    image: abs(base, img.match(/\bsrc="([^"]+)"/)?.[1]),
                     fromPrice: true, // "від …" — cheapest of the printing's offers
                     stock:
                         Number(
@@ -61,7 +59,10 @@ export function parseManavaultVersions(
         });
 }
 
-// manavaultstore.com — server-rendered Next.js, one <a class="group flex flex-col" href="/cards/<scryfall id>"> per card.
+// manavaultstore.com/cards?q=… — server-rendered Next.js, one tile per card:
+//   <a class="group flex flex-col" href="/cards/versions?name=Sol%20Ring">   (or /cards/<scryfall id> for a single printing)
+//     <img src="/api/card-img/front/…webp" …> <h3 …>Sol Ring</h3> <p>6 версій · оберіть свою</p>
+//     <strong …>78 – 3 636 ₴</strong>   — a range across printings, or "від 16 ₴", or one price
 export function parseManavault(html: string, base: string): CardResult[] {
     return html
         .split('<a class="group flex flex-col" href="')
@@ -69,6 +70,8 @@ export function parseManavault(html: string, base: string): CardResult[] {
         .flatMap((block) => {
             const href = block.slice(0, block.indexOf('"'));
             if (!href.startsWith('/cards/')) return [];
+            const priceText =
+                block.match(/<strong[^>]*>([^<]*₴)<\/strong>/)?.[1] ?? '';
             return [
                 {
                     shop: 'manavault' as const,
@@ -80,8 +83,12 @@ export function parseManavault(html: string, base: string): CardResult[] {
                         base,
                         block.match(/<img[^>]*src="([^"]+)"/)?.[1]
                     ),
-                    price: parsePrice(block.match(/([\d\s]+)\s*₴/)?.[1]),
-                    fromPrice: /від/.test(block) || undefined
+                    // the low end of a range is the cheapest printing
+                    price: parsePrice(priceText.match(/\d[\d\s  ]*/)?.[0]),
+                    fromPrice:
+                        /від/.test(block) ||
+                        priceText.includes('–') ||
+                        undefined
                 }
             ];
         });

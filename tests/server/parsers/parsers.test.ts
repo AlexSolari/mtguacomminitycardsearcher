@@ -2,6 +2,7 @@
 // The snapshots catch any change in output; the explicit checks say what must hold whatever the shop lists.
 // After refreshing the fixtures, review the diff and accept it with `bun test --update-snapshots`.
 import { describe, expect, test } from 'bun:test';
+import { isExactMatch } from '@/matching';
 import type { CardResult } from '@/search-result';
 import { SHOP_INFO } from '@/shops';
 import { parseCarton } from '@/server/parsers/carton';
@@ -69,6 +70,8 @@ describe('manavault', () => {
             SHOP_INFO.manavault.homepage
         );
         expectWellFormed(results, 'manavault');
+        // "126 – 2 719 ₴" across printings: the cheapest one counts
+        expect(results[0]).toMatchObject({ price: 126, fromPrice: true });
         expect(results).toMatchSnapshot();
     });
 
@@ -79,6 +82,11 @@ describe('manavault', () => {
         );
         expectWellFormed(results, 'manavault');
         expect(results.length).toBeGreaterThan(1);
+        // the searcher keeps only exact matches from this page, so a lost card name drops every printing
+        for (const r of results) {
+            expect(isExactMatch(r.name, 'Counterspell')).toBe(true);
+            expect(r.image).not.toBeNull();
+        }
         expect(results).toMatchSnapshot();
     });
 });
