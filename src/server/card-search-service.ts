@@ -1,6 +1,7 @@
 import { normalize } from '../matching';
 import type { SearchResult } from '../search-result';
 import type { CardSearcher } from './card-searcher';
+import { logger } from './logger';
 import { HttpError } from './shop-client';
 
 // Searches every shop for a card. A failing shop doesn't fail the card — it's reported in `errors`.
@@ -18,10 +19,11 @@ export class CardSearchService {
                     };
                 } catch (err) {
                     if (signal?.aborted) throw err;
-                    console.error(
-                        `[${searcher.shop}] search for "${card}" failed:`,
-                        err
-                    );
+                    logger.error('shop search failed', {
+                        shop: searcher.shop,
+                        card,
+                        error: err
+                    });
                     return {
                         links: [],
                         error: {

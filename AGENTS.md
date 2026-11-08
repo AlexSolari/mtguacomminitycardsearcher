@@ -61,6 +61,12 @@ See [README.md](README.md) for what the app does and the request flow.
   Pass `search()`'s `signal` to every client call (`{ signal }`), so abandoned searches leave the shop's queue.
   An optional follow-up request that falls back on failure goes through `warnFallback` in its `catch`, never a silent catch.
 - **Wiring:** searchers are registered in `src/index.ts`, each wrapped in `CachedCardSearcher`.
+- **Logging:** server code logs through `logger` in `src/server/logger.ts`, never `console.*`.
+    - the message is a fixed string, and everything that varies goes in fields: `logger.warn('parser found nothing', { shop, url })`
+    - pass errors as a field (`error: err`); the logger serializes them
+    - production writes JSON lines to stdout in Railway's structured format (`message`, `level`, every other key a filterable attribute); elsewhere it writes one readable line. `LOG_LEVEL` and `LOG_FORMAT` override this
+    - tests call `captureLogs()` from `tests/server/capture-logs.ts` and assert on the records, not on `console`
+    - never log client IPs
 - **Prices:**
     - `price` is in UAH, or `null` when unknown; never `0` for "unknown"
     - set `fromPrice` when the price is the cheapest of several offers

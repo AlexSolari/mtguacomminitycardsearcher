@@ -1,5 +1,6 @@
 import type { CardResult } from '../search-result';
 import type { ShopId } from '../shops';
+import { logger } from './logger';
 import { HttpError } from './shop-client';
 
 // Searches one shop for a card. Implementations own a ShopClient, which rate-limits requests to their shop.
@@ -14,7 +15,7 @@ export interface CardSearcher {
 // finds none of the markup it expects. Log it, so a broken parser shows up as a run of these in the logs.
 export function warnIfEmpty(shop: ShopId, url: string, results: CardResult[]) {
     if (results.length === 0)
-        console.warn(`[${shop}] parser found nothing at ${url}`);
+        logger.warn('parser found nothing', { shop, url });
     return results;
 }
 
@@ -30,8 +31,9 @@ export function warnFallback(
 ) {
     if (signal?.aborted) throw err;
     if (expect404 && err instanceof HttpError && err.status === 404) return;
-    console.warn(
-        `[${shop}] ${url} failed, keeping search results:`,
-        (err as Error).message
-    );
+    logger.warn('follow-up request failed, keeping search results', {
+        shop,
+        url,
+        error: err
+    });
 }

@@ -1,9 +1,10 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test';
+import { describe, expect, test } from 'bun:test';
 import type { CardResult } from '@/search-result';
 import type { ShopId } from '@/shops';
 import type { CardSearcher } from '@/server/card-searcher';
 import { CardSearchService } from '@/server/card-search-service';
 import { HttpError } from '@/server/shop-client';
+import { captureLogs } from './capture-logs';
 
 const listing = (shop: ShopId, name: string): CardResult => ({
     shop,
@@ -17,11 +18,7 @@ const searcher = (
     search: CardSearcher['search']
 ): CardSearcher => ({ shop, search });
 
-let error: ReturnType<typeof spyOn>;
-beforeEach(() => {
-    error = spyOn(console, 'error').mockImplementation(() => {});
-});
-afterEach(() => error.mockRestore());
+const logs = captureLogs();
 
 describe('CardSearchService', () => {
     test('keeps only listings whose name contains the query', async () => {
@@ -59,6 +56,22 @@ describe('CardSearchService', () => {
             { shop: 'nerdik', message: 'HTTP 403', status: 403 },
             { shop: 'gin', message: 'timeout after 15s', status: undefined }
         ]);
+        expect(logs).toMatchObject([
+            {
+                level: 'error',
+                message: 'shop search failed',
+                shop: 'nerdik',
+                card: 'Sol Ring',
+                error: { name: 'Error', message: 'HTTP 403', status: 403 }
+            },
+            {
+                level: 'error',
+                message: 'shop search failed',
+                shop: 'gin',
+                card: 'Sol Ring',
+                error: { message: 'timeout after 15s' }
+            }
+        ]);
     });
 
     test('a cancelled search rejects instead of reporting errors', async () => {
@@ -72,6 +85,6 @@ describe('CardSearchService', () => {
         await expect(
             service.search('Sol Ring', controller.signal)
         ).rejects.toHaveProperty('name', 'AbortError');
-        expect(error).not.toHaveBeenCalled();
+        expect(logs).toEqual([]);
     });
 });

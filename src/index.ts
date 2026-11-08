@@ -3,6 +3,7 @@ import index from './index.html';
 import { CachedCardSearcher } from './server/cached-card-searcher';
 import { CardSearchService } from './server/card-search-service';
 import { InFlightLimiter } from './server/in-flight-limiter';
+import { logger } from './server/logger';
 import { CartonCardSearcher } from './server/searchers/carton-card-searcher';
 import { GinCardSearcher } from './server/searchers/gin-card-searcher';
 import { KartotekaCardSearcher } from './server/searchers/kartoteka-card-searcher';
@@ -27,21 +28,8 @@ function clientId(req: Request, server: Server<unknown>) {
     return last || server.requestIP(req)?.address || 'unknown';
 }
 
-// 2026-11-06T12:00:00.000Z [search] "Sol Ring"   (long lists: the first few names, then "… +95 more")
+// A long list logs only its first few names; `count` has the rest.
 const LOGGED_NAMES = 5;
-function logSearch(cards: string[]) {
-    const names = cards
-        .slice(0, LOGGED_NAMES)
-        .map((c) => JSON.stringify(c))
-        .join(', ');
-    const more =
-        cards.length > LOGGED_NAMES
-            ? ` … +${cards.length - LOGGED_NAMES} more`
-            : '';
-    console.log(
-        `${new Date().toISOString()} [search] ${names || '(no cards)'}${more}`
-    );
-}
 
 // Each searcher creates its own ShopClient, so each shop has its own rate limit and request queue.
 const cardSearch = new CardSearchService(
@@ -73,7 +61,10 @@ const server = serve({
                     .filter((c): c is string => typeof c === 'string')
                     .map((c) => c.trim())
                     .filter((c) => normalize(c) !== '');
-                logSearch(cards);
+                logger.info('search', {
+                    cards: cards.slice(0, LOGGED_NAMES),
+                    count: cards.length
+                });
                 if (cards.length > MAX_CARDS_PER_REQUEST)
                     return Response.json(
                         {
@@ -113,4 +104,4 @@ const server = serve({
     }
 });
 
-console.log(`🚀 Server running at ${server.url}`);
+logger.info('server started', { url: server.url.href });

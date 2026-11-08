@@ -1,6 +1,6 @@
 // Every searcher, on saved pages served by a fake client: which URLs it asks for, and what it does with the
 // answers (MTGin's batching, Mana Vault's follow-up page, fallbacks when they fail).
-import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test';
+import { describe, expect, test } from 'bun:test';
 import { HttpError, ShopClient } from '@/server/shop-client';
 import { CartonCardSearcher } from '@/server/searchers/carton-card-searcher';
 import { GinCardSearcher } from '@/server/searchers/gin-card-searcher';
@@ -8,6 +8,7 @@ import { KartotekaCardSearcher } from '@/server/searchers/kartoteka-card-searche
 import { ManavaultCardSearcher } from '@/server/searchers/manavault-card-searcher';
 import { NerdikCardSearcher } from '@/server/searchers/nerdik-card-searcher';
 import { PaytowinCardSearcher } from '@/server/searchers/paytowin-card-searcher';
+import { captureLogs } from '../capture-logs';
 
 const fixture = (name: string) =>
     Bun.file(new URL(`../../fixtures/${name}`, import.meta.url)).text();
@@ -34,11 +35,7 @@ function fakeClient(baseUrl: string, pages: Record<string, string | Error>) {
     return { client, requests, requested: () => requests.map((r) => r.url) };
 }
 
-let warn: ReturnType<typeof spyOn>;
-beforeEach(() => {
-    warn = spyOn(console, 'warn').mockImplementation(() => {});
-});
-afterEach(() => warn.mockRestore());
+const logs = captureLogs();
 
 describe('GinCardSearcher', () => {
     const base = 'https://mtgin.kyiv.ua';
@@ -193,7 +190,7 @@ describe('GinCardSearcher', () => {
         expect(
             await new GinCardSearcher(client, 'test-key').search('Daze')
         ).toEqual([]);
-        expect(warn).toHaveBeenCalledTimes(1);
+        expect(logs).toHaveLength(1);
     });
 
     test('without a key it fails without a request', async () => {
@@ -298,7 +295,7 @@ describe('ManavaultCardSearcher', () => {
             'Counterspell'
         );
         expect(results.map((r) => r.url)).toEqual([versionsUrl]); // the tile links to the versions page
-        expect(warn).not.toHaveBeenCalled();
+        expect(logs).toEqual([]);
     });
 
     test('other failures keep the search tile and are logged', async () => {
@@ -310,7 +307,7 @@ describe('ManavaultCardSearcher', () => {
             'Counterspell'
         );
         expect(results).toHaveLength(1);
-        expect(warn).toHaveBeenCalled();
+        expect(logs).not.toEqual([]);
     });
 
     test('an aborted search rejects instead of falling back', async () => {
@@ -402,6 +399,6 @@ describe('single-request searchers', () => {
         expect(
             await new CartonCardSearcher(client).search('Counterspell')
         ).toEqual([]);
-        expect(warn).toHaveBeenCalledTimes(1);
+        expect(logs).toHaveLength(1);
     });
 });
