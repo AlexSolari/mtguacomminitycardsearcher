@@ -38,3 +38,20 @@ exports[`carton search page 1`] = `
 ]
 `;
 
+
+exports[`carton product page product page 1`] = `
+[
+  {
+    "artSeries": false,
+    "condition": "M",
+    "foil": false,
+    "image": "https://storage.carton.cards/wezvk7w6980f6a57tyxnc638vozy",
+    "language": "EN",
+    "name": "Counterspell (FDC-61)",
+    "price": 146,
+    "shop": "carton",
+    "stock": 1,
+    "url": "https://carton.cards/magic-the-gathering/singles/foundations-commander-fdc/counterspell-fdc-61-en-v1",
+  },
+]
+`;

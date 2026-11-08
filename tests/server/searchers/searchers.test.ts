@@ -2,6 +2,7 @@
 // answers (MTGin's batching, Mana Vault's follow-up page, fallbacks when they fail).
 import { describe, expect, test } from 'bun:test';
 import { HttpError, ShopClient } from '@/server/shop-client';
+import { parseCarton } from '@/server/parsers/scrapers/carton';
 import { CartonCardSearcher } from '@/server/searchers/carton-card-searcher';
 import { CitadelCardSearcher } from '@/server/searchers/citadel-card-searcher';
 import { GinCardSearcher } from '@/server/searchers/gin-card-searcher';
@@ -330,21 +331,134 @@ describe('ManavaultCardSearcher', () => {
 });
 
 // The single-request searchers: they ask for the right URL, pass the caller's signal on, and parse the answer.
-describe('single-request searchers', () => {
-    test('CartonCardSearcher', async () => {
-        const url = 'https://carton.cards/search?q=Counterspell';
-        const { client, requests } = fakeClient('https://carton.cards', {
-            [url]: await fixture('carton-search.html')
+describe('CartonCardSearcher', () => {
+    const base = 'https://carton.cards';
+    const searchUrl = `${base}/search?q=Counterspell`;
+    const productUrl = (slug: string) =>
+        `${base}/magic-the-gathering/singles/${slug}`;
+
+    // a search page listing these products (name, url slug, cheapest price)
+    const searchPage = (products: [string, string, number][]) =>
+        `<div id="app" data-page="${JSON.stringify({
+            props: {
+                products: products.map(([name, slug, min_price]) => ({
+                    name,
+                    url_path: `/magic-the-gathering/singles/${slug}`,
+                    min_price
+                }))
+            }
+        }).replace(/"/g, '&quot;')}"></div>`;
+
+    test("swaps each exact product for its page's offers", async () => {
+        const productPage = await fixture('carton-product.html');
+        const searchHtml = await fixture('carton-search.html');
+        // every product in the saved search is a Counterspell printing
+        const slugs = parseCarton(searchHtml, base).map((r) => r.url);
+        expect(slugs.length).toBeGreaterThan(0);
+        const { client, requests } = fakeClient(base, {
+            [searchUrl]: searchHtml,
+            ...Object.fromEntries(slugs.map((u) => [u, productPage]))
         });
         const signal = new AbortController().signal;
         const results = await new CartonCardSearcher(client).search(
             'Counterspell',
             signal
         );
+        expect(requests[0]).toEqual({ url: searchUrl, init: { signal } });
+        expect(
+            requests
+                .map((r) => r.url)
+                .slice(1)
+                .sort()
+        ).toEqual(slugs.sort());
+        expect(requests.every((r) => r.init?.signal === signal)).toBe(true);
+        // offers, not tiles: they know their stock
         expect(results.length).toBeGreaterThan(0);
-        expect(requests).toEqual([{ url, init: { signal } }]);
+        expect(results.every((r) => r.stock! > 0 && !r.fromPrice)).toBe(true);
+        expect(logs).toEqual([]);
     });
 
+    test('keeps fuzzy matches as tiles, and expands only the cheapest exact ones', async () => {
+        const exact = Array.from(
+            { length: 12 },
+            (_, i) =>
+                [`Counterspell (SET-${i})`, `p${i}`, 100 - i] as [
+                    string,
+                    string,
+                    number
+                ]
+        );
+        const productPage = await fixture('carton-product.html');
+        const { client, requested } = fakeClient(base, {
+            [searchUrl]: searchPage([
+                ['Counterspell Squad (SET-1)', 'squad', 1],
+                ...exact
+            ]),
+            ...Object.fromEntries(
+                exact.map(([, slug]) => [productUrl(slug), productPage])
+            )
+        });
+        const results = await new CartonCardSearcher(client).search(
+            'Counterspell'
+        );
+        // the 10 cheapest exact printings (p2…p11), never the fuzzy one
+        expect(requested().slice(1).sort()).toEqual(
+            exact
+                .slice(2)
+                .map(([, slug]) => productUrl(slug))
+                .sort()
+        );
+        const tiles = results.filter((r) => r.fromPrice);
+        expect(tiles.map((r) => r.url).sort()).toEqual(
+            [productUrl('squad'), productUrl('p0'), productUrl('p1')].sort()
+        );
+    });
+
+    test('a failed or empty product page keeps its tile, and is logged', async () => {
+        const { client } = fakeClient(base, {
+            [searchUrl]: searchPage([
+                ['Counterspell (A-1)', 'a', 10],
+                ['Counterspell (B-1)', 'b', 20]
+            ]),
+            [productUrl('a')]: new Error('timeout after 15s'),
+            [productUrl('b')]: '<html></html>'
+        });
+        const results = await new CartonCardSearcher(client).search(
+            'Counterspell'
+        );
+        expect(results.map((r) => [r.url, r.price, r.fromPrice])).toEqual([
+            [productUrl('a'), 10, true],
+            [productUrl('b'), 20, true]
+        ]);
+        expect(logs).toHaveLength(2);
+    });
+
+    test('an aborted search rejects instead of falling back', async () => {
+        const controller = new AbortController();
+        const abortError = new DOMException('aborted', 'AbortError');
+        const { client } = fakeClient(base, {
+            [searchUrl]: searchPage([['Counterspell (A-1)', 'a', 10]]),
+            [productUrl('a')]: abortError
+        });
+        controller.abort(abortError);
+        await expect(
+            new CartonCardSearcher(client).search(
+                'Counterspell',
+                controller.signal
+            )
+        ).rejects.toBe(abortError);
+    });
+
+    test('an empty search parse is logged (how a shop redesign shows up)', async () => {
+        const { client } = fakeClient(base, { [searchUrl]: '<html></html>' });
+        expect(
+            await new CartonCardSearcher(client).search('Counterspell')
+        ).toEqual([]);
+        expect(logs).toHaveLength(1);
+    });
+});
+
+describe('single-request searchers', () => {
     test('KartotekaCardSearcher', async () => {
         const url = 'https://kartoteka.in.ua/ua/search/?q=Sol+Ring';
         const { client, requested } = fakeClient('https://kartoteka.in.ua', {
@@ -420,16 +534,5 @@ describe('single-request searchers', () => {
             new NerdikCardSearcher(client, '').search('Counterspell')
         ).rejects.toThrow('NERDIK_API_KEY is not set');
         expect(requests).toHaveLength(0);
-    });
-
-    test('an empty parse is logged (how a shop redesign shows up)', async () => {
-        const url = 'https://carton.cards/search?q=Counterspell';
-        const { client } = fakeClient('https://carton.cards', {
-            [url]: '<html></html>'
-        });
-        expect(
-            await new CartonCardSearcher(client).search('Counterspell')
-        ).toEqual([]);
-        expect(logs).toHaveLength(1);
     });
 });

@@ -1,9 +1,10 @@
 // Re-downloads the shop pages the parser tests run against (tests/fixtures/).
 // Run it when a shop changes its markup: `bun scripts/update-fixtures.ts`, then `bun test` shows what broke,
 // and `bun test --update-snapshots` accepts the new output once the parsers are fixed.
-// About 9 requests, through ShopClient so they're spaced like the app's. Nerdik and MTGin need their API keys
+// About 10 requests, through ShopClient so they're spaced like the app's. Nerdik and MTGin need their API keys
 // (NERDIK_API_KEY, MTGIN_API_KEY in .env); without one, that shop's fixture is left as it is.
 import { mkdir } from 'node:fs/promises';
+import { decodeEntities } from '../src/server/parsers/helpers';
 import { jsonEnd } from '../src/server/parsers/scrapers/citadel';
 import { ShopClient } from '../src/server/shop-client';
 
@@ -15,14 +16,43 @@ async function save(name: string, body: string) {
     console.log(`${name}  ${(body.length / 1024).toFixed(0)} KB`);
 }
 const json = (data: unknown) => JSON.stringify(data, null, 2) + '\n';
+// keeps only `keys` of an object, so fixtures hold no fields (or personal data) the parsers don't read
+const pick = (o: any, keys: string[]) =>
+    Object.fromEntries(keys.map((k) => [k, o[k]]));
 
 // Counterspell has many printings in most shops, so it exercises the multi-printing paths.
 const CARD = 'Counterspell';
 
 const carton = new ShopClient('https://carton.cards');
+const cartonSearch = await carton.fetchHtml(carton.url('/search', { q: CARD }));
+await save('carton-search.html', cartonSearch);
+
+// CartOn's product pages name the sellers (also outside the page's JSON), so the fixture is rebuilt from the
+// fields parseCartonProduct reads: the product, and each offer without seller details.
+const cartonProps = (html: string) =>
+    JSON.parse(decodeEntities(html.match(/data-page="([^"]*)"/)?.[1] ?? 'null'))
+        ?.props;
+const cartonProduct = cartonProps(cartonSearch)?.products?.[0];
+if (!cartonProduct) throw new Error('CartOn: no products in the search page');
+const productProps = cartonProps(
+    await carton.fetchHtml(carton.url(cartonProduct.url_path))
+);
+const productJson = JSON.stringify({
+    component: 'Products/Show',
+    props: {
+        product: pick(productProps.product, ['name', 'image', 'property_set']),
+        offers: (productProps.offers ?? []).map((o: any) =>
+            pick(o, ['id', 'amount', 'price', 'status', 'property_set'])
+        )
+    }
+});
 await save(
-    'carton-search.html',
-    await carton.fetchHtml(carton.url('/search', { q: CARD }))
+    'carton-product.html',
+    `<div id="app" data-page="${productJson
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')}"></div>\n`
 );
 
 // MTGin's API lists other sellers' offers too, so keep only the fields parseGin reads (no seller names).
@@ -147,8 +177,6 @@ const MAGICSWAMP_OFFER_FIELDS = [
     'quantity',
     'language'
 ];
-const pick = (o: any, keys: string[]) =>
-    Object.fromEntries(keys.map((k) => [k, o[k]]));
 const magicswamp = new ShopClient('https://magicswamp.com.ua');
 const swamp = await magicswamp.fetchJson<{ data?: any[] }>(
     magicswamp.url('/api/listings/grouped/cards', {

@@ -109,4 +109,7 @@ describe('cheapestCopies', () => {
 test('offerKey tells apart offers that share a URL', () => {
     const a = offer('Daze', 10);
     expect(offerKey(a)).not.toBe(offerKey({ ...a, price: 12 }));
+    expect(offerKey(a)).not.toBe(offerKey({ ...a, condition: 'LP' }));
+    expect(offerKey(a)).not.toBe(offerKey({ ...a, language: 'JA' }));
+    expect(offerKey(a)).not.toBe(offerKey({ ...a, foil: true }));
 });
