@@ -27,8 +27,17 @@ export function App() {
         requestAnimationFrame(() => textareaRef.current?.focus());
     };
 
+    // Starting a search scrolls the header out of view, so the results start at the top of the screen.
+    const mainRef = useRef<HTMLElement>(null);
     const startSearch = () => {
-        if (search(cards)) setListCollapsed(true);
+        if (!search(cards)) return;
+        setListCollapsed(true);
+        requestAnimationFrame(() =>
+            mainRef.current?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            })
+        );
     };
 
     // landing:   no search yet — just the card list, centered
@@ -41,14 +50,17 @@ export function App() {
           : 'sidebar';
 
     return (
-        <div className='mx-auto flex min-h-dvh max-w-7xl flex-col gap-6 px-4 pt-6 pb-10 sm:gap-10 sm:px-6 sm:pt-10 lg:py-8'>
+        <div className='mx-auto flex min-h-dvh max-w-7xl flex-col gap-4 px-4 pt-6 pb-10 sm:gap-6 sm:px-6 sm:pt-10 lg:py-8'>
             <SiteHeader onTitleClick={expandList} />
 
             {/* grid-cols-1 = minmax(0, 1fr): without it the single column grows to fit its widest content
                 (e.g. the collapsed bar's long line of card names) and the whole page overflows */}
+            {/* min-h-dvh once there are results: a short page can't scroll the header away */}
             <main
+                ref={mainRef}
                 className={cn(
-                    'grid grid-cols-1 items-start gap-8',
+                    'grid scroll-mt-4 grid-cols-1 items-start gap-x-8 gap-y-4',
+                    entries && 'min-h-dvh content-start',
                     layout === 'landing' && 'justify-items-center',
                     layout === 'sidebar' && 'lg:grid-cols-[340px_minmax(0,1fr)]'
                 )}
@@ -84,7 +96,7 @@ export function App() {
                 </aside>
 
                 {entries && (
-                    <div className='flex min-w-0 flex-col gap-10'>
+                    <div className='flex min-w-0 flex-col gap-6'>
                         <ResultsPanel
                             entries={entries}
                             view={view}
