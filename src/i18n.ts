@@ -19,11 +19,6 @@ export const BIDS: PluralForms = {
     few: 'ставки',
     many: 'ставок'
 };
-export const VERSIONS: PluralForms = {
-    one: 'версія',
-    few: 'версії',
-    many: 'версій'
-};
 // genitive, as in "з 3 файлів" / "з 2 файлів" — after "з" every count takes the genitive plural except 1 ("з 1 файлу")
 export const FILES: PluralForms = {
     one: 'файлу',

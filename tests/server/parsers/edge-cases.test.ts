@@ -2,7 +2,7 @@
 // hand-made inputs in each shop's format.
 import { describe, expect, test } from 'bun:test';
 import { parseCarton } from '@/server/parsers/carton';
-import { parseGin, parseGinPrintings } from '@/server/parsers/gin';
+import { parseGin } from '@/server/parsers/gin';
 import { parseKartoteka } from '@/server/parsers/kartoteka';
 import { parseNerdik } from '@/server/parsers/nerdik';
 import { parsePaytowin } from '@/server/parsers/paytowin';
@@ -149,54 +149,78 @@ describe('kartoteka', () => {
 });
 
 describe('gin', () => {
-    // Next.js flight data: the page pushes JSON-string chunks whose concatenation holds the grid's props
-    const flight = (items: object[]) =>
-        `<script>self.__next_f.push([1,${JSON.stringify(JSON.stringify({ items }))}])</script>`;
+    const offer = {
+        name: 'Daze',
+        setName: 'Nemesis',
+        collectorNumber: '29',
+        language: 'en',
+        finish: 'nonfoil',
+        condition: 'normal',
+        signed: false,
+        quantity: 2,
+        priceUah: 50,
+        url: '/shops/mtgin/cards/1-daze',
+        imageUrl: null
+    };
+    const parse = (...offers: (object | null)[]) =>
+        parseGin({ offers: offers as any }, SHOP_INFO.gin.homepage);
 
-    test('a single-printing tile carries its edition and per-printing details', () => {
-        expect(
-            parseGin(
-                flight([
-                    {
-                        href: '/cards/1-daze',
-                        name: 'Daze',
-                        image: '/img/daze.jpg',
-                        printings: 1,
-                        copies: 2,
-                        price: 50,
-                        language: 'en',
-                        finish: 'foil',
-                        set_name: 'Nemesis',
-                        collector_number: '29'
-                    }
-                ]),
-                SHOP_INFO.gin.homepage
-            )
-        ).toEqual([
+    test('an offer carries its edition and details', () => {
+        expect(parse(offer)).toEqual([
             {
                 shop: 'gin',
                 name: 'Daze — Nemesis #29',
-                url: 'https://mtgin.kyiv.ua/cards/1-daze',
-                image: 'https://mtgin.kyiv.ua/img/daze.jpg',
+                url: 'https://mtgin.kyiv.ua/shops/mtgin/cards/1-daze',
+                image: null,
                 price: 50,
                 artSeries: false,
-                fromPrice: undefined,
-                printings: undefined,
                 stock: 2,
-                foil: true,
-                language: 'EN'
+                foil: false,
+                language: 'EN',
+                condition: undefined
             }
         ]);
     });
 
-    test('a printing without a finish line leaves foil unknown', () => {
-        const page = `<article class="marketplacePrinting"><h2>Nemesis</h2><img alt="Daze" src="/img/daze.jpg"><a href="/shops/mtgin/cards/1-daze">MTGin</a><strong>50 ₴</strong></article>`;
-        const [offer] = parseGinPrintings(page, SHOP_INFO.gin.homepage);
-        expect(offer).toMatchObject({
-            name: 'Daze — Nemesis',
-            price: 50,
-            foil: undefined
+    test('etched and signed go into the edition; heavily played is HP', () => {
+        expect(
+            parse({
+                ...offer,
+                collectorNumber: null,
+                finish: 'etched',
+                signed: true,
+                condition: 'heavily_played'
+            })[0]
+        ).toMatchObject({
+            name: 'Daze — Nemesis, Etched, Signed',
+            foil: true,
+            condition: 'HP'
         });
+    });
+
+    test('no edition, finish or price: plain name, unknowns stay unknown', () => {
+        expect(
+            parse({
+                ...offer,
+                setName: null,
+                collectorNumber: null,
+                finish: null,
+                priceUah: 0
+            })[0]
+        ).toMatchObject({ name: 'Daze', foil: undefined, price: null });
+    });
+
+    test('Art Series printings are flagged', () => {
+        expect(
+            parse({ ...offer, setName: 'Modern Horizons Art Series' })[0]
+                ?.artSeries
+        ).toBe(true);
+    });
+
+    test('sold-out and malformed offers are skipped', () => {
+        expect(
+            parse({ ...offer, quantity: 0 }, { ...offer, url: '' }, null)
+        ).toEqual([]);
     });
 });
 

@@ -2,10 +2,8 @@ import { describe, expect, test } from 'bun:test';
 import {
     abs,
     decodeEntities,
-    extractJsonArray,
     languageCode,
-    parsePrice,
-    readNextFlight
+    parsePrice
 } from '@/server/parsers/helpers';
 
 describe('parsePrice', () => {
@@ -65,24 +63,4 @@ describe('languageCode', () => {
     test.each(['Klingon', '', null, undefined])('%p → undefined', (input) => {
         expect(languageCode(input)).toBeUndefined();
     });
-});
-
-describe('extractJsonArray', () => {
-    test('bracket matching skips brackets and escaped quotes inside strings', () => {
-        const blob = `{"x":1,"items":[{"name":"a ] \\" [ b","n":[1,2]},{"name":"c"}],"after":[9]}`;
-        expect(extractJsonArray(blob, 'items')).toEqual([
-            { name: 'a ] " [ b', n: [1, 2] },
-            { name: 'c' }
-        ]);
-    });
-    test('missing key → null', () => {
-        expect(extractJsonArray('{"other":[]}', 'items')).toBeNull();
-    });
-});
-
-test('readNextFlight concatenates the pushed chunks', () => {
-    const html =
-        '<script>self.__next_f.push([1,"{\\"items\\":["])</script>' +
-        '<script>self.__next_f.push([1,"1,2]}"])</script>';
-    expect(readNextFlight(html)).toBe('{"items":[1,2]}');
 });

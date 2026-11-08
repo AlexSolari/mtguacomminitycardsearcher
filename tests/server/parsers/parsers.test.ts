@@ -5,7 +5,7 @@ import { describe, expect, test } from 'bun:test';
 import type { CardResult } from '@/search-result';
 import { SHOP_INFO } from '@/shops';
 import { parseCarton } from '@/server/parsers/carton';
-import { parseGin, parseGinPrintings } from '@/server/parsers/gin';
+import { parseGin } from '@/server/parsers/gin';
 import { parseKartoteka } from '@/server/parsers/kartoteka';
 import {
     parseManavault,
@@ -49,49 +49,14 @@ describe('carton', () => {
 });
 
 describe('gin', () => {
-    test('search page: several printings make one summary tile', async () => {
-        const results = parseGin(
-            await html('gin-search.html'),
-            SHOP_INFO.gin.homepage
-        );
+    test('API response: one result per offer, edition after " — "', async () => {
+        const [result] = (await json('gin-search.json')).results;
+        const results = parseGin(result, SHOP_INFO.gin.homepage);
         expectWellFormed(results, 'gin');
-        const summary = results.find((r) => r.printings);
-        expect(summary).toMatchObject({ fromPrice: true });
-        expect(summary!.printings).toBeGreaterThan(1);
-        expect(results).toMatchSnapshot();
-    });
-
-    test('printings page: one offer per printing and seller', async () => {
-        const results = parseGinPrintings(
-            await html('gin-printings.html'),
-            SHOP_INFO.gin.homepage
-        );
-        expectWellFormed(results, 'gin');
-        // "Counterspell — Fifth Edition #77": the edition goes after " — ", where isExactMatch cuts
-        expect(results.every((r) => r.name.startsWith('Counterspell — '))).toBe(
+        expect(results.every((r) => r.name.startsWith('Counterspell'))).toBe(
             true
         );
         expect(results).toMatchSnapshot();
-    });
-
-    test('falls back to the rendered HTML when the flight data is missing', () => {
-        const page = `
-            <article class="card marketplaceCard" data-x="1">
-                <a data-catalog-card-link="true" href="/cards/1-daze"><img src="/img/daze.jpg"></a>
-                <h2><a href="/cards/1-daze">Daze</a></h2>
-                <a class="catalogSetLink" href="/sets/nem">Nemesis</a>
-                <div class="buy"><strong>42 ₴</strong></div>
-            </article>`;
-        expect(parseGin(page, SHOP_INFO.gin.homepage)).toEqual([
-            {
-                shop: 'gin',
-                name: 'Daze',
-                url: 'https://mtgin.kyiv.ua/cards/1-daze',
-                image: 'https://mtgin.kyiv.ua/img/daze.jpg',
-                price: 42,
-                artSeries: false
-            }
-        ]);
     });
 });
 
@@ -209,11 +174,8 @@ describe('paytowin', () => {
 // warnIfEmpty), not throw and fail the whole shop.
 test.each([
     ['carton', () => parseCarton('<html></html>', SHOP_INFO.carton.homepage)],
-    ['gin', () => parseGin('<html></html>', SHOP_INFO.gin.homepage)],
-    [
-        'gin printings',
-        () => parseGinPrintings('<html></html>', SHOP_INFO.gin.homepage)
-    ],
+    ['gin', () => parseGin({}, SHOP_INFO.gin.homepage)],
+    ['gin, missing result', () => parseGin(undefined, SHOP_INFO.gin.homepage)],
     [
         'manavault',
         () => parseManavault('<html></html>', SHOP_INFO.manavault.homepage)

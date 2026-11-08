@@ -16,7 +16,8 @@ The UI is in Ukrainian.
 | Kartoteka           | [kartoteka.in.ua](https://kartoteka.in.ua)       |
 | PayToWin (auctions) | [paytowin.club](https://paytowin.club)           |
 
-Nerdik and PayToWin (auctions) are read from their APIs; the other shops don't offer one, so prices are scraped from their search pages.
+MTGin, Nerdik and PayToWin (auctions) are read from their APIs; the other shops don't offer one, so prices are scraped from their search pages.
+MTGin's API matches card names exactly, so MTGin never contributes fuzzy "other matches".
 A shop redesign can break its parser. If one shop stops returning results, that's the likely cause.
 
 ## Features
@@ -46,8 +47,8 @@ bun test       # offline test suite; parsers run against saved shop pages
 
 Set `PORT` to use another port, e.g. `PORT=4000 bun dev`.
 
-Nerdik's API needs a key: set `NERDIK_API_KEY`, e.g. in a `.env` file (Bun loads it; it's gitignored).
-Without it, Nerdik searches fail with "NERDIK_API_KEY is not set" and the other shops still work.
+The MTGin and Nerdik APIs need keys: set `MTGIN_API_KEY` and `NERDIK_API_KEY`, e.g. in a `.env` file (Bun loads it; it's gitignored).
+Without a key, that shop's searches fail with "… is not set" and the other shops still work.
 
 ### Production
 

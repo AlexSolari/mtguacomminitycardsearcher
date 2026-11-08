@@ -1,13 +1,5 @@
-import {
-    Crown,
-    ExternalLink,
-    Gavel,
-    Layers,
-    Package,
-    SearchX
-} from 'lucide-react';
+import { Crown, ExternalLink, Gavel, Package, SearchX } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { plural, VERSIONS } from '@/i18n';
 import type { CardResult } from '@/search-result';
 import type { ShopId } from '@/shops';
 import {
@@ -95,20 +87,12 @@ export function ResultTile({
                     {link.name}
                 </span>
                 {link.auction && <AuctionMeta auction={link.auction} />}
-                {(link.stock !== undefined || link.printings) && (
+                {link.stock !== undefined && (
                     <div className='flex flex-wrap items-center gap-1.5 text-xs'>
-                        {link.stock !== undefined && (
-                            <span className='inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-emerald-400'>
-                                <Package className='size-3' />
-                                {link.stock} шт. в наявності
-                            </span>
-                        )}
-                        {link.printings && (
-                            <span className='inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-muted-foreground'>
-                                <Layers className='size-3' />
-                                {plural(link.printings, VERSIONS)}
-                            </span>
-                        )}
+                        <span className='inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-emerald-400'>
+                            <Package className='size-3' />
+                            {link.stock} шт. в наявності
+                        </span>
                     </div>
                 )}
                 <div className='mt-auto flex items-end justify-between gap-2'>

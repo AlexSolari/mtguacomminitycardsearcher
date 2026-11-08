@@ -15,7 +15,7 @@ See [README.md](README.md) for what the app does and the request flow.
 | Static frontend bundle                                       | `bun run build -- --outdir=<dir>` (defaults to `dist/`, which it **deletes first**) |
 | Tests                                                        | `bun test` (offline, ~3 s)                                                          |
 | Coverage (fails under 95% lines / 90% functions in any file) | `bun run test:coverage`                                                             |
-| Refresh the parser fixtures from the real shops              | `bun scripts/update-fixtures.ts` (~8 requests)                                      |
+| Refresh the parser fixtures from the real shops              | `bun scripts/update-fixtures.ts` (~7 requests)                                      |
 
 **Type-check baseline:** zero errors. `bun dev`, `bun run build` and `bun run test` run `bun check` first and stop on any type error.
 
@@ -25,7 +25,7 @@ See [README.md](README.md) for what the app does and the request flow.
   A parser change that alters output fails its snapshot. If the change is intended, review the diff and run `bun test --update-snapshots`.
   When a shop redesigns, refresh the fixtures, fix the parser, then update the snapshots.
   Prettier ignores `tests/fixtures/` and `__snapshots__/`, so formatting never rewrites them.
-- **Fixtures hold no personal data:** `update-fixtures.ts` keeps only the PayToWin fields the parser reads, dropping sellers, bidders and descriptions. Keep it that way for any new source.
+- **Fixtures hold no personal data:** `update-fixtures.ts` keeps only the PayToWin and MTGin fields the parsers read, dropping sellers, bidders and descriptions. Keep it that way for any new source.
 - **New code:** add tests for it at the mirrored path in `tests/`. For a new shop, add its page to `update-fixtures.ts` and a case to `tests/server/parsers/parsers.test.ts`.
 - **Server:** for an end-to-end check, start it on a spare port (`PORT=3917 bun src/index.ts`) and `curl -X POST localhost:3917/api/search -d '{"cards":["Sol Ring"]}'`.
   This hits the real shops, so keep it to a handful of requests.
@@ -52,7 +52,7 @@ See [README.md](README.md) for what the app does and the request flow.
     - `src/search-result.ts`: the API types (`CardResult`, `SearchResult`, `SearchError`), types only
     - `src/matching.ts`: name matching (`normalize`, `isExactMatch`, `isArtSeries`)
 - **Parsers** (`src/server/parsers/<shop>.ts`) are pure: string/JSON in, `CardResult[]` out, no fetching.
-  Shared helpers (`decodeEntities`, `parsePrice`, `abs`, `languageCode`, Next.js flight-data readers) live in `parsers/helpers.ts`.
+  Shared helpers (`decodeEntities`, `parsePrice`, `abs`, `languageCode`) live in `parsers/helpers.ts`.
   Parsers that resolve relative links take a `base` argument (the searcher passes `client.baseUrl`); don't hardcode the shop's URL.
 - **Searchers** (`src/server/searchers/<shop>-card-searcher.ts`) decide which URLs to fetch and call the parsers.
   They **must** fetch through their own `ShopClient` (created in the constructor with the shop's base URL), never `fetch` directly; it provides the shop's rate limit, timeout and queue cap.
@@ -85,7 +85,7 @@ See [README.md](README.md) for what the app does and the request flow.
 - **`parsePrice` returns `null` when there are no digits.** Don't "simplify" it back to `Number(...)`: that turns "—" into 0 ₴, which then wins best price.
 - **Decimal prices:** `"1 234,50"` parses as 123450. No shop shows kopecks today. Handle it per shop if one starts.
 - **Mana Vault's versions page needs the exact, case-sensitive card name.** The typed query is only used when the search found no exact tile.
-- **MTGin summary tiles:** a tile with `printings > 1` is a summary. For exact matches, the searcher expands it via the card's printings page.
+- **MTGin batches its searches:** the API key allows 60 requests a minute, shared by every user. `GinCardSearcher` sends concurrent searches as one request (up to 100 cards), one request at a time, at most one a second. Don't turn it back into a request per card.
 - **Two Bun versions:** `bun-plugin-tailwind` pulls a project-local Bun into `node_modules` (1.4.4 today), and `bun run <script>` (`bun dev`, `bun start`, `bun run test:coverage`) uses it.
   A bare `bun …` uses the global install, which may be older. Behaviour and coverage numbers can differ between them; when in doubt, go through a script.
 - **The result cache is 5 minutes.** When testing parser changes against a running server, restart it, or you'll see cached results.

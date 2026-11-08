@@ -14,7 +14,6 @@ export type CardResult = {
     fromPrice?: boolean; // `price` is the cheapest of several offers/conditions ("від …")
     oldPrice?: number; // pre-discount price
     stock?: number; // copies for sale
-    printings?: number; // >1 when the tile stands for several printings and links to an all-versions page (MTGin)
     foil?: boolean;
     language?: string; // upper-case code: EN, RU, JA…
     condition?: string; // short grade: NM, M, LP…

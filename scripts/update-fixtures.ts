@@ -1,9 +1,9 @@
 // Re-downloads the shop pages the parser tests run against (tests/fixtures/).
 // Run it when a shop changes its markup: `bun scripts/update-fixtures.ts`, then `bun test` shows what broke,
 // and `bun test --update-snapshots` accepts the new output once the parsers are fixed.
-// About 8 requests, through ShopClient so they're spaced like the app's. Nerdik needs NERDIK_API_KEY (.env).
+// About 7 requests, through ShopClient so they're spaced like the app's. Nerdik and MTGin need their API keys
+// (NERDIK_API_KEY, MTGIN_API_KEY in .env); without one, that shop's fixture is left as it is.
 import { mkdir } from 'node:fs/promises';
-import { parseGin } from '../src/server/parsers/gin';
 import { ShopClient } from '../src/server/shop-client';
 
 const dir = new URL('../tests/fixtures/', import.meta.url);
@@ -24,12 +24,45 @@ await save(
     await carton.fetchHtml(carton.url('/search', { q: CARD }))
 );
 
-const gin = new ShopClient('https://mtgin.kyiv.ua');
-const ginSearch = await gin.fetchHtml(gin.url('/', { q: CARD }));
-await save('gin-search.html', ginSearch);
-const summary = parseGin(ginSearch, gin.baseUrl).find((l) => l.printings);
-if (summary) await save('gin-printings.html', await gin.fetchHtml(summary.url));
-else console.warn('gin: no summary tile, gin-printings.html not updated');
+// MTGin's API lists other sellers' offers too, so keep only the fields parseGin reads (no seller names).
+const GIN_OFFER_FIELDS = [
+    'name',
+    'setName',
+    'collectorNumber',
+    'language',
+    'finish',
+    'condition',
+    'signed',
+    'quantity',
+    'priceUah',
+    'url',
+    'imageUrl'
+];
+const ginKey = process.env.MTGIN_API_KEY;
+if (ginKey) {
+    const gin = new ShopClient('https://mtgin.kyiv.ua');
+    const answer = await gin.fetchJson<{ results?: { offers?: any[] }[] }>(
+        gin.url('/api/public/v1/search'),
+        {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${ginKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ cards: [{ name: CARD }] })
+        }
+    );
+    await save(
+        'gin-search.json',
+        json({
+            results: (answer.results ?? []).map((r) => ({
+                offers: (r.offers ?? []).map((o) =>
+                    Object.fromEntries(GIN_OFFER_FIELDS.map((k) => [k, o[k]]))
+                )
+            }))
+        })
+    );
+} else console.warn('MTGIN_API_KEY is not set, gin-search.json not updated');
 
 const manavault = new ShopClient('https://manavaultstore.com');
 await save(

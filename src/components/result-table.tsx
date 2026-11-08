@@ -1,6 +1,5 @@
 import { Crown, Gavel } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { plural, VERSIONS } from '@/i18n';
 import { offerKey } from '@/results';
 import type { CardResult } from '@/search-result';
 import {
@@ -141,19 +140,13 @@ export function ResultTable({
                                     />
                                 </td>
                                 <td className='whitespace-nowrap px-3 py-1.5 text-right text-xs text-muted-foreground'>
-                                    {link.stock !== undefined && (
+                                    {link.stock !== undefined ? (
                                         <span className='text-emerald-400'>
                                             {link.stock} шт.
                                         </span>
+                                    ) : (
+                                        '—'
                                     )}
-                                    {link.printings && (
-                                        <div>
-                                            {plural(link.printings, VERSIONS)}
-                                        </div>
-                                    )}
-                                    {link.stock === undefined &&
-                                        !link.printings &&
-                                        '—'}
                                 </td>
                                 <td className='py-1.5 pl-3 pr-4'>
                                     <PriceBlock link={link} best={best} />

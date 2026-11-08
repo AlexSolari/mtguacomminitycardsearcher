@@ -38,28 +38,23 @@ exports[`carton search page 1`] = `
 ]
 `;
 
-exports[`gin search page: several printings make one summary tile 1`] = `
+exports[`gin API response: one result per offer, edition after " — " 1`] = `
 [
   {
     "artSeries": false,
-    "foil": undefined,
-    "fromPrice": true,
+    "condition": undefined,
+    "foil": false,
     "image": "https://mtgin.kyiv.ua/api/card-images/b2227782-6709-4d0a-82b4-5070a7ddb647.jpg",
-    "language": undefined,
-    "name": "Counterspell",
+    "language": "EN",
+    "name": "Counterspell — Starter 1999 #34",
     "price": 114,
-    "printings": 3,
     "shop": "gin",
-    "stock": 6,
-    "url": "https://mtgin.kyiv.ua/cards/oracle/cc187110-1148-4090-bbb8-e205694a39f5-counterspell",
+    "stock": 1,
+    "url": "https://mtgin.kyiv.ua/shops/mtgin/cards/6673-counterspell",
   },
-]
-`;
-
-exports[`gin printings page: one offer per printing and seller 1`] = `
-[
   {
     "artSeries": false,
+    "condition": undefined,
     "foil": false,
     "image": "https://mtgin.kyiv.ua/api/card-images/b975289d-d8b8-46b4-8c60-d6ed4b594519.jpg",
     "language": "EN",
@@ -71,25 +66,15 @@ exports[`gin printings page: one offer per printing and seller 1`] = `
   },
   {
     "artSeries": false,
+    "condition": undefined,
     "foil": false,
     "image": "https://mtgin.kyiv.ua/api/card-images/1920dae4-fb92-4f19-ae4b-eb3276b8dac7.jpg",
     "language": "EN",
     "name": "Counterspell — Modern Horizons 2 #267",
-    "price": 125,
+    "price": 134,
     "shop": "gin",
     "stock": 2,
     "url": "https://mtgin.kyiv.ua/shops/mtgin/cards/9258-counterspell",
-  },
-  {
-    "artSeries": false,
-    "foil": false,
-    "image": "https://mtgin.kyiv.ua/api/card-images/b2227782-6709-4d0a-82b4-5070a7ddb647.jpg",
-    "language": "EN",
-    "name": "Counterspell — Starter 1999 #34",
-    "price": 114,
-    "shop": "gin",
-    "stock": 1,
-    "url": "https://mtgin.kyiv.ua/shops/mtgin/cards/6673-counterspell",
   },
 ]
 `;
@@ -98,7 +83,7 @@ exports[`manavault search page: one tile per card 1`] = `
 [
   {
     "fromPrice": true,
-    "image": "https://manavaultstore.com/api/card-img/front/8118282a-1473-4c0b-a283-1f58e0d0209a-400.webp?v=4",
+    "image": "https://manavaultstore.com/api/card-img/front/8118282a-1473-4c0b-a283-1f58e0d0209a-400.webp?v=5",
     "name": "Counterspell",
     "price": 2719,
     "shop": "manavault",
@@ -112,18 +97,8 @@ exports[`manavault versions page: one offer per printing 1`] = `
   {
     "foil": undefined,
     "fromPrice": true,
-    "image": "https://manavaultstore.com/api/card-img/front/1920dae4-fb92-4f19-ae4b-eb3276b8dac7-400.webp?v=4",
-    "name": "Counterspell — Modern Horizons 2 #267",
-    "price": 119,
-    "shop": "manavault",
-    "stock": 9,
-    "url": "https://manavaultstore.com/cards/1920dae4-fb92-4f19-ae4b-eb3276b8dac7",
-  },
-  {
-    "foil": undefined,
-    "fromPrice": true,
-    "image": "https://manavaultstore.com/api/card-img/front/ee0d3f5f-7790-4772-bead-5d7114a23e94-400.webp?v=4",
-    "name": "Counterspell — Classic Sixth Edition #61",
+    "image": null,
+    "name": " — Classic Sixth Edition #61",
     "price": 126,
     "shop": "manavault",
     "stock": 1,
@@ -132,19 +107,19 @@ exports[`manavault versions page: one offer per printing 1`] = `
   {
     "foil": undefined,
     "fromPrice": true,
-    "image": "https://manavaultstore.com/api/card-img/front/7bd03c80-7812-4704-9e07-9cf73b49c01f-400.webp?v=4",
-    "name": "Counterspell — Mercadian Masques #69",
-    "price": 130,
+    "image": null,
+    "name": " — Modern Horizons 2 #267",
+    "price": 127,
     "shop": "manavault",
-    "stock": 1,
-    "url": "https://manavaultstore.com/cards/7bd03c80-7812-4704-9e07-9cf73b49c01f",
+    "stock": 9,
+    "url": "https://manavaultstore.com/cards/1920dae4-fb92-4f19-ae4b-eb3276b8dac7",
   },
   {
     "foil": undefined,
     "fromPrice": true,
-    "image": "https://manavaultstore.com/api/card-img/front/cca8eb95-d071-46a4-885c-3da25b401806-400.webp?v=4",
-    "name": "Counterspell — Masters 25 #50",
-    "price": 131,
+    "image": null,
+    "name": " — Masters 25 #50",
+    "price": 128,
     "shop": "manavault",
     "stock": 1,
     "url": "https://manavaultstore.com/cards/cca8eb95-d071-46a4-885c-3da25b401806",
@@ -152,9 +127,19 @@ exports[`manavault versions page: one offer per printing 1`] = `
   {
     "foil": undefined,
     "fromPrice": true,
-    "image": "https://manavaultstore.com/api/card-img/front/aedbcbaa-40f0-485f-8427-778edc2d2ec0-400.webp?v=4",
-    "name": "Counterspell — Ice Age #64",
-    "price": 144,
+    "image": null,
+    "name": " — Mercadian Masques #69",
+    "price": 132,
+    "shop": "manavault",
+    "stock": 1,
+    "url": "https://manavaultstore.com/cards/7bd03c80-7812-4704-9e07-9cf73b49c01f",
+  },
+  {
+    "foil": undefined,
+    "fromPrice": true,
+    "image": null,
+    "name": " — Ice Age #64",
+    "price": 146,
     "shop": "manavault",
     "stock": 1,
     "url": "https://manavaultstore.com/cards/aedbcbaa-40f0-485f-8427-778edc2d2ec0",
@@ -162,8 +147,8 @@ exports[`manavault versions page: one offer per printing 1`] = `
   {
     "foil": undefined,
     "fromPrice": true,
-    "image": "https://manavaultstore.com/api/card-img/front/16b0b5e6-ac30-417b-938a-31cda2f697f8-400.webp?v=4",
-    "name": "Counterspell — Signature Spellbook: Jace #4",
+    "image": null,
+    "name": " — Signature Spellbook: Jace #4",
     "price": 173,
     "shop": "manavault",
     "stock": 1,
@@ -172,9 +157,9 @@ exports[`manavault versions page: one offer per printing 1`] = `
   {
     "foil": undefined,
     "fromPrice": true,
-    "image": "https://manavaultstore.com/api/card-img/front/4f616706-ec97-4923-bb1e-11a69fbaa1f8-400.webp?v=4",
-    "name": "Counterspell — Duskmourn: House of Horror Commander #114",
-    "price": 186,
+    "image": null,
+    "name": " — Duskmourn: House of Horror Commander #114",
+    "price": 189,
     "shop": "manavault",
     "stock": 1,
     "url": "https://manavaultstore.com/cards/4f616706-ec97-4923-bb1e-11a69fbaa1f8",
@@ -182,8 +167,8 @@ exports[`manavault versions page: one offer per printing 1`] = `
   {
     "foil": undefined,
     "fromPrice": true,
-    "image": "https://manavaultstore.com/api/card-img/front/e1e48b21-1a4f-4708-a4b4-e2e296df924c-400.webp?v=4",
-    "name": "Counterspell — Final Fantasy: Through the Ages #4, Borderless",
+    "image": null,
+    "name": " — Final Fantasy: Through the Ages #4, Borderless",
     "price": 301,
     "shop": "manavault",
     "stock": 1,
@@ -192,8 +177,8 @@ exports[`manavault versions page: one offer per printing 1`] = `
   {
     "foil": undefined,
     "fromPrice": true,
-    "image": "https://manavaultstore.com/api/card-img/front/2c358d75-01ad-4487-8104-425124b96aae-400.webp?v=4",
-    "name": "Counterspell — Modern Horizons 2 #308, Borderless",
+    "image": null,
+    "name": " — Modern Horizons 2 #308, Borderless",
     "price": 344,
     "shop": "manavault",
     "stock": 2,
@@ -202,8 +187,8 @@ exports[`manavault versions page: one offer per printing 1`] = `
   {
     "foil": undefined,
     "fromPrice": true,
-    "image": "https://manavaultstore.com/api/card-img/front/ffdf9d2a-c163-43df-9a2f-20b8749c86ae-400.webp?v=4",
-    "name": "Counterspell — Strixhaven Mystical Archive #15, Borderless · Showcase",
+    "image": null,
+    "name": " — Strixhaven Mystical Archive #15, Borderless · Showcase",
     "price": 770,
     "shop": "manavault",
     "stock": 2,
@@ -212,8 +197,8 @@ exports[`manavault versions page: one offer per printing 1`] = `
   {
     "foil": undefined,
     "fromPrice": true,
-    "image": "https://manavaultstore.com/api/card-img/front/976f36ce-57b0-4364-9009-b3bbf5763050-400.webp?v=4",
-    "name": "Counterspell — Mystery Booster 2 #158",
+    "image": null,
+    "name": " — Mystery Booster 2 #158",
     "price": 1326,
     "shop": "manavault",
     "stock": 1,
@@ -222,8 +207,8 @@ exports[`manavault versions page: one offer per printing 1`] = `
   {
     "foil": undefined,
     "fromPrice": true,
-    "image": "https://manavaultstore.com/api/card-img/front/8118282a-1473-4c0b-a283-1f58e0d0209a-400.webp?v=4",
-    "name": "Counterspell — Strixhaven Mystical Archive #78, Borderless",
+    "image": null,
+    "name": " — Strixhaven Mystical Archive #78, Borderless",
     "price": 2719,
     "shop": "manavault",
     "stock": 1,
@@ -284,9 +269,9 @@ exports[`paytowin auctions: price is the current or starting bid, links go to th
 [
   {
     "auction": {
-      "bids": 1,
+      "bids": 2,
       "buyNow": null,
-      "currentBid": 1000,
+      "currentBid": 1020,
       "endsAt": "2026-11-08T20:00:00.000Z",
       "startingPrice": 1000,
     },
@@ -295,7 +280,7 @@ exports[`paytowin auctions: price is the current or starting bid, links go to th
     "image": "https://pub-1b700fdfb43c4870990c8bdcfd294806.r2.dev/photos/f9b862c7-e850-4d9d-bd22-2fd119dbe677/medium.webp",
     "language": undefined,
     "name": "2x - Undercity Sewers #270",
-    "price": 1000,
+    "price": 1020,
     "shop": "paytowin",
     "url": "https://paytowin.club/a/96c20503-c0f4-4b92-b8c6-0f9d6e15d043",
   },
