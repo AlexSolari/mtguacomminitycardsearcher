@@ -1,0 +1,41 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`paytowin auctions: price is the current or starting bid, links go to the site 1`] = `
+[
+  {
+    "auction": {
+      "bids": 2,
+      "buyNow": null,
+      "currentBid": 1020,
+      "endsAt": "2026-11-08T20:00:00.000Z",
+      "startingPrice": 1000,
+    },
+    "condition": undefined,
+    "foil": undefined,
+    "image": "https://pub-1b700fdfb43c4870990c8bdcfd294806.r2.dev/photos/f9b862c7-e850-4d9d-bd22-2fd119dbe677/medium.webp",
+    "language": undefined,
+    "name": "2x - Undercity Sewers #270",
+    "price": 1020,
+    "shop": "paytowin",
+    "url": "https://paytowin.club/a/96c20503-c0f4-4b92-b8c6-0f9d6e15d043",
+  },
+  {
+    "auction": {
+      "bids": 1,
+      "buyNow": null,
+      "currentBid": 350,
+      "endsAt": "2026-11-08T20:00:00.000Z",
+      "startingPrice": 350,
+    },
+    "condition": "M",
+    "foil": undefined,
+    "image": "https://pub-1b700fdfb43c4870990c8bdcfd294806.r2.dev/photos/46c76a1f-0b42-4fcc-aa29-689f674e3457/medium.webp",
+    "language": "EN",
+    "name": "Raucous Theater #266",
+    "price": 350,
+    "shop": "paytowin",
+    "url": "https://paytowin.club/a/fb57b945-e96c-4e5f-bdbb-11360b6b739c",
+  },
+]
+`;
+

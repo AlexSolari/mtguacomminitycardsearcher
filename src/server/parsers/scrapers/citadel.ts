@@ -1,5 +1,5 @@
-import type { CardResult } from '../../search-result';
-import { abs, languageCode } from './helpers';
+import type { CardResult } from '../../../search-result';
+import { abs, languageCode } from '../helpers';
 
 // citadel.kyiv.ua/singles?q=… — a Next.js app with no public JSON API. The search page is rendered on the server,
 // and the props it hydrates with arrive as React Server Components data in inline scripts, each a JSON string:

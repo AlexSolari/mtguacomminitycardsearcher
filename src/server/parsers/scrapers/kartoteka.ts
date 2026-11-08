@@ -1,5 +1,5 @@
-import { abs, decodeEntities } from './helpers';
-import type { CardResult } from '../../search-result';
+import { abs, decodeEntities } from '../helpers';
+import type { CardResult } from '../../../search-result';
 
 // kartoteka.in.ua — mostly a board-game shop (same Horoshop platform as Nerdik). The search page declares
 //   var products = [{ article: "TDM-128f", brand_title: "Wizards of the Coast", title: "Twin Bolt", price: 13, url, in_stock }]

@@ -1,4 +1,4 @@
-import { parseNerdik, type NerdikResponse } from '../parsers/nerdik';
+import { parseNerdik, type NerdikResponse } from '../parsers/api/nerdik';
 import type { CardResult } from '../../search-result';
 import { warnIfEmpty, type CardSearcher } from '../card-searcher';
 import { ShopClient } from '../shop-client';

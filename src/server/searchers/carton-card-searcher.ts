@@ -1,4 +1,4 @@
-import { parseCarton } from '../parsers/carton';
+import { parseCarton } from '../parsers/scrapers/carton';
 import type { CardResult } from '../../search-result';
 import { warnIfEmpty, type CardSearcher } from '../card-searcher';
 import { ShopClient } from '../shop-client';

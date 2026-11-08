@@ -1,4 +1,4 @@
-import { parseCitadel } from '../parsers/citadel';
+import { parseCitadel } from '../parsers/scrapers/citadel';
 import type { CardResult } from '../../search-result';
 import { warnIfEmpty, type CardSearcher } from '../card-searcher';
 import { ShopClient } from '../shop-client';

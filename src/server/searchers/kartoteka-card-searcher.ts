@@ -1,4 +1,4 @@
-import { parseKartoteka } from '../parsers/kartoteka';
+import { parseKartoteka } from '../parsers/scrapers/kartoteka';
 import type { CardResult } from '../../search-result';
 import { warnIfEmpty, type CardSearcher } from '../card-searcher';
 import { ShopClient } from '../shop-client';

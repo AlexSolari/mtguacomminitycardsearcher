@@ -1,5 +1,5 @@
-import { abs, decodeEntities, parsePrice } from './helpers';
-import type { CardResult } from '../../search-result';
+import { abs, decodeEntities, parsePrice } from '../helpers';
+import type { CardResult } from '../../../search-result';
 
 // manavaultstore.com/cards/versions?name=<exact name> — every printing of one card, one tile each:
 //   <a class="group flex flex-col rounded-xl border …" href="/cards/<scryfall id>">

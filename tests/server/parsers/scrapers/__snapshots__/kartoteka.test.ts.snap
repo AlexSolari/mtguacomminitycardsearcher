@@ -1,0 +1,15 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`kartoteka search page 1`] = `
+[
+  {
+    "foil": undefined,
+    "image": "https://kartoteka.in.ua/content/images/19/287x400l85nn0/86131533750562.jpg",
+    "name": "Sol Ring — FRC #21",
+    "price": 73,
+    "shop": "kartoteka",
+    "url": "https://kartoteka.in.ua/sol-ring/",
+  },
+]
+`;
+

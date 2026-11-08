@@ -1,0 +1,43 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`gin API response: one result per offer, edition after " — " 1`] = `
+[
+  {
+    "artSeries": false,
+    "condition": undefined,
+    "foil": false,
+    "image": "https://mtgin.kyiv.ua/api/card-images/b2227782-6709-4d0a-82b4-5070a7ddb647.jpg",
+    "language": "EN",
+    "name": "Counterspell — Starter 1999 #34",
+    "price": 114,
+    "shop": "gin",
+    "stock": 1,
+    "url": "https://mtgin.kyiv.ua/shops/mtgin/cards/6673-counterspell",
+  },
+  {
+    "artSeries": false,
+    "condition": undefined,
+    "foil": false,
+    "image": "https://mtgin.kyiv.ua/api/card-images/b975289d-d8b8-46b4-8c60-d6ed4b594519.jpg",
+    "language": "EN",
+    "name": "Counterspell — Fifth Edition #77",
+    "price": 125,
+    "shop": "gin",
+    "stock": 3,
+    "url": "https://mtgin.kyiv.ua/shops/mtgin/cards/1235-counterspell",
+  },
+  {
+    "artSeries": false,
+    "condition": undefined,
+    "foil": false,
+    "image": "https://mtgin.kyiv.ua/api/card-images/1920dae4-fb92-4f19-ae4b-eb3276b8dac7.jpg",
+    "language": "EN",
+    "name": "Counterspell — Modern Horizons 2 #267",
+    "price": 134,
+    "shop": "gin",
+    "stock": 2,
+    "url": "https://mtgin.kyiv.ua/shops/mtgin/cards/9258-counterspell",
+  },
+]
+`;
+

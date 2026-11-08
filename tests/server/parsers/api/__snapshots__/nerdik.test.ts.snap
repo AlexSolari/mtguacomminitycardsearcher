@@ -1,0 +1,37 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`nerdik API response: one result per in-stock offer 1`] = `
+[
+  {
+    "foil": true,
+    "image": "https://cards.scryfall.io/grid/front/e/1/e1e48b21-1a4f-4708-a4b4-e2e296df924c.webp?1783906394",
+    "language": "EN",
+    "name": "Counterspell — Final Fantasy: Through the Ages #4",
+    "price": 301,
+    "shop": "nerdik",
+    "stock": 1,
+    "url": "https://nerdik.club/mtg/singles/fca/4/en/foil/",
+  },
+  {
+    "foil": false,
+    "image": "https://cards.scryfall.io/grid/front/1/9/1920dae4-fb92-4f19-ae4b-eb3276b8dac7.webp?1783926788",
+    "language": "RU",
+    "name": "Counterspell — Modern Horizons 2 #267",
+    "price": 159,
+    "shop": "nerdik",
+    "stock": 7,
+    "url": "https://nerdik.club/mtg/singles/mh2/267/ru/",
+  },
+  {
+    "foil": false,
+    "image": "https://cards.scryfall.io/grid/front/2/c/2c358d75-01ad-4487-8104-425124b96aae.webp?1783926771",
+    "language": "EN",
+    "name": "Counterspell — Modern Horizons 2 #308",
+    "price": 344,
+    "shop": "nerdik",
+    "stock": 2,
+    "url": "https://nerdik.club/mtg/singles/mh2/308/en/",
+  },
+]
+`;
+

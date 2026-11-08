@@ -26,7 +26,7 @@ See [README.md](README.md) for what the app does and the request flow.
   When a shop redesigns, refresh the fixtures, fix the parser, then update the snapshots.
   Prettier ignores `tests/fixtures/` and `__snapshots__/`, so formatting never rewrites them.
 - **Fixtures hold no personal data:** `update-fixtures.ts` keeps only the PayToWin and MTGin fields the parsers read, dropping sellers, bidders and descriptions. Keep it that way for any new source.
-- **New code:** add tests for it at the mirrored path in `tests/`. For a new shop, add its page to `update-fixtures.ts` and a case to `tests/server/parsers/parsers.test.ts`.
+- **New code:** add tests for it at the mirrored path in `tests/`. For a new shop, add its page to `update-fixtures.ts` and a test file next to the parser's mirrored path (`tests/server/parsers/{api,scrapers}/<shop>.test.ts`, using `parser-fixtures.ts`).
 - **Server:** for an end-to-end check, start it on a spare port (`PORT=3917 bun src/index.ts`) and `curl -X POST localhost:3917/api/search -d '{"cards":["Sol Ring"]}'`.
   This hits the real shops, so keep it to a handful of requests.
 - **UI:** there are no component tests. Say so when a change hasn't been checked in a browser.
@@ -54,7 +54,8 @@ See [README.md](README.md) for what the app does and the request flow.
     - `src/shops.ts`: the shop registry (`ShopId`, `SHOP_INFO`, `manualSearchUrl`)
     - `src/search-result.ts`: the API types (`CardResult`, `SearchResult`, `SearchError`), types only
     - `src/matching.ts`: name matching (`normalize`, `isExactMatch`, `isArtSeries`)
-- **Parsers** (`src/server/parsers/<shop>.ts`) are pure: string/JSON in, `CardResult[]` out, no fetching.
+- **Parsers** are pure: string/JSON in, `CardResult[]` out, no fetching.
+  JSON API parsers go in `src/server/parsers/api/<shop>.ts`, HTML scrapers in `src/server/parsers/scrapers/<shop>.ts`.
   Shared helpers (`decodeEntities`, `parsePrice`, `abs`, `languageCode`) live in `parsers/helpers.ts`.
   Parsers that resolve relative links take a `base` argument (the searcher passes `client.baseUrl`); don't hardcode the shop's URL.
 - **Searchers** (`src/server/searchers/<shop>-card-searcher.ts`) decide which URLs to fetch and call the parsers.
@@ -82,12 +83,12 @@ See [README.md](README.md) for what the app does and the request flow.
 ### Adding a shop
 
 1. **Shop info:** add its id to `ShopId` and an entry to `SHOP_INFO` in `src/shops.ts` (label, homepage, favicon).
-2. **Parser:** write `src/server/parsers/<shop>.ts`. Start with a comment showing the markup or JSON shape it reads.
+2. **Parser:** write `src/server/parsers/api/<shop>.ts` if the shop has a JSON API, otherwise `src/server/parsers/scrapers/<shop>.ts`. Start with a comment showing the markup or JSON shape it reads.
     - Fill the optional `CardResult` fields the shop exposes: foil, language, stock, condition, old price.
     - Drop out-of-stock items unless the shop only lists in-stock ones.
 3. **Searcher:** write `src/server/searchers/<shop>-card-searcher.ts`, following an existing one.
 4. **Register it:** add it to the list in `src/index.ts`.
-5. **Check:** add the shop's page to `scripts/update-fixtures.ts` and a case to `tests/server/parsers/parsers.test.ts`, then run one live search.
+5. **Check:** add the shop's page to `scripts/update-fixtures.ts` and `tests/server/parsers/{api,scrapers}/<shop>.test.ts`, then run one live search.
 
 ## Traps (each of these has bitten before)
 

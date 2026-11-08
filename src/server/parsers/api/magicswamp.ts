@@ -1,5 +1,5 @@
-import type { CardResult } from '../../search-result';
-import { abs, languageCode } from './helpers';
+import type { CardResult } from '../../../search-result';
+import { abs, languageCode } from '../helpers';
 
 // magicswamp.com.ua/api/listings/grouped/cards?game=mtg&search=… — a marketplace of private sellers. One entry per
 // printing, with every seller's offer for it:

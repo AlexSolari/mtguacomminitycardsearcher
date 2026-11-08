@@ -1,0 +1,40 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`carton search page 1`] = `
+[
+  {
+    "artSeries": false,
+    "foil": undefined,
+    "fromPrice": true,
+    "image": "https://storage.carton.cards/wezvk7w6980f6a57tyxnc638vozy",
+    "language": "EN",
+    "name": "Counterspell (FDC-61)",
+    "price": 146,
+    "shop": "carton",
+    "url": "https://carton.cards/magic-the-gathering/singles/foundations-commander-fdc/counterspell-fdc-61-en-v1",
+  },
+  {
+    "artSeries": false,
+    "foil": undefined,
+    "fromPrice": true,
+    "image": "https://storage.carton.cards/wowu89rh7hebrw9607snnmbhg158",
+    "language": "EN",
+    "name": "Counterspell (STA-15)",
+    "price": 270,
+    "shop": "carton",
+    "url": "https://carton.cards/magic-the-gathering/singles/strixhaven-mystical-archive-sta/counterspell-sta-15-en-v1",
+  },
+  {
+    "artSeries": false,
+    "foil": undefined,
+    "fromPrice": true,
+    "image": "https://storage.carton.cards/7dsqt1uzf9xvj19qzzg0kasgc3kk",
+    "language": "EN",
+    "name": "Counterspell (MAR-9)",
+    "price": 480,
+    "shop": "carton",
+    "url": "https://carton.cards/magic-the-gathering/singles/marvel-universe-mar/counterspell-mar-9-en-v1",
+  },
+]
+`;
+

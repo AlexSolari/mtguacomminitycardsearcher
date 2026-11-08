@@ -1,7 +1,7 @@
 import {
     parseMagicswamp,
     type MagicswampResponse
-} from '../parsers/magicswamp';
+} from '../parsers/api/magicswamp';
 import type { CardResult } from '../../search-result';
 import { warnIfEmpty, type CardSearcher } from '../card-searcher';
 import { ShopClient } from '../shop-client';

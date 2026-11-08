@@ -4,7 +4,7 @@
 // About 9 requests, through ShopClient so they're spaced like the app's. Nerdik and MTGin need their API keys
 // (NERDIK_API_KEY, MTGIN_API_KEY in .env); without one, that shop's fixture is left as it is.
 import { mkdir } from 'node:fs/promises';
-import { jsonEnd } from '../src/server/parsers/citadel';
+import { jsonEnd } from '../src/server/parsers/scrapers/citadel';
 import { ShopClient } from '../src/server/shop-client';
 
 const dir = new URL('../tests/fixtures/', import.meta.url);
@@ -170,7 +170,7 @@ await save(
 );
 
 // Citadel stocks few singles, so an empty search lists a page of everything. Its data sits in the page's
-// Server Components payload (see parsers/citadel.ts); the items there also carry cart reservations, so the
+// Server Components payload (see parsers/scrapers/citadel.ts); the items there also carry cart reservations, so the
 // payload's `items` is cut down to the fields parseCitadel reads. The rendered markup holds no personal data.
 const CITADEL_ITEM_FIELDS = [
     'scryfall_id',
