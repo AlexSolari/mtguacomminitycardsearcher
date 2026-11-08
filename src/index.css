@@ -8,7 +8,7 @@
 
 @theme {
     --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
-    /* Cinzel has no Cyrillic â€” the browser falls back per glyph to Forum for Ukrainian text */
+    /* Cinzel has no Cyrillic — the browser falls back per glyph to Forum for Ukrainian text */
     --font-display: 'Cinzel', 'Forum', ui-serif, Georgia, serif;
 
     /* subtle wiggle for the header logo on hover */

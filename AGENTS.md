@@ -64,6 +64,9 @@ See [README.md](README.md) for what the app does and the request flow.
   Pass `search()`'s `signal` to every client call (`{ signal }`), so abandoned searches leave the shop's queue.
   An optional follow-up request that falls back on failure goes through `warnFallback` in its `catch`, never a silent catch.
 - **Wiring:** searchers are registered in `src/index.ts`, each wrapped in `CachedCardSearcher`.
+  The `/api/search` handler lives in `src/server/search-route.ts` (input checks, `InFlightLimiter`, 499 on disconnect), so it's tested without starting a server.
+- **One instance only:** the shop rate limits, the result cache, the per-client limiter and MTGin's batching all live in process memory.
+  A second replica would double the request rate to every shop and split MTGin's 60-a-minute key budget. Don't scale horizontally without moving those to shared state first.
 - **Logging:** server code logs through `logger` in `src/server/logger.ts`, never `console.*`.
     - the message is a fixed string, and everything that varies goes in fields: `logger.warn('parser found nothing', { shop, url })`
     - pass errors as a field (`error: err`); the logger serializes them

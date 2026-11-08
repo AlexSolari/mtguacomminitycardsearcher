@@ -94,6 +94,7 @@ src/
   results.ts                grouping offers per card, best price, the cheapest total (browser)
   i18n.ts                   Ukrainian plural forms
   server/
+    search-route.ts         POST /api/search: input checks, per-client limit
     shop-client.ts          rate-limited fetch with timeout, one per shop
     card-search-service.ts  searches all shops for one card
     cached-card-searcher.ts result cache
@@ -112,8 +113,7 @@ Format before committing:
 bun run format
 ```
 
-There's no test suite yet. Check types with `bunx tsc --noEmit`.
-Expect a few errors in `build.ts`: that file comes from the Bun template and has always had them.
+Run the tests with `bun run test`; it type-checks first and stops on any type error.
 
 [AGENTS.md](AGENTS.md) covers conventions, the steps for adding a shop, and the known traps in more detail.
 

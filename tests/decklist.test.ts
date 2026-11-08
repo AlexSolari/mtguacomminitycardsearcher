@@ -25,6 +25,23 @@ describe('parseCardList', () => {
         ]);
     });
 
+    test('repeats match the way the server does: diacritics, æ and punctuation', () => {
+        expect(
+            parseCardList(
+                '1 Æther Vial\n2 Aether Vial\n1 Lim-Dûl the Necromancer\n1 Lim-Dul the Necromancer'
+            ).cards
+        ).toEqual([
+            { name: 'Æther Vial', count: 3 },
+            { name: 'Lim-Dûl the Necromancer', count: 2 }
+        ]);
+    });
+
+    test('names with nothing searchable are dropped', () => {
+        expect(parseCardList('2 ???\n!!!\nSol Ring').cards).toEqual([
+            { name: 'Sol Ring', count: 1 }
+        ]);
+    });
+
     test('Arena set codes, collector numbers and foil markers are stripped', () => {
         expect(
             parseCardList('1 Sol Ring (C21) 263\n1 Fire // Ice (MH3) 290 *F*')

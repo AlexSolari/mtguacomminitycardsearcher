@@ -1,3 +1,5 @@
+import { normalize } from './matching';
+
 // Parses a pasted card list into unique cards with counts. Accepts plain names (one per line) as well as
 // common decklist exports — MTGGoldfish / MTGO (.txt) and MTG Arena:
 //
@@ -18,7 +20,7 @@ export type CardEntry = { name: string; count: number };
 export type ParsedList = { cards: CardEntry[]; links: string[] };
 
 export function parseCardList(text: string): ParsedList {
-    const cards = new Map<string, CardEntry>(); // lower-cased name → entry, in first-seen order
+    const cards = new Map<string, CardEntry>(); // normalized name → entry, in first-seen order
     const links: string[] = [];
 
     for (const raw of text.split(/\r?\n/)) {
@@ -42,10 +44,12 @@ export function parseCardList(text: string): ParsedList {
             .replace(/\s+\*[A-Z]+\*$/i, '')
             .replace(/\s+\([A-Z0-9]{2,6}\)(\s+[\w★-]+)?$/i, '')
             .trim();
-        if (!name) continue;
+        // the server's matching key, so "Æther Vial" and "Aether Vial" are one card; a name with nothing
+        // searchable ("???") is dropped, as the server would drop it
+        const key = normalize(name);
+        if (!key) continue;
 
         const count = Number(quantity?.[1] ?? 1) || 1;
-        const key = name.toLowerCase();
         const seen = cards.get(key);
         if (seen) seen.count += count;
         else cards.set(key, { name, count });
