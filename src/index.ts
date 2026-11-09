@@ -1,3 +1,4 @@
+import { SpanKind } from '@opentelemetry/api';
 import { serve } from 'bun';
 import index from './index.html';
 import { CachedCardSearcher } from './server/cached-card-searcher';
@@ -14,6 +15,7 @@ import { ManavaultCardSearcher } from './server/searchers/manavault-card-searche
 import { NerdikCardSearcher } from './server/searchers/nerdik-card-searcher';
 import { PaytowinCardSearcher } from './server/searchers/paytowin-card-searcher';
 import { clientId, searchHandler } from './server/search-route';
+import { withSpan } from './server/tracing';
 
 // Cards one client may have searching at once, across all its requests; the rest wait for a slot. The frontend
 // keeps 6 in flight per tab, so one tab never waits, and a second tab (or a shared IP) only slows down.
@@ -53,7 +55,20 @@ const server = serve({
 
         '/api/search': {
             POST: (req, server) =>
-                search(req, clientId(req, server.requestIP(req)?.address))
+                withSpan(
+                    'POST /api/search',
+                    SpanKind.SERVER,
+                    {
+                        'http.request.method': 'POST',
+                        'url.path': '/api/search'
+                    },
+                    () =>
+                        search(
+                            req,
+                            clientId(req, server.requestIP(req)?.address)
+                        ),
+                    (res) => res.status
+                )
         }
     },
 
