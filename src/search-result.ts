@@ -1,4 +1,4 @@
-// What /api/search returns: types only. Shared between server and frontend — keep free of server-only imports.
+// What /api/search streams: types only. Shared between server and frontend — keep free of server-only imports.
 import type { ShopId } from './shops';
 
 export type CardResult = {
@@ -39,4 +39,12 @@ export type SearchResult = {
     typed?: string; // the name as typed, set only when it was corrected
     links: CardResult[];
     errors: SearchError[];
+    pending?: ShopId[]; // shops still searching; set only on the snapshots streamed before the result is complete
+};
+
+// One line of /api/search's NDJSON response: the result so far for `cards[index]`. A card gets a line each time
+// one of its shops finishes, each a full snapshot that replaces the previous; the last one has no `pending`.
+export type SearchUpdate = {
+    index: number;
+    result: SearchResult;
 };

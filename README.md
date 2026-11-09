@@ -35,7 +35,7 @@ A shop redesign can break its parser. If one shop stops returning results, that'
 - **Grid or table view**, remembered per browser.
 - **Summary**: how many cards have an exact match, the number of offers, the cheapest total and which shops failed.
   The total counts exact matches only, for the quantity in the list, within each shop's stock. Cards with no exact match or too few copies are listed separately.
-- Results for each card appear as soon as that card is done; there's no waiting for the whole list.
+- Results for each card appear as soon as each shop answers; there's no waiting for the whole list or the slowest shop.
 
 ## Running locally
 
@@ -69,6 +69,7 @@ browser ──POST /api/search {cards:[name]}──▶ Bun server
                                                ▼
                                      CardSearchService
                                                │  every shop, in parallel; a failing shop is reported, not fatal
+                                               │  streams the card's result (NDJSON) each time a shop finishes
                                                ▼
                          CachedCardSearcher (5 min per shop + card)
                                                ▼
@@ -79,6 +80,7 @@ browser ──POST /api/search {cards:[name]}──▶ Bun server
 
 - **Rate limiting:** a deck fans out to (cards × shops) requests. Each searcher's own `ShopClient` spaces out its shop's requests so the shops don't rate-limit us (HTTP 429).
   The queues are shared by every user, so a request that would wait more than 30 s fails as "server busy", and the frontend keeps at most 6 cards in flight.
+- **Streaming:** `/api/search` answers in NDJSON, a line per card each time one of its shops finishes, so a slow shop (Kartoteka) doesn't hold back the others; the card shows which shops are still searching.
 - **Filtering:** the server keeps only listings whose name contains the searched card. Shop search is fuzzy, so "Sol Ring" also matches "Soldier of the Grey Host".
 - **Grouping:** the browser groups the results.
 

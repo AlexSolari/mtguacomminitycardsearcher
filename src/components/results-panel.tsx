@@ -3,7 +3,7 @@ import { CardSection, CardSectionSkeleton } from '@/components/card-section';
 import { SearchSummary } from '@/components/search-summary';
 import { ViewToggle, type ResultsView } from '@/components/view-toggle';
 
-// The summary and one section per searched card (a skeleton until it's done).
+// The summary and one section per searched card (a skeleton until its first shop answers).
 export function ResultsPanel({
     entries,
     view,

@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 import { CARDS, plural } from '@/i18n';
 import { cheapestCopies, splitMatches } from '@/results';
 import { SHOP_INFO, type ShopId } from '@/shops';
-import type { SearchEntry } from '@/hooks/use-card-search';
+import { isComplete, type SearchEntry } from '@/hooks/use-card-search';
 import { formatPrice } from '@/components/offer-parts';
 
 function Stat({
@@ -32,8 +32,9 @@ function Stat({
     );
 }
 
-// Live totals over the cards searched so far. The minimum sum counts only exact matches, for as many copies as
-// the list asks for (within shop stock). Fuzzy matches, Art Series and auctions are left out: they aren't
+// Live totals over the cards searched so far, including what's in for cards still waiting on a shop (they don't
+// count as finished, missing or short until they're complete). The minimum sum counts only exact matches, for as
+// many copies as the list asks for (within shop stock). Fuzzy matches, Art Series and auctions are left out: they aren't
 // the card, or have no fixed price.
 export function SearchSummary({ entries }: { entries: SearchEntry[] }) {
     let finished = 0;
@@ -44,9 +45,11 @@ export function SearchSummary({ entries }: { entries: SearchEntry[] }) {
     const short: { card: string; copies: number; count: number }[] = [];
     // shop → number of cards whose search failed there
     const failedShops = new Map<ShopId, number>();
-    for (const { card, count, result } of entries) {
+    for (const entry of entries) {
+        const { card, count, result } = entry;
         if (!result) continue;
-        finished++;
+        const complete = isComplete(entry);
+        if (complete) finished++;
         offers += result.links.length;
         for (const e of result.errors)
             if (e.shop)
@@ -54,13 +57,13 @@ export function SearchSummary({ entries }: { entries: SearchEntry[] }) {
 
         const { exact } = splitMatches(result);
         if (exact.length === 0) {
-            if (result.errors.length === 0) missing.push(card);
+            if (complete && result.errors.length === 0) missing.push(card);
             continue;
         }
         found++;
         const { cost, copies } = cheapestCopies(exact, count);
         total += cost;
-        if (copies < count) short.push({ card, copies, count });
+        if (complete && copies < count) short.push({ card, copies, count });
     }
     const remaining = entries.length - finished;
 

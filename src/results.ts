@@ -20,7 +20,7 @@ const minPrice = (links: CardResult[]) =>
 // A card's "best price" / "from" use the first non-empty of exact → other → art, so neither "School Daze"
 // (for "Daze") nor a 16 ₴ Art Series card (for "Sol Ring") wins "Best price". Auction bids aren't fixed
 // prices, so auctions never count toward pricing.
-// A finished result never changes, so the split is computed once per result object and shared by
+// A result object never changes (a streamed card gets a new object per update), so the split is computed once per result object and shared by
 // CardSection and SearchSummary.
 export type Split = {
     exact: CardResult[];

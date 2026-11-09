@@ -67,7 +67,7 @@ See [README.md](README.md) for what the app does and the request flow.
   An optional follow-up request that falls back on failure goes through `warnFallback` in its `catch`, never a silent catch.
   Prefer a page or API that lists every offer at once (Mana Vault's `/api/v1/prices`). Where a shop has none and its search shows only a printing's cheapest price (CartOn), fetch each printing's page through `expandCheapest`, which caps them at `MAX_PRODUCT_PAGES` per search; don't fetch product pages around it.
 - **Wiring:** searchers are registered in `src/index.ts`, each wrapped in `CachedCardSearcher`.
-  The `/api/search` handler lives in `src/server/search-route.ts` (input checks, `InFlightLimiter`, 499 on disconnect), so it's tested without starting a server.
+  The `/api/search` handler lives in `src/server/search-route.ts` (input checks, `InFlightLimiter`, NDJSON streaming: a `SearchUpdate` line per card each time a shop finishes), so it's tested without starting a server.
 - **One instance only:** the shop rate limits, the result cache, the per-client limiter and MTGin's batching all live in process memory.
   A second replica would double the request rate to every shop and split MTGin's and Mana Vault's 60-a-minute budgets. Don't scale horizontally without moving those to shared state first.
 - **Logging:** server code logs through `logger` in `src/server/logger.ts`, never `console.*`.
@@ -103,6 +103,7 @@ See [README.md](README.md) for what the app does and the request flow.
 - **MTGin batches its searches:** the API key allows 60 requests a minute, shared by every user. `GinCardSearcher` sends concurrent searches as one request (up to 100 cards), one request at a time, at most one a second. Don't turn it back into a request per card.
 - **Two Bun versions:** `bun-plugin-tailwind` pulls a project-local Bun into `node_modules` (1.4.4 today), and `bun run <script>` (`bun dev`, `bun start`, `bun run test:coverage`) uses it.
   A bare `bun …` uses the global install, which may be older. Behaviour and coverage numbers can differ between them; when in doubt, go through a script.
+- **`Bun.serve`'s `idleTimeout` (in `src/index.ts`) must outlast the slowest shop.** The default 10 s dropped streams while Kartoteka was still searching.
 - **The result cache is 5 minutes.** When testing parser changes against a running server, restart it, or you'll see cached results.
 - **Frontend performance relies on stable `SearchResult` objects:**
     - `CardSection` is `memo`ized

@@ -16,19 +16,22 @@ const describeError = (e: SearchError) =>
         : `Не вдалося виконати пошук: ${e.message}`;
 
 // `typed`: the name as entered, when the server corrected it to `title`
+// `status`: shop errors and shops still searching, in the row's free space between the title and the price
 function SectionHeader({
     title,
     typed,
     count,
+    status,
     children
 }: {
     title: string;
     typed?: string;
     count: number;
+    status?: React.ReactNode;
     children?: React.ReactNode;
 }) {
     return (
-        <div className='flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b pb-3'>
+        <div className='flex flex-wrap items-baseline gap-x-4 gap-y-1 border-b pb-3'>
             <div className='flex flex-col'>
                 <h2 className='font-display text-xl font-semibold tracking-wide'>
                     {title}
@@ -43,6 +46,9 @@ function SectionHeader({
                         Виправлено з «{typed}»
                     </span>
                 )}
+            </div>
+            <div className='flex min-w-0 flex-1 flex-wrap items-center gap-2 self-center'>
+                {status}
             </div>
             <div className='flex items-center gap-3 text-sm text-muted-foreground'>
                 {children}
@@ -178,6 +184,29 @@ export const CardSection = memo(function CardSection({
                 title={result.card}
                 typed={result.typed}
                 count={count}
+                status={
+                    <>
+                        {result.errors.map((err) => (
+                            <span
+                                key={err.shop ?? 'request'}
+                                className='inline-flex items-center gap-1.5 rounded-full border border-destructive/30 bg-destructive/10 px-2.5 py-0.5 text-xs text-destructive'
+                            >
+                                <AlertTriangle className='size-3.5 shrink-0' />
+                                {describeError(err)}
+                            </span>
+                        ))}
+                        {result.pending?.length ? (
+                            <span className='inline-flex items-center gap-1.5 text-xs text-muted-foreground'>
+                                <Loader2 className='size-3.5 shrink-0 animate-spin' />
+                                Ще шукаємо в{' '}
+                                {result.pending
+                                    .map((s) => SHOP_INFO[s].label)
+                                    .join(', ')}
+                                …
+                            </span>
+                        ) : null}
+                    </>
+                }
             >
                 {min !== null && (
                     <span>
@@ -192,18 +221,9 @@ export const CardSection = memo(function CardSection({
                 </span>
             </SectionHeader>
 
-            {result.errors.map((err) => (
-                <p
-                    key={err.shop ?? 'request'}
-                    className='flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive'
-                >
-                    <AlertTriangle className='size-4 shrink-0' />
-                    {describeError(err)}
-                </p>
-            ))}
-
             {links.length === 0
-                ? result.errors.length === 0 && (
+                ? result.errors.length === 0 &&
+                  !result.pending?.length && (
                       <div className='flex items-center gap-3 rounded-xl border border-dashed px-4 py-6 text-sm text-muted-foreground'>
                           <SearchX className='size-5 shrink-0' />
                           Не знайдено в жодному магазині.
