@@ -4,7 +4,7 @@ import type { SearchResult, SearchUpdate } from '../search-result';
 import type { InFlightLimiter } from './in-flight-limiter';
 import { logger } from './logger';
 import type { NameResolver } from './name-resolver';
-import { endSpan, tracer } from './tracing';
+import { endSpan, requestContext, tracer } from './tracing';
 import { VisitorIds } from './visitor-id';
 
 // The frontend sends one card per request; this only bounds what a hand-made request can queue up.
@@ -172,6 +172,7 @@ export function searchHandler(
                     'url.path': '/api/search'
                 }
             },
+            requestContext(req),
             async (span) => {
                 try {
                     return await respond(req, client, span);
