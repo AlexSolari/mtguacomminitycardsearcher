@@ -1,13 +1,25 @@
 import {
+    context,
+    propagation,
     SpanKind,
     SpanStatusCode,
     trace,
     type Attributes,
+    type Context,
     type Span
 } from '@opentelemetry/api';
 
 // A no-op until instrumentation.ts registers an SDK (production with OTEL_EXPORTER_OTLP_ENDPOINT set).
 export const tracer = trace.getTracer('searcher');
+
+// The context carried by the request's W3C `traceparent` header, which Railway's edge adds to a traced request.
+// A span started in it joins the edge's trace instead of starting its own. Bun.serve has no HTTP hooks for the SDK
+// to read the header, so server spans take it from here. No header gives the active context, i.e. a new trace.
+export function requestContext(req: Request): Context {
+    const carrier: Record<string, string> = {};
+    req.headers.forEach((value, key) => (carrier[key] = value));
+    return propagation.extract(context.active(), carrier);
+}
 
 export type SpanOutcome = {
     status?: number; // the HTTP status, recorded; 5xx marks the span as an error
