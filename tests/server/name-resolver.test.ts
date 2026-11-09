@@ -31,9 +31,10 @@ describe('ScryfallNameResolver', () => {
             name: 'Overlord of the Balemurk'
         }));
         const resolver = new ScryfallNameResolver(client);
-        expect(await resolver.resolve('overlord balemurk')).toBe(
-            'Overlord of the Balemurk'
-        );
+        expect(await resolver.resolve('overlord balemurk')).toEqual({
+            name: 'Overlord of the Balemurk',
+            fullName: 'Overlord of the Balemurk'
+        });
         expect(requests[0]!.fuzzy).toBe('overlord balemurk');
         expect(requests[0]!.init?.headers).toMatchObject({
             Accept: 'application/json'
@@ -43,10 +44,13 @@ describe('ScryfallNameResolver', () => {
     test('keeps the typed name when it already is the card', async () => {
         const { client } = fakeScryfall(() => ({ name: 'Æther Vial' }));
         const resolver = new ScryfallNameResolver(client);
-        expect(await resolver.resolve('aether vial')).toBe('aether vial');
+        expect(await resolver.resolve('aether vial')).toEqual({
+            name: 'aether vial',
+            fullName: 'Æther Vial'
+        });
     });
 
-    test('a double-faced card: the front face, or the face typed', async () => {
+    test('a double-faced card: the front face, or the face typed, and the full name', async () => {
         const delver = {
             name: 'Delver of Secrets // Insectile Aberration',
             card_faces: [
@@ -57,19 +61,22 @@ describe('ScryfallNameResolver', () => {
         const resolver = new ScryfallNameResolver(
             fakeScryfall(() => delver).client
         );
-        expect(await resolver.resolve('delver of secret')).toBe(
-            'Delver of Secrets'
-        );
-        expect(await resolver.resolve('Insectile Aberration')).toBe(
-            'Insectile Aberration'
-        );
+        expect(await resolver.resolve('delver of secret')).toEqual({
+            name: 'Delver of Secrets',
+            fullName: delver.name
+        });
+        expect(await resolver.resolve('Insectile Aberration')).toEqual({
+            name: 'Insectile Aberration',
+            fullName: delver.name
+        });
     });
 
     test('an unknown or ambiguous name (404) is searched as typed, and remembered', async () => {
         const { client, requests } = fakeScryfall(() => new HttpError(404));
         const resolver = new ScryfallNameResolver(client);
-        expect(await resolver.resolve('Сол Рінг')).toBe('Сол Рінг');
-        expect(await resolver.resolve('сол рінг')).toBe('Сол Рінг');
+        const asTyped = { name: 'Сол Рінг', fullName: 'Сол Рінг' };
+        expect(await resolver.resolve('Сол Рінг')).toEqual(asTyped);
+        expect(await resolver.resolve('сол рінг')).toEqual(asTyped);
         expect(requests).toHaveLength(1);
         expect(logs).toEqual([]);
     });
@@ -80,9 +87,9 @@ describe('ScryfallNameResolver', () => {
         }));
         const resolver = new ScryfallNameResolver(client);
         await resolver.resolve('overlord balemurk');
-        expect(await resolver.resolve('Overlord  Balemurk!')).toBe(
-            'Overlord of the Balemurk'
-        );
+        expect(await resolver.resolve('Overlord  Balemurk!')).toMatchObject({
+            name: 'Overlord of the Balemurk'
+        });
         expect(requests).toHaveLength(1);
     });
 
@@ -98,7 +105,10 @@ describe('ScryfallNameResolver', () => {
     test('any other failure is logged, searched as typed, and retried next time', async () => {
         const { client, requests } = fakeScryfall(() => new HttpError(503));
         const resolver = new ScryfallNameResolver(client);
-        expect(await resolver.resolve('Sol Ring')).toBe('Sol Ring');
+        expect(await resolver.resolve('Sol Ring')).toEqual({
+            name: 'Sol Ring',
+            fullName: 'Sol Ring'
+        });
         await resolver.resolve('Sol Ring');
         expect(requests).toHaveLength(2);
         expect(logs[0]).toMatchObject({

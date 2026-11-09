@@ -17,7 +17,7 @@ exports[`nerdik API response: one result per in-stock offer 1`] = `
     "image": "https://cards.scryfall.io/grid/front/1/9/1920dae4-fb92-4f19-ae4b-eb3276b8dac7.webp?1783926788",
     "language": "RU",
     "name": "Counterspell — Modern Horizons 2 #267",
-    "price": 159,
+    "price": 170,
     "shop": "nerdik",
     "stock": 7,
     "url": "https://nerdik.club/mtg/singles/mh2/267/ru/",
@@ -34,4 +34,3 @@ exports[`nerdik API response: one result per in-stock offer 1`] = `
   },
 ]
 `;
-

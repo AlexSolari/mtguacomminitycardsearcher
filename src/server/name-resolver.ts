@@ -6,8 +6,13 @@ import { HttpError, ShopClient } from './shop-client';
 // junk input can't grow it forever; the oldest entries go first.
 const MAX_CACHED = 10_000;
 
+// `name` is what shops search for: the typed name when it already is the card or one of its faces, else the front
+// face. `fullName` is Scryfall's name for the whole card ("Bonecrusher Giant // Stomp"), for APIs that match only
+// that (Nerdik's batch search). Both are the typed name when Scryfall can't place it.
+export type ResolvedName = { name: string; fullName: string };
+
 export type NameResolver = {
-    resolve(card: string, signal?: AbortSignal): Promise<string>;
+    resolve(card: string, signal?: AbortSignal): Promise<ResolvedName>;
 };
 
 // The subset of Scryfall's card object we read (GET /cards/named?fuzzy=…):
@@ -21,7 +26,7 @@ type ScryfallCard = { name: string; card_faces?: { name: string }[] };
 // "Overlord of the Balemurk". The shops search by substring, so a missing word finds nothing.
 // Falls back to the name as typed whenever Scryfall can't help: unknown, ambiguous, non-English, or failing.
 export class ScryfallNameResolver implements NameResolver {
-    private readonly cache = new Map<string, string>();
+    private readonly cache = new Map<string, ResolvedName>();
 
     constructor(
         // Scryfall asks for 50–100 ms between requests
@@ -32,13 +37,14 @@ export class ScryfallNameResolver implements NameResolver {
         })
     ) {}
 
-    async resolve(card: string, signal?: AbortSignal): Promise<string> {
+    async resolve(card: string, signal?: AbortSignal): Promise<ResolvedName> {
         const key = normalize(card);
         const cached = this.cache.get(key);
         if (cached !== undefined) return cached;
 
+        const asTyped = { name: card, fullName: card };
         const url = this.client.url('/cards/named', { fuzzy: card });
-        let resolved: string;
+        let resolved: ResolvedName;
         try {
             const found = await this.client.fetchJson<ScryfallCard>(url, {
                 signal,
@@ -48,24 +54,25 @@ export class ScryfallNameResolver implements NameResolver {
                     Accept: 'application/json'
                 }
             });
-            resolved = pickName(card, found);
+            resolved = { name: pickName(card, found), fullName: found.name };
         } catch (err) {
             if (signal?.aborted) throw err;
-            if (err instanceof HttpError && err.status === 404) resolved = card;
+            if (err instanceof HttpError && err.status === 404)
+                resolved = asTyped;
             else {
                 // not cached: the next search tries again
                 logger.warn('name lookup failed, searching as typed', {
                     card,
                     error: err
                 });
-                return card;
+                return asTyped;
             }
         }
         this.remember(key, resolved);
         return resolved;
     }
 
-    private remember(key: string, name: string) {
+    private remember(key: string, name: ResolvedName) {
         if (this.cache.size >= MAX_CACHED)
             this.cache.delete(this.cache.keys().next().value!);
         this.cache.set(key, name);

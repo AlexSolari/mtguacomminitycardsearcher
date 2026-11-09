@@ -130,16 +130,23 @@ const apiKey = process.env.NERDIK_API_KEY;
 if (apiKey) {
     const nerdik = new ShopClient('https://hub.nerdik.club');
     await save(
-        'nerdik-search.json',
+        'nerdik-batch.json',
         json(
-            await nerdik.fetchJson(
-                nerdik.url('/api/singles/search', { q: CARD, limit: '60' }),
-                { headers: { 'X-API-Key': apiKey } }
-            )
+            await nerdik.fetchJson(nerdik.url('/api/singles/search/batch'), {
+                method: 'POST',
+                headers: {
+                    'X-API-Key': apiKey,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    game: 'mtg',
+                    limit: 60,
+                    cards: [{ name: CARD, quantity: 1 }]
+                })
+            })
         )
     );
-} else
-    console.warn('NERDIK_API_KEY is not set, nerdik-search.json not updated');
+} else console.warn('NERDIK_API_KEY is not set, nerdik-batch.json not updated');
 
 // Kartoteka has few singles; Sol Ring is one it usually stocks.
 const kartoteka = new ShopClient('https://kartoteka.in.ua');

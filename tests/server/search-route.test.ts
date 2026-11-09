@@ -17,10 +17,18 @@ const result = (card: string): SearchResult => ({
 // A card search that answers at once, recording what it was asked for.
 function fakeSearch() {
     const searched: string[] = [];
+    const fullNames: (string | undefined)[] = [];
     return {
         searched,
-        search: async (card: string) => {
+        fullNames,
+        search: async (
+            card: string,
+            _signal?: AbortSignal,
+            _onUpdate?: unknown,
+            fullName?: string
+        ) => {
             searched.push(card);
+            fullNames.push(fullName);
             return result(card);
         }
     };
@@ -208,7 +216,12 @@ describe('searchHandler', () => {
         const cardSearch = fakeSearch();
         const handle = searchHandler(cardSearch, new InFlightLimiter(12), {
             resolve: async (card) =>
-                card === 'overlord balemurk' ? 'Overlord of the Balemurk' : card
+                card === 'overlord balemurk'
+                    ? {
+                          name: 'Overlord of the Balemurk',
+                          fullName: 'Overlord of the Balemurk'
+                      }
+                    : { name: card, fullName: card }
         });
         const res = await handle(
             post({ cards: ['overlord balemurk', 'Daze'] }),
@@ -234,6 +247,26 @@ describe('searchHandler', () => {
         );
     });
 
+    test("passes the card's full name along for the shops that need it", async () => {
+        const cardSearch = fakeSearch();
+        const handle = searchHandler(cardSearch, new InFlightLimiter(12), {
+            resolve: async () => ({
+                name: 'Bonecrusher Giant',
+                fullName: 'Bonecrusher Giant // Stomp'
+            })
+        });
+        await (await handle(post({ cards: ['bonecrusher'] }), 'a')).text();
+        expect(cardSearch.searched).toEqual(['Bonecrusher Giant']);
+        expect(cardSearch.fullNames).toEqual(['Bonecrusher Giant // Stomp']);
+    });
+
+    test('without a resolver, the full name is the name as sent', async () => {
+        const cardSearch = fakeSearch();
+        const handle = searchHandler(cardSearch, new InFlightLimiter(12));
+        await (await handle(post({ cards: ['Daze'] }), 'a')).text();
+        expect(cardSearch.fullNames).toEqual(['Daze']);
+    });
+
     test('partial results keep the typed name too', async () => {
         const handle = searchHandler(
             {
@@ -243,7 +276,12 @@ describe('searchHandler', () => {
                 }
             },
             new InFlightLimiter(12),
-            { resolve: async () => 'Overlord of the Balemurk' }
+            {
+                resolve: async () => ({
+                    name: 'Overlord of the Balemurk',
+                    fullName: 'Overlord of the Balemurk'
+                })
+            }
         );
         const res = await handle(post({ cards: ['overlord balemurk'] }), 'a');
         const lines = await updates(res);

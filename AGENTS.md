@@ -101,6 +101,10 @@ See [README.md](README.md) for what the app does and the request flow.
 - **Decimal prices:** `"1 234,50"` parses as 123450. No shop shows kopecks today. Handle it per shop if one starts.
 - **Mana Vault's price API allows 60 requests a minute, with no key**, shared by every user. Its client spaces requests a second apart (`intervalMs: 1000`); don't lower it. There's no batch endpoint, so a long list fills Mana Vault's results more slowly than the other shops'.
 - **MTGin batches its searches:** the API key allows 60 requests a minute, shared by every user. `GinCardSearcher` sends concurrent searches as one request (up to 100 cards), one request at a time, at most one a second. Don't turn it back into a request per card.
+  Nerdik's batch API is batched the same way; both go through `Batcher` (`src/server/batcher.ts`).
+- **Nerdik's batch API matches only a card's full name:** "Bonecrusher Giant // Stomp" finds it, "Bonecrusher Giant" finds nothing.
+  The name resolver gives shops the front face, so searchers also get `fullName` (Scryfall's name for the whole card) as the third argument of `search()`; `NerdikCardSearcher` searches by it.
+  `CachedCardSearcher` keys on both names.
 - **Two Bun versions:** `bun-plugin-tailwind` pulls a project-local Bun into `node_modules` (1.4.4 today), and `bun run <script>` (`bun dev`, `bun start`, `bun run test:coverage`) uses it.
   A bare `bun …` uses the global install, which may be older. Behaviour and coverage numbers can differ between them; when in doubt, go through a script.
 - **`Bun.serve`'s `idleTimeout` (in `src/index.ts`) must outlast the slowest shop.** The default 10 s dropped streams while Kartoteka was still searching.

@@ -28,22 +28,32 @@ export class CachedCardSearcher implements CardSearcher {
         this.shop = inner.shop;
     }
 
-    search(card: string, signal?: AbortSignal): Promise<CardResult[]> {
+    search(
+        card: string,
+        signal?: AbortSignal,
+        fullName = card
+    ): Promise<CardResult[]> {
         if (signal?.aborted) return Promise.reject(signal.reason);
-        // "Æther Vial" and "aether vial" are the same search
-        const key = normalize(card);
+        // "Æther Vial" and "aether vial" are the same search. The full name is part of the key: a name searched
+        // as typed (Scryfall was down) mustn't answer for the same name once Scryfall has given the full one.
+        const key = `${normalize(card)}\n${normalize(fullName)}`;
         const now = Date.now();
         let entry = this.cache.get(key);
         if (!entry || entry.expires <= now) {
             this.evictExpired(now);
-            entry = this.start(key, card, now);
+            entry = this.start(key, card, fullName, now);
         }
         return this.wait(key, entry, signal);
     }
 
-    private start(key: string, card: string, now: number): Entry {
+    private start(
+        key: string,
+        card: string,
+        fullName: string,
+        now: number
+    ): Entry {
         const controller = new AbortController();
-        const results = this.inner.search(card, controller.signal);
+        const results = this.inner.search(card, controller.signal, fullName);
         const entry: Entry = {
             expires: now + this.ttlMs,
             results,

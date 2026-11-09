@@ -14,7 +14,8 @@ type CardSearch = {
     search(
         card: string,
         signal?: AbortSignal,
-        onUpdate?: (partial: SearchResult) => void
+        onUpdate?: (partial: SearchResult) => void,
+        fullName?: string
     ): Promise<SearchResult>;
 };
 
@@ -38,21 +39,26 @@ export function clientId(req: Request, peer: string | undefined) {
 export function searchHandler(
     cardSearch: CardSearch,
     limiter: InFlightLimiter,
-    names: NameResolver = { resolve: async (card) => card }
+    names: NameResolver = {
+        resolve: async (card) => ({ name: card, fullName: card })
+    }
 ) {
     return async (req: Request, client: string): Promise<Response> => {
         const searchCard = async (
             card: string,
             onUpdate: (partial: SearchResult) => void
         ): Promise<SearchResult> => {
-            const name = await names.resolve(card, req.signal);
+            const { name, fullName } = await names.resolve(card, req.signal);
             const withTyped = (result: SearchResult) =>
                 name === card ? result : { ...result, typed: card };
             if (name !== card)
                 logger.info('name corrected', { typed: card, card: name });
             return withTyped(
-                await cardSearch.search(name, req.signal, (partial) =>
-                    onUpdate(withTyped(partial))
+                await cardSearch.search(
+                    name,
+                    req.signal,
+                    (partial) => onUpdate(withTyped(partial)),
+                    fullName
                 )
             );
         };

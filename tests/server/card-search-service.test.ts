@@ -40,6 +40,24 @@ describe('CardSearchService', () => {
         expect(result.errors).toEqual([]);
     });
 
+    test('gives every shop the full name, which defaults to the name', async () => {
+        const seen: (string | undefined)[] = [];
+        const service = new CardSearchService([
+            searcher('nerdik', async (_card, _signal, fullName) => {
+                seen.push(fullName);
+                return [];
+            })
+        ]);
+        await service.search(
+            'Bonecrusher Giant',
+            undefined,
+            undefined,
+            'Bonecrusher Giant // Stomp'
+        );
+        await service.search('Daze');
+        expect(seen).toEqual(['Bonecrusher Giant // Stomp', 'Daze']);
+    });
+
     test('a failing shop is reported, the others still count', async () => {
         const service = new CardSearchService([
             searcher('carton', async () => [listing('carton', 'Sol Ring')]),

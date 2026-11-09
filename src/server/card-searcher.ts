@@ -5,9 +5,16 @@ import { logger } from './logger';
 // Searches one shop for a card. Implementations own a ShopClient, which rate-limits requests to their shop.
 // `signal` aborts when nobody wants the result any more; pass it to every client call so the requests leave the
 // shop's queue.
+// `card` is the name to search for (for a double-faced card, the face shops list it under). `fullName` is the whole
+// card's name ("Bonecrusher Giant // Stomp", see ResolvedName); it defaults to `card`, and only searchers whose API
+// matches full names exactly need it.
 export interface CardSearcher {
     readonly shop: ShopId;
-    search(card: string, signal?: AbortSignal): Promise<CardResult[]>;
+    search(
+        card: string,
+        signal?: AbortSignal,
+        fullName?: string
+    ): Promise<CardResult[]>;
 }
 
 // For scrapers: an empty parse usually just means "not in stock", but it's also what a shop redesign looks like:

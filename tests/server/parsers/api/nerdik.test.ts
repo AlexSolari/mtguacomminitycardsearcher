@@ -4,14 +4,17 @@ import { expectWellFormed, json } from '../parser-fixtures';
 
 describe('nerdik', () => {
     test('API response: one result per in-stock offer', async () => {
-        const results = parseNerdik(await json('nerdik-search.json'));
+        const { results: lookups } = await json('nerdik-batch.json');
+        const results = parseNerdik(lookups[0]);
         expectWellFormed(results, 'nerdik');
         expect(results).toMatchSnapshot();
     });
 
-    // A response without the shape the parser expects must give [], not throw and fail the whole shop.
-    test('unexpected response → []', () => {
+    // A result without the shape the parser expects, or missing altogether, must give [], not throw and fail the
+    // whole shop.
+    test('unexpected or missing result → []', () => {
         expect(parseNerdik({})).toEqual([]);
+        expect(parseNerdik(undefined)).toEqual([]);
     });
 
     const card = {

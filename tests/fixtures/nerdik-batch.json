@@ -1,0 +1,94 @@
+{
+  "results": [
+    {
+      "index": 0,
+      "name": "Counterspell",
+      "quantity": 1,
+      "cards": [
+        {
+          "key": "sku/27520",
+          "card_id": "hp1/mtg/fca/4",
+          "name": "Counterspell",
+          "game": "mtg",
+          "set_code": "fca",
+          "set_name": "Final Fantasy: Through the Ages",
+          "number": "4",
+          "language": "en",
+          "treatment": "foil",
+          "offers": [
+            {
+              "price_uah": "301.00",
+              "available_quantity": 1,
+              "hub_url": "https://hub.nerdik.club/card?key=sku%2F27520&offer_price=30100",
+              "nerdik_url": "https://nerdik.club/mtg/singles/fca/4/en/foil/"
+            }
+          ],
+          "image_url": "https://cards.scryfall.io/grid/front/e/1/e1e48b21-1a4f-4708-a4b4-e2e296df924c.webp?1783906394",
+          "back_image_url": null,
+          "image_rotation": 0,
+          "back_image_rotation": 0,
+          "released_at": "2025-06-13",
+          "hub_url": "https://hub.nerdik.club/card?key=sku%2F27520",
+          "nerdik_url": "https://nerdik.club/mtg/singles/fca/4/en/foil/"
+        },
+        {
+          "key": "sku/45552",
+          "card_id": "hp1/mtg/mh2/267",
+          "name": "Counterspell",
+          "game": "mtg",
+          "set_code": "mh2",
+          "set_name": "Modern Horizons 2",
+          "number": "267",
+          "language": "ru",
+          "treatment": "regular",
+          "offers": [
+            {
+              "price_uah": "170.00",
+              "available_quantity": 7,
+              "hub_url": "https://hub.nerdik.club/card?key=sku%2F45552&offer_price=17000",
+              "nerdik_url": "https://nerdik.club/mtg/singles/mh2/267/ru/"
+            }
+          ],
+          "image_url": "https://cards.scryfall.io/grid/front/1/9/1920dae4-fb92-4f19-ae4b-eb3276b8dac7.webp?1783926788",
+          "back_image_url": null,
+          "image_rotation": 0,
+          "back_image_rotation": 0,
+          "released_at": "2021-06-18",
+          "hub_url": "https://hub.nerdik.club/card?key=sku%2F45552",
+          "nerdik_url": "https://nerdik.club/mtg/singles/mh2/267/ru/"
+        },
+        {
+          "key": "sku/92865",
+          "card_id": "hp1/mtg/mh2/308",
+          "name": "Counterspell",
+          "game": "mtg",
+          "set_code": "mh2",
+          "set_name": "Modern Horizons 2",
+          "number": "308",
+          "language": "en",
+          "treatment": "regular",
+          "offers": [
+            {
+              "price_uah": "344.00",
+              "available_quantity": 2,
+              "hub_url": "https://hub.nerdik.club/card?key=sku%2F92865&offer_price=34400",
+              "nerdik_url": "https://nerdik.club/mtg/singles/mh2/308/en/"
+            }
+          ],
+          "image_url": "https://cards.scryfall.io/grid/front/2/c/2c358d75-01ad-4487-8104-425124b96aae.webp?1783926771",
+          "back_image_url": null,
+          "image_rotation": 0,
+          "back_image_rotation": 0,
+          "released_at": "2021-06-18",
+          "hub_url": "https://hub.nerdik.club/card?key=sku%2F92865",
+          "nerdik_url": "https://nerdik.club/mtg/singles/mh2/308/en/"
+        }
+      ],
+      "next_cursor": null,
+      "next_url": null
+    }
+  ],
+  "currency": "UAH",
+  "snapshot": "00000000-0000-0000-0000-000000000000",
+  "sort": "name"
+}

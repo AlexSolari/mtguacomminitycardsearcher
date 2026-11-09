@@ -1,11 +1,14 @@
 import type { CardResult } from '../../../search-result';
 import { languageCode } from '../helpers';
 
-// hub.nerdik.club/api/singles/search — JSON, one entry per printing, each with its in-stock offers:
-//   {"cards":[{"name":"Sol Ring","game":"mtg","set_name":"Fallout","number":"359","language":"en",
-//     "treatment":"regular","image_url":"https://cards.scryfall.io/…","nerdik_url":"https://nerdik.club/mtg/singles/pip/359/en/",
-//     "offers":[{"price_uah":"183.00","available_quantity":1,"nerdik_url":"…"}, …]}, …],
-//    "next_cursor":null, …}
+// hub.nerdik.club/api/singles/search/batch — JSON, one result per looked-up name, in request order; each lists
+// that card's printings, each with its in-stock offers:
+//   {"results":[{"index":0,"name":"Sol Ring","quantity":1,
+//     "cards":[{"name":"Sol Ring","game":"mtg","set_name":"Fallout","number":"359","language":"en",
+//       "treatment":"regular","image_url":"https://cards.scryfall.io/…","nerdik_url":"https://nerdik.club/mtg/singles/pip/359/en/",
+//       "offers":[{"price_uah":"183.00","available_quantity":1,"nerdik_url":"…"}, …]}, …],
+//     "next_cursor":null}, …], "currency":"UAH", …}
+// parseNerdik reads one of those results.
 // A printing can have several offers at different prices; each becomes its own result so the total uses each
 // price for its own stock.
 type NerdikCard = {
@@ -24,10 +27,11 @@ type NerdikCard = {
     }[];
 };
 
-export type NerdikResponse = { cards?: NerdikCard[] };
+export type NerdikResult = { cards?: NerdikCard[] };
+export type NerdikBatchResponse = { results?: NerdikResult[] };
 
-export function parseNerdik(json: NerdikResponse): CardResult[] {
-    return (json.cards ?? []).flatMap((card) => {
+export function parseNerdik(json: NerdikResult | undefined): CardResult[] {
+    return (json?.cards ?? []).flatMap((card) => {
         // the shop also sells other TCGs (e.g. Sorcery: Contested Realms)
         if (card.game !== 'mtg') return [];
         // "Sol Ring — Fallout #359", the same shape the old HTML parser built (isExactMatch splits on " — ")

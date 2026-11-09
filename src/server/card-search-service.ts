@@ -11,13 +11,15 @@ type ShopOutcome = { links: CardResult[]; error: SearchError | null };
 // `signal` is the client's request: when it disconnects, the search rejects and its queued shop requests are dropped.
 // One slow shop (Kartoteka) mustn't hold back the others, so `onUpdate` gets the result so far each time a shop
 // finishes while others are still searching (`pending` lists them); the returned promise is the complete result.
+// `fullName` goes to the searchers that need it (see CardSearcher).
 export class CardSearchService {
     constructor(private readonly searchers: CardSearcher[]) {}
 
     async search(
         card: string,
         signal?: AbortSignal,
-        onUpdate?: (partial: SearchResult) => void
+        onUpdate?: (partial: SearchResult) => void,
+        fullName = card
     ): Promise<SearchResult> {
         // in searcher order, so links and errors keep the same order however the shops finish
         const outcomes: (ShopOutcome | undefined)[] = this.searchers.map(
@@ -26,7 +28,12 @@ export class CardSearchService {
         let remaining = this.searchers.length;
         await Promise.all(
             this.searchers.map(async (searcher, i) => {
-                outcomes[i] = await this.searchShop(searcher, card, signal);
+                outcomes[i] = await this.searchShop(
+                    searcher,
+                    card,
+                    fullName,
+                    signal
+                );
                 if (--remaining > 0 && onUpdate && !signal?.aborted)
                     onUpdate(this.snapshot(card, outcomes));
             })
@@ -37,10 +44,14 @@ export class CardSearchService {
     private async searchShop(
         searcher: CardSearcher,
         card: string,
+        fullName: string,
         signal?: AbortSignal
     ): Promise<ShopOutcome> {
         try {
-            return { links: await searcher.search(card, signal), error: null };
+            return {
+                links: await searcher.search(card, signal, fullName),
+                error: null
+            };
         } catch (err) {
             if (signal?.aborted) throw err;
             logger.error('shop search failed', {

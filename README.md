@@ -19,7 +19,7 @@ The UI is in Ukrainian.
 | Citadel             | [citadel.kyiv.ua](https://citadel.kyiv.ua)       |
 
 MTGin, Nerdik, PayToWin (auctions) and Magic Swamp are read from their APIs; the other shops don't offer one, so prices are scraped from their search pages.
-MTGin's API matches card names exactly, so MTGin never contributes fuzzy "other matches".
+MTGin's and Nerdik's APIs match card names exactly, so they never contribute fuzzy "other matches".
 A shop redesign can break its parser. If one shop stops returning results, that's the likely cause.
 
 ## Features

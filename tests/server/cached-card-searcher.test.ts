@@ -46,6 +46,34 @@ describe('CachedCardSearcher', () => {
         expect(stats.calls).toBe(1);
     });
 
+    test('passes the full name on, and keys on it too', async () => {
+        const seen: (string | undefined)[] = [];
+        const cache = new CachedCardSearcher({
+            shop: 'nerdik',
+            search: async (_card, _signal, fullName) => {
+                seen.push(fullName);
+                return RESULT;
+            }
+        });
+        await cache.search('Bonecrusher Giant', undefined, 'Bonecrusher Giant');
+        await cache.search(
+            'Bonecrusher Giant',
+            undefined,
+            'Bonecrusher Giant // Stomp'
+        );
+        await cache.search(
+            'bonecrusher giant',
+            undefined,
+            'Bonecrusher Giant // Stomp'
+        );
+        await cache.search('Daze');
+        expect(seen).toEqual([
+            'Bonecrusher Giant',
+            'Bonecrusher Giant // Stomp',
+            'Daze'
+        ]);
+    });
+
     test('identical searches in flight share one shop search', async () => {
         const { searcher, stats } = fakeSearcher();
         const cache = new CachedCardSearcher(searcher);
