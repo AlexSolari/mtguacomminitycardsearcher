@@ -42,6 +42,19 @@ export type SearchResult = {
     pending?: ShopId[]; // shops still searching; set only on the snapshots streamed before the result is complete
 };
 
+// Where an offer was shown: one of a card's result groups, or 'manual' for a blocked shop's manual-check tile.
+export type OfferGroup = 'exact' | 'auctions' | 'other' | 'art' | 'manual';
+
+// POST /api/click's body: an offer the user opened, so the dashboard shows which shops and offers people go to.
+export type OfferClick = {
+    shop: ShopId;
+    card: string; // the card searched (SearchResult.card), not the shop's title for the listing
+    group: OfferGroup;
+    view: 'grid' | 'table';
+    best: boolean; // had the best-price badge
+    price: number | null; // UAH, as shown; null for a manual check
+};
+
 // One line of /api/search's NDJSON response: the result so far for `cards[index]`. A card gets a line each time
 // one of its shops finishes, each a full snapshot that replaces the previous; the last one has no `pending`.
 export type SearchUpdate = {

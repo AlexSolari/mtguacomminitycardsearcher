@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { SpanKind, SpanStatusCode } from '@opentelemetry/api';
 import type { SearchResult, SearchUpdate } from '@/search-result';
 import { InFlightLimiter } from '@/server/in-flight-limiter';
 import {
@@ -6,7 +7,10 @@ import {
     MAX_CARDS_PER_REQUEST,
     searchHandler
 } from '@/server/search-route';
+import { withSpan } from '@/server/tracing';
+import { VisitorIds } from '@/server/visitor-id';
 import { captureLogs } from './capture-logs';
+import { captureSpans, idOf, parentOf } from './capture-spans';
 
 const result = (card: string): SearchResult => ({
     card,
@@ -58,6 +62,8 @@ async function finalResults(res: Response) {
 }
 
 const logs = captureLogs();
+const spans = captureSpans();
+const requestSpans = () => spans().filter((s) => s.name === 'POST /api/search');
 
 describe('searchHandler', () => {
     test('searches each card and streams the results', async () => {
@@ -313,6 +319,126 @@ describe('searchHandler', () => {
                 error: expect.objectContaining({ message: 'boom' })
             })
         );
+    });
+});
+
+describe('searchHandler spans', () => {
+    test('the request span lasts until the stream closes, and the search runs inside it', async () => {
+        const handle = searchHandler(
+            {
+                // stands in for a shop request
+                search: (card) =>
+                    withSpan('GET shop', SpanKind.CLIENT, {}, async () => {
+                        await Bun.sleep(10);
+                        return result(card);
+                    })
+            },
+            new InFlightLimiter(12)
+        );
+        const res = await handle(post({ cards: ['Sol Ring'] }), 'a');
+        // the Response is back, but the search is still running
+        expect(requestSpans()).toHaveLength(0);
+        await res.text();
+        const [request] = requestSpans();
+        expect(request).toMatchObject({
+            kind: SpanKind.SERVER,
+            attributes: {
+                'http.request.method': 'POST',
+                'url.path': '/api/search',
+                'http.response.status_code': 200,
+                'search.card_count': 1
+            },
+            status: { code: SpanStatusCode.UNSET }
+        });
+        const shop = spans().find((s) => s.name === 'GET shop')!;
+        expect(parentOf(shop)).toBe(idOf(request!));
+    });
+
+    test("the span carries the visitor's daily id", async () => {
+        const visitors = new VisitorIds(undefined, () => 'salt');
+        const handle = searchHandler(
+            fakeSearch(),
+            new InFlightLimiter(12),
+            undefined,
+            visitors
+        );
+        const req = post({ cards: ['Sol Ring'] });
+        req.headers.set('user-agent', 'Firefox');
+        await (await handle(req, '1.2.3.4')).text();
+        expect(requestSpans()[0]!.attributes['visitor.id']).toBe(
+            new VisitorIds(undefined, () => 'salt').id('1.2.3.4', 'Firefox')
+        );
+    });
+
+    test('too many cards ends the span with a 400', async () => {
+        const handle = searchHandler(fakeSearch(), new InFlightLimiter(12));
+        const cards = Array.from(
+            { length: MAX_CARDS_PER_REQUEST + 1 },
+            (_, i) => `Card ${i}`
+        );
+        await handle(post({ cards }), 'a');
+        expect(requestSpans()).toMatchObject([
+            { attributes: { 'http.response.status_code': 400 } }
+        ]);
+    });
+
+    test("a card's failure is an event on the span, and marks it as an error", async () => {
+        const handle = searchHandler(
+            {
+                search: async (card) => {
+                    if (card === 'Sol Ring') throw new Error('boom');
+                    return result(card);
+                }
+            },
+            new InFlightLimiter(12)
+        );
+        await (await handle(post({ cards: ['Sol Ring', 'Daze'] }), 'a')).text();
+        const [request] = requestSpans();
+        expect(request!.status.code).toBe(SpanStatusCode.ERROR);
+        expect(request!.events).toMatchObject([
+            {
+                name: 'card search failed',
+                attributes: { card: 'Sol Ring', 'exception.message': 'boom' }
+            }
+        ]);
+    });
+
+    test('a client that disconnects ends the span with an `aborted` event, not an error', async () => {
+        const controller = new AbortController();
+        const handle = searchHandler(
+            {
+                search: (_card, signal) =>
+                    new Promise((_, reject) =>
+                        signal!.addEventListener('abort', () =>
+                            reject(signal!.reason)
+                        )
+                    )
+            },
+            new InFlightLimiter(12)
+        );
+        const res = await handle(
+            post({ cards: ['Sol Ring'] }, { signal: controller.signal }),
+            'a'
+        );
+        await Bun.sleep(0);
+        controller.abort();
+        await res.text();
+        const [request] = requestSpans();
+        expect(request!.status.code).toBe(SpanStatusCode.UNSET);
+        expect(request!.events.map((e) => e.name)).toEqual(['aborted']);
+    });
+
+    test('a handler that throws ends the span as an error', async () => {
+        const handle = searchHandler(fakeSearch(), new InFlightLimiter(12));
+        const req = post({ cards: ['Sol Ring'] });
+        // a body that isn't JSON rejects, which is caught; json() throwing outright stands in for an unexpected failure
+        Object.defineProperty(req, 'json', {
+            value: () => {
+                throw new Error('broken');
+            }
+        });
+        await expect(handle(req, 'a')).rejects.toThrow('broken');
+        expect(requestSpans()[0]!.status.code).toBe(SpanStatusCode.ERROR);
     });
 });
 

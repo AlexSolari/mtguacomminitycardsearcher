@@ -1,8 +1,11 @@
+import { SpanKind, SpanStatusCode, type Span } from '@opentelemetry/api';
 import { normalize } from '../matching';
 import type { SearchResult, SearchUpdate } from '../search-result';
 import type { InFlightLimiter } from './in-flight-limiter';
 import { logger } from './logger';
 import type { NameResolver } from './name-resolver';
+import { endSpan, tracer } from './tracing';
+import { VisitorIds } from './visitor-id';
 
 // The frontend sends one card per request; this only bounds what a hand-made request can queue up.
 export const MAX_CARDS_PER_REQUEST = 100;
@@ -41,9 +44,14 @@ export function searchHandler(
     limiter: InFlightLimiter,
     names: NameResolver = {
         resolve: async (card) => ({ name: card, fullName: card })
-    }
+    },
+    visitors = new VisitorIds()
 ) {
-    return async (req: Request, client: string): Promise<Response> => {
+    const respond = async (
+        req: Request,
+        client: string,
+        span: Span
+    ): Promise<Response> => {
         const searchCard = async (
             card: string,
             onUpdate: (partial: SearchResult) => void
@@ -74,11 +82,17 @@ export function searchHandler(
             cards: cards.slice(0, LOGGED_NAMES),
             count: cards.length
         });
-        if (cards.length > MAX_CARDS_PER_REQUEST)
+        span.setAttributes({
+            'search.card_count': cards.length,
+            'visitor.id': visitors.id(client, req.headers.get('user-agent'))
+        });
+        if (cards.length > MAX_CARDS_PER_REQUEST) {
+            endSpan(span, { status: 400 });
             return Response.json(
                 { error: `Too many cards (max ${MAX_CARDS_PER_REQUEST})` },
                 { status: 400 }
             );
+        }
 
         const encoder = new TextEncoder();
         const stream = new ReadableStream<Uint8Array>({
@@ -107,24 +121,29 @@ export function searchHandler(
                             send({ index, result });
                         } catch (err) {
                             if (req.signal.aborted) return;
+                            const message = (err as Error).message;
                             // the status line is long gone, so the failure is reported as the card's result
                             logger.error('card search failed', {
                                 card,
                                 error: err
                             });
+                            span.addEvent('card search failed', {
+                                card,
+                                'exception.message': message
+                            });
+                            span.setStatus({ code: SpanStatusCode.ERROR });
                             send({
                                 index,
                                 result: {
                                     card,
                                     links: [],
-                                    errors: [
-                                        { message: (err as Error).message }
-                                    ]
+                                    errors: [{ message }]
                                 }
                             });
                         }
                     })
                 );
+                endSpan(span, { status: 200, signal: req.signal });
                 try {
                     controller.close();
                 } catch {
@@ -139,4 +158,27 @@ export function searchHandler(
             }
         });
     };
+
+    // The span covers the whole search, so it ends when the stream does (see `start` above), not when the Response
+    // is returned: the cards are searched inside the stream, after the status line has gone out. Spans the
+    // search starts (name resolution, shop requests) are its children, since the stream starts in its context.
+    return (req: Request, client: string): Promise<Response> =>
+        tracer.startActiveSpan(
+            'POST /api/search',
+            {
+                kind: SpanKind.SERVER,
+                attributes: {
+                    'http.request.method': 'POST',
+                    'url.path': '/api/search'
+                }
+            },
+            async (span) => {
+                try {
+                    return await respond(req, client, span);
+                } catch (error) {
+                    endSpan(span, { error, signal: req.signal });
+                    throw error;
+                }
+            }
+        );
 }

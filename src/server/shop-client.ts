@@ -1,4 +1,6 @@
+import { SpanKind } from '@opentelemetry/api';
 import PQueue from 'p-queue';
+import { withSpan } from './tracing';
 
 // Each card searcher owns one client, so every shop gets its own request queue. A deck list fans out to
 // (cards × shops) requests, and firing them all at once gets us rate-limited (HTTP 429). So requests to a shop
@@ -62,18 +64,41 @@ export class ShopClient {
         if (target.host !== this.host)
             throw new Error(`${target.host} is not ${this.host}`);
         const { signal, ...rest } = init;
-        await this.waitForSlot(signal ?? undefined);
-        const timeout = AbortSignal.timeout(this.timeoutMs);
-        try {
-            return await fetch(target, {
-                ...rest,
-                signal: signal ? AbortSignal.any([signal, timeout]) : timeout
-            });
-        } catch (err) {
-            if (timeout.aborted)
-                throw new Error(`timeout after ${this.timeoutMs / 1000}s`);
-            throw err;
-        }
+        // Bun's fetch isn't auto-instrumented, so each shop request gets its own client span by hand. It starts
+        // before the wait for a slot: the queue is often most of a request's time, and "server busy" happens there.
+        return withSpan(
+            `${rest.method ?? 'GET'} ${this.host}`,
+            SpanKind.CLIENT,
+            {
+                'http.request.method': rest.method ?? 'GET',
+                'server.address': this.host,
+                'url.full': target.href
+            },
+            async (span) => {
+                const queued = performance.now();
+                await this.waitForSlot(signal ?? undefined);
+                span.setAttribute(
+                    'shop.queue_wait_ms',
+                    Math.round(performance.now() - queued)
+                );
+                const timeout = AbortSignal.timeout(this.timeoutMs);
+                try {
+                    return await fetch(target, {
+                        ...rest,
+                        signal: signal
+                            ? AbortSignal.any([signal, timeout])
+                            : timeout
+                    });
+                } catch (err) {
+                    if (timeout.aborted)
+                        throw new Error(
+                            `timeout after ${this.timeoutMs / 1000}s`
+                        );
+                    throw err;
+                }
+            },
+            { statusOf: (res) => res.status, signal: signal ?? undefined }
+        );
     }
 
     async fetchHtml(url: string, init?: RequestInit): Promise<string> {
