@@ -1,6 +1,7 @@
 import { Crown, ExternalLink, Gavel, Package, SearchX } from 'lucide-react';
+import { clickReporters } from '@/lib/report-click';
 import { cn } from '@/lib/utils';
-import type { CardResult } from '@/search-result';
+import type { CardResult, OfferGroup } from '@/search-result';
 import type { ShopId } from '@/shops';
 import {
     AuctionMeta,
@@ -14,10 +15,14 @@ import { ShopBadge } from '@/components/shop-badge';
 
 export function ResultTile({
     link,
-    best
+    best,
+    card,
+    group
 }: {
     link: CardResult;
     best: boolean;
+    card: string; // the card searched, for the click report
+    group: OfferGroup;
 }) {
     const discount = discountOf(link);
     return (
@@ -25,6 +30,14 @@ export function ResultTile({
             href={link.url}
             target='_blank'
             rel='noopener noreferrer'
+            {...clickReporters({
+                shop: link.shop,
+                card,
+                group,
+                view: 'grid',
+                best,
+                price: link.price
+            })}
             className={cn(
                 'group relative flex flex-col overflow-hidden rounded-xl border bg-card/60 backdrop-blur-sm transition duration-300 ease-out',
                 'hover:-translate-y-1 hover:border-primary/40 hover:bg-card hover:shadow-[0_18px_40px_-16px] hover:shadow-primary/25',
@@ -125,6 +138,14 @@ export function ManualCheckTile({
             href={url}
             target='_blank'
             rel='noopener noreferrer'
+            {...clickReporters({
+                shop,
+                card,
+                group: 'manual',
+                view: 'grid',
+                best: false,
+                price: null
+            })}
             className={cn(
                 'group relative flex flex-col overflow-hidden rounded-xl border border-dashed bg-card/40 backdrop-blur-sm transition duration-300 ease-out',
                 'hover:-translate-y-1 hover:border-primary/40 hover:bg-card',

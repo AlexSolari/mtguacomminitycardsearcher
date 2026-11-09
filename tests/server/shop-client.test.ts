@@ -1,6 +1,8 @@
 // Against a local server, never the real shops.
 import { afterAll, beforeEach, describe, expect, test } from 'bun:test';
+import { SpanKind, SpanStatusCode } from '@opentelemetry/api';
 import { HttpError, ShopClient } from '@/server/shop-client';
+import { captureSpans } from './capture-spans';
 
 const hits: { path: string; at: number }[] = [];
 const server = Bun.serve({
@@ -22,6 +24,7 @@ beforeEach(() => {
 });
 
 const paths = () => hits.map((h) => h.path);
+const spans = captureSpans();
 
 describe('ShopClient', () => {
     test('url() resolves paths and encodes params', () => {
@@ -121,5 +124,72 @@ describe('ShopClient', () => {
         await expect(
             client.fetchHtml('/slow', { signal: controller.signal })
         ).rejects.toHaveProperty('name', 'AbortError');
+    });
+});
+
+describe('ShopClient spans', () => {
+    test('each request gets a client span that includes its wait for a slot', async () => {
+        const client = new ShopClient(base, { intervalMs: 100 });
+        await Promise.all([client.fetchHtml('/a'), client.fetchHtml('/b')]);
+        const [a, b] = spans();
+        const host = `localhost:${server.port}`;
+        expect(a).toMatchObject({
+            name: `GET ${host}`,
+            kind: SpanKind.CLIENT,
+            attributes: {
+                'http.request.method': 'GET',
+                'server.address': host,
+                'url.full': `${base}/a`,
+                'http.response.status_code': 200
+            },
+            status: { code: SpanStatusCode.UNSET }
+        });
+        expect(a!.attributes['shop.queue_wait_ms']).toBeLessThan(50);
+        // '/b' waited an interval for its slot, inside its span
+        expect(b!.attributes['shop.queue_wait_ms']).toBeGreaterThanOrEqual(90);
+    });
+
+    test('"server busy" is an error span', async () => {
+        // the third would wait two intervals, past maxWaitMs
+        const client = new ShopClient(base, {
+            intervalMs: 100,
+            maxWaitMs: 150
+        });
+        await Promise.allSettled(
+            ['/1', '/2', '/3'].map((p) => client.fetchHtml(p))
+        );
+        const errors = spans().filter(
+            (s) => s.status.code === SpanStatusCode.ERROR
+        );
+        expect(errors).toHaveLength(1);
+        expect(errors[0]!.events).toMatchObject([
+            {
+                name: 'exception',
+                attributes: { 'exception.message': 'server busy' }
+            }
+        ]);
+    });
+
+    test('a timeout is an error span', async () => {
+        const client = new ShopClient(base, { timeoutMs: 100 });
+        await client.fetchHtml('/slow').catch(() => {});
+        expect(spans()[0]!.status.code).toBe(SpanStatusCode.ERROR);
+    });
+
+    test('a caller giving up is an `aborted` event, not an error, in the queue or mid-request', async () => {
+        const client = new ShopClient(base, { timeoutMs: 5000 });
+        await client
+            .fetchHtml('/a', { signal: AbortSignal.abort() })
+            .catch(() => {});
+        const controller = new AbortController();
+        setTimeout(() => controller.abort(), 50);
+        await client
+            .fetchHtml('/slow', { signal: controller.signal })
+            .catch(() => {});
+        expect(spans()).toHaveLength(2);
+        for (const span of spans()) {
+            expect(span.status.code).toBe(SpanStatusCode.UNSET);
+            expect(span.events.map((e) => e.name)).toEqual(['aborted']);
+        }
     });
 });

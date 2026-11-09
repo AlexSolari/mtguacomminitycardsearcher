@@ -146,15 +146,15 @@ export const CardSection = memo(function CardSection({
         return url && err.shop ? [{ shop: err.shop, url }] : [];
     });
     const groups = [
-        { key: 'exact', label: null, links: exact, secondary: false },
+        { key: 'exact' as const, label: null, links: exact, secondary: false },
         {
-            key: 'auctions',
+            key: 'auctions' as const,
             label: 'Аукціони',
             links: auctions,
             secondary: false
         },
         {
-            key: 'other',
+            key: 'other' as const,
             label: hasExact
                 ? 'Інші збіги'
                 : 'Точних збігів немає · схожі назви',
@@ -162,7 +162,7 @@ export const CardSection = memo(function CardSection({
             secondary: hasExact
         },
         {
-            key: 'art',
+            key: 'art' as const,
             label: 'Art Series',
             links: art,
             secondary: hasExact || other.length > 0
@@ -255,6 +255,8 @@ export const CardSection = memo(function CardSection({
                                           <ResultTable
                                               links={group.links}
                                               isBest={isBest}
+                                              card={result.card}
+                                              group={group.key}
                                           />
                                       </div>
                                   ) : (
@@ -271,6 +273,8 @@ export const CardSection = memo(function CardSection({
                                                   key={offerKey(link)}
                                                   link={link}
                                                   best={isBest(link)}
+                                                  card={result.card}
+                                                  group={group.key}
                                               />
                                           ))}
                                       </div>

@@ -5,13 +5,16 @@
     "type": "module",
     "scripts": {
         "dev": "bun check && bun --hot src/index.ts",
-        "start": "NODE_ENV=production bun src/index.ts",
+        "start": "NODE_ENV=production bun --preload ./src/instrumentation.ts src/index.ts",
         "build": "bun check && bun run build.ts",
         "test": "bun check && bun test",
         "test:coverage": "bun check && bun test --coverage",
         "format": "prettier --write ."
     },
     "dependencies": {
+        "@opentelemetry/api": "^1.10.0",
+        "@opentelemetry/exporter-trace-otlp-http": "^0.301.1",
+        "@opentelemetry/sdk-node": "^0.301.1",
         "@radix-ui/react-label": "^2.1.7",
         "@radix-ui/react-select": "^2.2.6",
         "@radix-ui/react-slot": "^1.2.3",
@@ -25,6 +28,8 @@
         "tailwind-merge": "^3.3.1"
     },
     "devDependencies": {
+        "@opentelemetry/context-async-hooks": "^3.1.1",
+        "@opentelemetry/sdk-trace": "^3.1.1",
         "@types/bun": "^1.4.4",
         "@types/react": "^19",
         "@types/react-dom": "^19",

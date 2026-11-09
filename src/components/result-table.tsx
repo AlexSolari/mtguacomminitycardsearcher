@@ -1,7 +1,8 @@
 import { Crown, Gavel } from 'lucide-react';
+import { clickReporters } from '@/lib/report-click';
 import { cn } from '@/lib/utils';
 import { offerKey } from '@/results';
-import type { CardResult } from '@/search-result';
+import type { CardResult, OfferGroup } from '@/search-result';
 import {
     AuctionMeta,
     Badge,
@@ -14,10 +15,14 @@ import { ShopBadge } from '@/components/shop-badge';
 // Table view: one compact row per offer; the whole row is a link.
 export function ResultTable({
     links,
-    isBest
+    isBest,
+    card,
+    group
 }: {
     links: CardResult[];
     isBest: (l: CardResult) => boolean;
+    card: string; // the card searched, for the click report
+    group: OfferGroup;
 }) {
     return (
         <div className='overflow-x-auto rounded-xl border bg-card/60 backdrop-blur-sm'>
@@ -40,12 +45,22 @@ export function ResultTable({
                     {links.map((link) => {
                         const best = isBest(link);
                         const discount = discountOf(link);
-                        const open = () =>
+                        const report = clickReporters({
+                            shop: link.shop,
+                            card,
+                            group,
+                            view: 'table',
+                            best,
+                            price: link.price
+                        });
+                        const open = () => {
+                            report.onClick();
                             window.open(
                                 link.url,
                                 '_blank',
                                 'noopener,noreferrer'
                             );
+                        };
                         return (
                             <tr
                                 key={offerKey(link)}
@@ -73,7 +88,11 @@ export function ResultTable({
                                         href={link.url}
                                         target='_blank'
                                         rel='noopener noreferrer'
-                                        onClick={(e) => e.stopPropagation()}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            report.onClick();
+                                        }}
+                                        onAuxClick={report.onAuxClick}
                                         className='font-medium leading-snug group-hover:text-primary group-hover:underline'
                                     >
                                         {link.name}
