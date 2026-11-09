@@ -4,6 +4,7 @@ import { CachedCardSearcher } from './server/cached-card-searcher';
 import { CardSearchService } from './server/card-search-service';
 import { InFlightLimiter } from './server/in-flight-limiter';
 import { logger } from './server/logger';
+import { ScryfallNameResolver } from './server/name-resolver';
 import { CartonCardSearcher } from './server/searchers/carton-card-searcher';
 import { CitadelCardSearcher } from './server/searchers/citadel-card-searcher';
 import { GinCardSearcher } from './server/searchers/gin-card-searcher';
@@ -33,7 +34,8 @@ const cardSearch = new CardSearchService(
 );
 const search = searchHandler(
     cardSearch,
-    new InFlightLimiter(MAX_CARDS_IN_FLIGHT)
+    new InFlightLimiter(MAX_CARDS_IN_FLIGHT),
+    new ScryfallNameResolver()
 );
 
 const server = serve({

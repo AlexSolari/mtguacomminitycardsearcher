@@ -139,6 +139,38 @@ describe('searchHandler', () => {
         expect(seen?.aborted).toBe(true);
     });
 
+    test('searches under the corrected name and keeps the typed one', async () => {
+        const cardSearch = fakeSearch();
+        const handle = searchHandler(cardSearch, new InFlightLimiter(12), {
+            resolve: async (card) =>
+                card === 'overlord balemurk' ? 'Overlord of the Balemurk' : card
+        });
+        const res = await handle(
+            post({ cards: ['overlord balemurk', 'Daze'] }),
+            'a'
+        );
+        expect(await res.json()).toEqual({
+            results: [
+                {
+                    ...result('Overlord of the Balemurk'),
+                    typed: 'overlord balemurk'
+                },
+                result('Daze')
+            ]
+        });
+        expect(cardSearch.searched).toEqual([
+            'Overlord of the Balemurk',
+            'Daze'
+        ]);
+        expect(logs).toContainEqual(
+            expect.objectContaining({
+                message: 'name corrected',
+                typed: 'overlord balemurk',
+                card: 'Overlord of the Balemurk'
+            })
+        );
+    });
+
     test('any other failure is rethrown', async () => {
         const handle = searchHandler(
             {

@@ -2,6 +2,7 @@ import { normalize } from '../matching';
 import type { SearchResult } from '../search-result';
 import type { InFlightLimiter } from './in-flight-limiter';
 import { logger } from './logger';
+import type { NameResolver } from './name-resolver';
 
 // The frontend sends one card per request; this only bounds what a hand-made request can queue up.
 export const MAX_CARDS_PER_REQUEST = 100;
@@ -26,11 +27,21 @@ export function clientId(req: Request, peer: string | undefined) {
 // Each card fans out to every shop, so one client's cards go through `limiter` and take turns instead of
 // flooding the shop queues. `req.signal` aborts when the client disconnects (closed tab, a new search), which
 // cancels the searches; the response is then a 499 nobody reads.
+// Each name goes through `names` first, so a misspelled or shortened name ("overlord balemurk") is searched under
+// the card's real name; the result's `card` is then that name, and `typed` keeps what was sent.
 export function searchHandler(
     cardSearch: CardSearch,
-    limiter: InFlightLimiter
+    limiter: InFlightLimiter,
+    names: NameResolver = { resolve: async (card) => card }
 ) {
     return async (req: Request, client: string): Promise<Response> => {
+        const searchCard = async (card: string): Promise<SearchResult> => {
+            const name = await names.resolve(card, req.signal);
+            const result = await cardSearch.search(name, req.signal);
+            if (name === card) return result;
+            logger.info('name corrected', { typed: card, card: name });
+            return { ...result, typed: card };
+        };
         const body = (await req.json().catch(() => null)) as {
             cards?: unknown[];
         } | null;
@@ -51,11 +62,7 @@ export function searchHandler(
         try {
             const results = await Promise.all(
                 cards.map((card) =>
-                    limiter.run(
-                        client,
-                        () => cardSearch.search(card, req.signal),
-                        req.signal
-                    )
+                    limiter.run(client, () => searchCard(card), req.signal)
                 )
             );
             return Response.json({ results });

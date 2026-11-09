@@ -15,25 +15,35 @@ const describeError = (e: SearchError) =>
         ? `Пошук у ${SHOP_INFO[e.shop].label} не вдався (${e.message})`
         : `Не вдалося виконати пошук: ${e.message}`;
 
+// `typed`: the name as entered, when the server corrected it to `title`
 function SectionHeader({
     title,
+    typed,
     count,
     children
 }: {
     title: string;
+    typed?: string;
     count: number;
     children?: React.ReactNode;
 }) {
     return (
         <div className='flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b pb-3'>
-            <h2 className='font-display text-xl font-semibold tracking-wide'>
-                {title}
-                {count > 1 && (
-                    <span className='ml-2 text-base text-muted-foreground tabular-nums'>
-                        ×{count}
+            <div className='flex flex-col'>
+                <h2 className='font-display text-xl font-semibold tracking-wide'>
+                    {title}
+                    {count > 1 && (
+                        <span className='ml-2 text-base text-muted-foreground tabular-nums'>
+                            ×{count}
+                        </span>
+                    )}
+                </h2>
+                {typed && (
+                    <span className='text-xs text-muted-foreground'>
+                        Виправлено з «{typed}»
                     </span>
                 )}
-            </h2>
+            </div>
             <div className='flex items-center gap-3 text-sm text-muted-foreground'>
                 {children}
             </div>
@@ -164,7 +174,11 @@ export const CardSection = memo(function CardSection({
 
     return (
         <section className='flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-2 duration-500'>
-            <SectionHeader title={result.card} count={count}>
+            <SectionHeader
+                title={result.card}
+                typed={result.typed}
+                count={count}
+            >
                 {min !== null && (
                     <span>
                         від{' '}

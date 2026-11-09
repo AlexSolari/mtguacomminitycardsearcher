@@ -35,7 +35,8 @@ export type SearchError = {
 };
 
 export type SearchResult = {
-    card: string;
+    card: string; // the name searched, corrected by Scryfall when the typed one wasn't a card's name
+    typed?: string; // the name as typed, set only when it was corrected
     links: CardResult[];
     errors: SearchError[];
 };
