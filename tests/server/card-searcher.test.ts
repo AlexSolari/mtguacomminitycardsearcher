@@ -41,18 +41,6 @@ describe('warnFallback', () => {
         ]);
     });
 
-    test('an expected 404 is quiet', () => {
-        warnFallback('manavault', 'u', new HttpError(404), undefined, {
-            expect404: true
-        });
-        expect(logs).toEqual([]);
-    });
-
-    test('a 404 is logged when not expected', () => {
-        warnFallback('manavault', 'u', new HttpError(404));
-        expect(logs).toHaveLength(1);
-    });
-
     test('rethrows when the search was aborted, so it is not a fallback', () => {
         const err = new DOMException('aborted', 'AbortError');
         expect(() =>

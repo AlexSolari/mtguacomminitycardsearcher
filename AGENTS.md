@@ -65,11 +65,11 @@ See [README.md](README.md) for what the app does and the request flow.
   API searchers don't: an empty API response just means nothing is in stock.
   Pass `search()`'s `signal` to every client call (`{ signal }`), so abandoned searches leave the shop's queue.
   An optional follow-up request that falls back on failure goes through `warnFallback` in its `catch`, never a silent catch.
-  Prefer a page that lists every offer at once (Mana Vault's `/cards/versions?…&view=offers`). Where a shop has none and its search shows only a printing's cheapest price (CartOn), fetch each printing's page through `expandCheapest`, which caps them at `MAX_PRODUCT_PAGES` per search; don't fetch product pages around it.
+  Prefer a page or API that lists every offer at once (Mana Vault's `/api/v1/prices`). Where a shop has none and its search shows only a printing's cheapest price (CartOn), fetch each printing's page through `expandCheapest`, which caps them at `MAX_PRODUCT_PAGES` per search; don't fetch product pages around it.
 - **Wiring:** searchers are registered in `src/index.ts`, each wrapped in `CachedCardSearcher`.
   The `/api/search` handler lives in `src/server/search-route.ts` (input checks, `InFlightLimiter`, 499 on disconnect), so it's tested without starting a server.
 - **One instance only:** the shop rate limits, the result cache, the per-client limiter and MTGin's batching all live in process memory.
-  A second replica would double the request rate to every shop and split MTGin's 60-a-minute key budget. Don't scale horizontally without moving those to shared state first.
+  A second replica would double the request rate to every shop and split MTGin's and Mana Vault's 60-a-minute budgets. Don't scale horizontally without moving those to shared state first.
 - **Logging:** server code logs through `logger` in `src/server/logger.ts`, never `console.*`.
     - the message is a fixed string, and everything that varies goes in fields: `logger.warn('parser found nothing', { shop, url })`
     - pass errors as a field (`error: err`); the logger serializes them
@@ -99,7 +99,7 @@ See [README.md](README.md) for what the app does and the request flow.
   "Æther Vial" vs "Aether Vial" and "Lim-Dûl" vs "Lim-Dul" both depend on it.
 - **`parsePrice` returns `null` when there are no digits.** Don't "simplify" it back to `Number(...)`: that turns "—" into 0 ₴, which then wins best price.
 - **Decimal prices:** `"1 234,50"` parses as 123450. No shop shows kopecks today. Handle it per shop if one starts.
-- **Mana Vault's versions page needs the exact, case-sensitive card name.** The typed query is only used when the search found no exact tile.
+- **Mana Vault's price API allows 60 requests a minute, with no key**, shared by every user. Its client spaces requests a second apart (`intervalMs: 1000`); don't lower it. There's no batch endpoint, so a long list fills Mana Vault's results more slowly than the other shops'.
 - **MTGin batches its searches:** the API key allows 60 requests a minute, shared by every user. `GinCardSearcher` sends concurrent searches as one request (up to 100 cards), one request at a time, at most one a second. Don't turn it back into a request per card.
 - **Two Bun versions:** `bun-plugin-tailwind` pulls a project-local Bun into `node_modules` (1.4.4 today), and `bun run <script>` (`bun dev`, `bun start`, `bun run test:coverage`) uses it.
   A bare `bun …` uses the global install, which may be older. Behaviour and coverage numbers can differ between them; when in doubt, go through a script.

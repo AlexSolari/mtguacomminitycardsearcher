@@ -1,11 +1,12 @@
 // Re-downloads the shop pages the parser tests run against (tests/fixtures/).
 // Run it when a shop changes its markup: `bun scripts/update-fixtures.ts`, then `bun test` shows what broke,
 // and `bun test --update-snapshots` accepts the new output once the parsers are fixed.
-// About 9 requests, through ShopClient so they're spaced like the app's. Nerdik and MTGin need their API keys
+// About 8 requests, through ShopClient so they're spaced like the app's. Nerdik and MTGin need their API keys
 // (NERDIK_API_KEY, MTGIN_API_KEY in .env); without one, that shop's fixture is left as it is.
 import { mkdir } from 'node:fs/promises';
 import { decodeEntities } from '../src/server/parsers/helpers';
 import { jsonEnd } from '../src/server/parsers/scrapers/citadel';
+import { manavaultSource } from '../src/server/searchers/manavault-card-searcher';
 import { ShopClient } from '../src/server/shop-client';
 
 const dir = new URL('../tests/fixtures/', import.meta.url);
@@ -95,36 +96,35 @@ if (ginKey) {
     );
 } else console.warn('MTGIN_API_KEY is not set, gin-search.json not updated');
 
+// Mana Vault's price API. Its rows hold no seller data, but keep only what parseManavault reads anyway.
+const MV_FIELDS = [
+    'name',
+    'setName',
+    'number',
+    'url',
+    'image',
+    'price',
+    'fromPrice',
+    'stock',
+    'foil',
+    'language',
+    'condition',
+    'artSeries',
+    'etched',
+    'altered',
+    'signed'
+];
 const manavault = new ShopClient('https://manavaultstore.com');
+const mv = await manavault.fetchJson<any>(
+    manavault.url('/api/v1/prices', { q: CARD, source: manavaultSource() })
+);
 await save(
-    'manavault-search.html',
-    await manavault.fetchHtml(manavault.url('/cards', { q: CARD }))
+    'manavault-search.json',
+    json({
+        match: mv.match,
+        results: mv.results.map((r: any) => pick(r, MV_FIELDS))
+    })
 );
-// The offers view of the card's versions page. Its rows name the seller, their city and rating, so the fixture
-// keeps the page's heading (the card name) and, of each row, the printing's link and the part from the badges
-// (condition, language, finish) to the price: what parseManavaultOffers reads.
-const MV_ROW =
-    '<div class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5 text-sm';
-const mvPage = await manavault.fetchHtml(
-    manavault.url('/cards/versions', { name: CARD, view: 'offers' })
-);
-const mvRows = mvPage
-    .split(MV_ROW)
-    .slice(1)
-    .flatMap((row) => {
-        const link = row.indexOf('</a>') + '</a>'.length;
-        const start = row.indexOf(
-            '<span class="inline-flex flex-wrap items-center gap-1.5">'
-        );
-        const end = row.indexOf('<form');
-        return start < link || end < start
-            ? []
-            : [`${MV_ROW}${row.slice(0, link)}${row.slice(start, end)}</div>`];
-    });
-const mvHeading = mvPage.match(/<h1[^>]*>[\s\S]*?<\/h1>/)?.[0];
-if (!mvHeading || !mvRows.length)
-    throw new Error('Mana Vault: no offers in the versions page');
-await save('manavault-offers.html', [mvHeading, ...mvRows].join('\n') + '\n');
 
 const apiKey = process.env.NERDIK_API_KEY;
 if (apiKey) {

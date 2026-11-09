@@ -100,8 +100,8 @@ src/
     cached-card-searcher.ts result cache
     searchers/              one per shop: which URLs to fetch
     parsers/                one per shop: turns a response into CardResult[]
-      api/                  JSON APIs (MTGin, Nerdik, PayToWin, Magic Swamp)
-      scrapers/             HTML search pages (Carton, Citadel, Kartoteka, Mana Vault)
+      api/                  JSON APIs (MTGin, Nerdik, PayToWin, Magic Swamp, Mana Vault)
+      scrapers/             HTML search pages (Carton, Citadel, Kartoteka)
   App.tsx                   page layout and state
   components/               UI (card-section.tsx renders a card's results, search-summary.tsx the totals)
   hooks/                    search, deck import, drag-and-drop

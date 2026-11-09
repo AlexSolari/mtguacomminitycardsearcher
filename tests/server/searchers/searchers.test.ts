@@ -1,15 +1,18 @@
 // Every searcher, on saved pages served by a fake client: which URLs it asks for, and what it does with the
-// answers (MTGin's batching, Mana Vault's and CartOn's follow-up pages, fallbacks when they fail).
+// answers (MTGin's batching, CartOn's follow-up pages, fallbacks when they fail).
 import { describe, expect, test } from 'bun:test';
 import { HttpError, ShopClient } from '@/server/shop-client';
 import { parseCarton } from '@/server/parsers/scrapers/carton';
-import { parseManavaultOffers } from '@/server/parsers/scrapers/manavault';
+import { parseManavault } from '@/server/parsers/api/manavault';
 import { CartonCardSearcher } from '@/server/searchers/carton-card-searcher';
 import { CitadelCardSearcher } from '@/server/searchers/citadel-card-searcher';
 import { GinCardSearcher } from '@/server/searchers/gin-card-searcher';
 import { KartotekaCardSearcher } from '@/server/searchers/kartoteka-card-searcher';
 import { MagicswampCardSearcher } from '@/server/searchers/magicswamp-card-searcher';
-import { ManavaultCardSearcher } from '@/server/searchers/manavault-card-searcher';
+import {
+    ManavaultCardSearcher,
+    manavaultSource
+} from '@/server/searchers/manavault-card-searcher';
 import { NerdikCardSearcher } from '@/server/searchers/nerdik-card-searcher';
 import { PaytowinCardSearcher } from '@/server/searchers/paytowin-card-searcher';
 import { captureLogs } from '../capture-logs';
@@ -252,94 +255,6 @@ describe('GinCardSearcher', () => {
     });
 });
 
-describe('ManavaultCardSearcher', () => {
-    const base = 'https://manavaultstore.com';
-    const searchUrl = `${base}/cards?q=Counterspell`;
-    const versionsUrl = `${base}/cards/versions?name=Counterspell&view=offers`;
-
-    test('swaps the exact tile for its offers view, one request for all printings', async () => {
-        const offersHtml = await fixture('manavault-offers.html');
-        const { client, requests } = fakeClient(base, {
-            [searchUrl]: await fixture('manavault-search.html'),
-            [versionsUrl]: offersHtml
-        });
-        const signal = new AbortController().signal;
-        const results = await new ManavaultCardSearcher(client).search(
-            'Counterspell',
-            signal
-        );
-        expect(requests).toEqual([
-            { url: searchUrl, init: { signal } },
-            { url: versionsUrl, init: { signal } }
-        ]);
-        expect(results).toEqual(parseManavaultOffers(offersHtml, base));
-        expect(logs).toEqual([]);
-    });
-
-    test('keeps fuzzy "other matches" next to the offers', async () => {
-        // a search page with the exact tile and a fuzzy one
-        const tile = (id: string, name: string) =>
-            `<a class="group flex flex-col" href="/cards/${id}"><img src="/img/${id}.webp"><h3>${name}</h3><span>від 100 ₴</span></a>`;
-        const offersHtml = await fixture('manavault-offers.html');
-        const { client } = fakeClient(base, {
-            [searchUrl]:
-                tile('exact', 'Counterspell') +
-                tile('fuzzy', 'Counterspell Squad'),
-            [versionsUrl]: offersHtml
-        });
-        const results = await new ManavaultCardSearcher(client).search(
-            'Counterspell'
-        );
-        expect(results).toEqual([
-            ...parseManavaultOffers(offersHtml, base),
-            expect.objectContaining({ url: `${base}/cards/fuzzy` })
-        ]); // the exact tile is replaced by the offers
-    });
-
-    test('a 404 on the versions page keeps the search tile, quietly', async () => {
-        const { client } = fakeClient(base, {
-            [searchUrl]: await fixture('manavault-search.html'),
-            [versionsUrl]: new HttpError(404)
-        });
-        const results = await new ManavaultCardSearcher(client).search(
-            'Counterspell'
-        );
-        // the tile links to the versions page, in its default view
-        expect(results.map((r) => r.url)).toEqual([
-            `${base}/cards/versions?name=Counterspell`
-        ]);
-        expect(logs).toEqual([]);
-    });
-
-    test('other failures keep the search tile and are logged', async () => {
-        const { client } = fakeClient(base, {
-            [searchUrl]: await fixture('manavault-search.html'),
-            [versionsUrl]: new Error('timeout after 15s')
-        });
-        const results = await new ManavaultCardSearcher(client).search(
-            'Counterspell'
-        );
-        expect(results).toHaveLength(1);
-        expect(logs).not.toEqual([]);
-    });
-
-    test('an aborted search rejects instead of falling back', async () => {
-        const controller = new AbortController();
-        const abortError = new DOMException('aborted', 'AbortError');
-        const { client } = fakeClient(base, {
-            [searchUrl]: await fixture('manavault-search.html'),
-            [versionsUrl]: abortError
-        });
-        controller.abort(abortError);
-        await expect(
-            new ManavaultCardSearcher(client).search(
-                'Counterspell',
-                controller.signal
-            )
-        ).rejects.toBe(abortError);
-    });
-});
-
 // The cap and the fallbacks for failed product pages are expandCheapest's, tested in card-searcher.test.ts.
 describe('CartonCardSearcher', () => {
     const base = 'https://carton.cards';
@@ -459,6 +374,45 @@ describe('single-request searchers', () => {
         );
         expect(results.length).toBeGreaterThan(0);
         expect(requests).toEqual([{ url, init: { signal } }]);
+    });
+
+    test('ManavaultCardSearcher names its source', async () => {
+        const url =
+            'https://manavaultstore.com/api/v1/prices?q=Counterspell&source=example.up.railway.app';
+        const body = await fixture('manavault-search.json');
+        const { client, requests } = fakeClient('https://manavaultstore.com', {
+            [url]: body
+        });
+        const signal = new AbortController().signal;
+        const results = await new ManavaultCardSearcher(
+            client,
+            'example.up.railway.app'
+        ).search('Counterspell', signal);
+        expect(results).toEqual(parseManavault(JSON.parse(body)));
+        expect(results.length).toBeGreaterThan(0);
+        expect(requests).toEqual([{ url, init: { signal } }]);
+    });
+
+    test("Mana Vault's source is Railway's public domain, else a fixed name", () => {
+        const saved = process.env.RAILWAY_PUBLIC_DOMAIN;
+        try {
+            process.env.RAILWAY_PUBLIC_DOMAIN = 'example.up.railway.app';
+            expect(manavaultSource()).toBe('example.up.railway.app');
+            delete process.env.RAILWAY_PUBLIC_DOMAIN;
+            expect(manavaultSource()).toBe('mtg-ua-card-searcher');
+        } finally {
+            if (saved === undefined) delete process.env.RAILWAY_PUBLIC_DOMAIN;
+            else process.env.RAILWAY_PUBLIC_DOMAIN = saved;
+        }
+    });
+
+    // the API allows 60 requests a minute for all our users together
+    test('ManavaultCardSearcher sends at most one request a second', () => {
+        const { client } = new ManavaultCardSearcher() as unknown as {
+            client: { baseUrl: string; intervalMs: number };
+        };
+        expect(client.baseUrl).toBe('https://manavaultstore.com');
+        expect(client.intervalMs).toBe(1000);
     });
 
     test('NerdikCardSearcher sends its API key', async () => {
