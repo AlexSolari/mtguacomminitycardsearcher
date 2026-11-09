@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { CardListForm } from '@/components/card-list-form';
 import { CollapsedCardList } from '@/components/collapsed-card-list';
@@ -26,6 +26,9 @@ export function App() {
         setListCollapsed(false);
         requestAnimationFrame(() => textareaRef.current?.focus());
     };
+
+    // The landing page is just the card list, so it's ready for typing or pasting straight away.
+    useEffect(() => textareaRef.current?.focus(), []);
 
     // Starting a search scrolls the header out of view, so the results start at the top of the screen.
     const mainRef = useRef<HTMLElement>(null);
