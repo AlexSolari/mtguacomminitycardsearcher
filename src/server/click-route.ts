@@ -1,7 +1,7 @@
 import { SpanKind, type Attributes } from '@opentelemetry/api';
 import type { OfferClick, OfferGroup } from '../search-result';
 import { SHOP_INFO, type ShopId } from '../shops';
-import { tracer } from './tracing';
+import { requestContext, tracer } from './tracing';
 import type { VisitorIds } from './visitor-id';
 
 // A click is a few short fields; anything bigger isn't from our frontend.
@@ -72,7 +72,11 @@ export function clickHandler(visitors: VisitorIds) {
         };
         if (click.price !== null) attributes['click.price'] = click.price;
         tracer
-            .startSpan('offer click', { kind: SpanKind.SERVER, attributes })
+            .startSpan(
+                'offer click',
+                { kind: SpanKind.SERVER, attributes },
+                requestContext(req)
+            )
             .end();
         return new Response(null, { status: 204 });
     };
