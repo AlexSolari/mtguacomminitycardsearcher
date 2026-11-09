@@ -64,9 +64,8 @@ export class ShopClient {
         if (target.host !== this.host)
             throw new Error(`${target.host} is not ${this.host}`);
         const { signal, ...rest } = init;
-        await this.waitForSlot(signal ?? undefined);
-        const timeout = AbortSignal.timeout(this.timeoutMs);
-        // Bun's fetch isn't auto-instrumented, so each shop request gets its own client span by hand
+        // Bun's fetch isn't auto-instrumented, so each shop request gets its own client span by hand. It starts
+        // before the wait for a slot: the queue is often most of a request's time, and "server busy" happens there.
         return withSpan(
             `${rest.method ?? 'GET'} ${this.host}`,
             SpanKind.CLIENT,
@@ -75,7 +74,14 @@ export class ShopClient {
                 'server.address': this.host,
                 'url.full': target.href
             },
-            async () => {
+            async (span) => {
+                const queued = performance.now();
+                await this.waitForSlot(signal ?? undefined);
+                span.setAttribute(
+                    'shop.queue_wait_ms',
+                    Math.round(performance.now() - queued)
+                );
+                const timeout = AbortSignal.timeout(this.timeoutMs);
                 try {
                     return await fetch(target, {
                         ...rest,
@@ -91,7 +97,7 @@ export class ShopClient {
                     throw err;
                 }
             },
-            (res) => res.status
+            { statusOf: (res) => res.status, signal: signal ?? undefined }
         );
     }
 

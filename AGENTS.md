@@ -68,6 +68,7 @@ See [README.md](README.md) for what the app does and the request flow.
   Prefer a page or API that lists every offer at once (Mana Vault's `/api/v1/prices`). Where a shop has none and its search shows only a printing's cheapest price (CartOn), fetch each printing's page through `expandCheapest`, which caps them at `MAX_PRODUCT_PAGES` per search; don't fetch product pages around it.
 - **Wiring:** searchers are registered in `src/index.ts`, each wrapped in `CachedCardSearcher`.
   The `/api/search` handler lives in `src/server/search-route.ts` (input checks, `InFlightLimiter`, NDJSON streaming: a `SearchUpdate` line per card each time a shop finishes), so it's tested without starting a server.
+  `/api/click` (`src/server/click-route.ts`) records which offer a user opened (the frontend sends it with `reportClick` in `src/lib/report-click.ts`) as an `offer click` span.
 - **One instance only:** the shop rate limits, the result cache, the per-client limiter and MTGin's batching all live in process memory.
   A second replica would double the request rate to every shop and split MTGin's and Mana Vault's 60-a-minute budgets. Don't scale horizontally without moving those to shared state first.
 - **Logging:** server code logs through `logger` in `src/server/logger.ts`, never `console.*`.
@@ -75,7 +76,7 @@ See [README.md](README.md) for what the app does and the request flow.
     - pass errors as a field (`error: err`); the logger serializes them
     - production writes JSON lines to stdout in Railway's structured format (`message`, `level`, every other key a filterable attribute); elsewhere it writes one readable line. `LOG_LEVEL` and `LOG_FORMAT` override this
     - tests call `captureLogs()` from `tests/server/capture-logs.ts` and assert on the records, not on `console`
-    - never log client IPs
+    - never log client IPs. To count unique visitors, use `VisitorIds` (`src/server/visitor-id.ts`): a daily-salted hash that's never stored. Don't add a cookie or a localStorage id; that would need a consent banner
 - **Prices:**
     - `price` is in UAH, or `null` when unknown; never `0` for "unknown"
     - set `fromPrice` when the price is the cheapest of several offers

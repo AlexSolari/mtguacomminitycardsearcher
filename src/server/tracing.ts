@@ -2,35 +2,61 @@ import {
     SpanKind,
     SpanStatusCode,
     trace,
-    type Attributes
+    type Attributes,
+    type Span
 } from '@opentelemetry/api';
 
-const tracer = trace.getTracer('searcher');
+// A no-op until instrumentation.ts registers an SDK (production with OTEL_EXPORTER_OTLP_ENDPOINT set).
+export const tracer = trace.getTracer('searcher');
 
-// Runs `fn` inside a span that ends when it settles; a throw marks the span as an error and is rethrown.
-export async function withSpan<T>(
+export type SpanOutcome = {
+    status?: number; // the HTTP status, recorded; 5xx marks the span as an error
+    error?: unknown; // marks the span as an error, unless `signal` has aborted
+    signal?: AbortSignal; // the caller's: once it aborts, a failure is the caller giving up, not ours
+};
+
+// Records how the span's work ended, then ends it. A caller giving up (closed tab, a new search) is routine, so
+// it's an `aborted` event rather than an error; otherwise every abandoned search would count towards the error rate.
+export function endSpan(
+    span: Span,
+    { status, error, signal }: SpanOutcome = {}
+): void {
+    if (status !== undefined) {
+        span.setAttribute('http.response.status_code', status);
+        if (status >= 500) span.setStatus({ code: SpanStatusCode.ERROR });
+    }
+    if (signal?.aborted) span.addEvent('aborted');
+    else if (error !== undefined) {
+        span.recordException(
+            error instanceof Error ? error : new Error(String(error))
+        );
+        span.setStatus({ code: SpanStatusCode.ERROR });
+    }
+    span.end();
+}
+
+// Runs `fn` inside a span that ends when it settles; a throw is recorded (see endSpan) and rethrown.
+export function withSpan<T>(
     name: string,
     kind: SpanKind,
     attributes: Attributes,
-    fn: () => Promise<T>,
-    statusOf?: (result: T) => number | undefined
+    fn: (span: Span) => Promise<T>,
+    {
+        statusOf,
+        signal
+    }: {
+        statusOf?: (result: T) => number | undefined;
+        signal?: AbortSignal;
+    } = {}
 ): Promise<T> {
     return tracer.startActiveSpan(name, { kind, attributes }, async (span) => {
         try {
-            const result = await fn();
-            const status = statusOf?.(result);
-            if (status !== undefined) {
-                span.setAttribute('http.response.status_code', status);
-                if (status >= 500)
-                    span.setStatus({ code: SpanStatusCode.ERROR });
-            }
+            const result = await fn(span);
+            endSpan(span, { status: statusOf?.(result) });
             return result;
-        } catch (err) {
-            span.recordException(err as Error);
-            span.setStatus({ code: SpanStatusCode.ERROR });
-            throw err;
-        } finally {
-            span.end();
+        } catch (error) {
+            endSpan(span, { error, signal });
+            throw error;
         }
     });
 }

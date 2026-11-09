@@ -1,4 +1,3 @@
-import { SpanKind } from '@opentelemetry/api';
 import { serve } from 'bun';
 import index from './index.html';
 import { CachedCardSearcher } from './server/cached-card-searcher';
@@ -14,8 +13,9 @@ import { MagicswampCardSearcher } from './server/searchers/magicswamp-card-searc
 import { ManavaultCardSearcher } from './server/searchers/manavault-card-searcher';
 import { NerdikCardSearcher } from './server/searchers/nerdik-card-searcher';
 import { PaytowinCardSearcher } from './server/searchers/paytowin-card-searcher';
+import { clickHandler } from './server/click-route';
 import { clientId, searchHandler } from './server/search-route';
-import { withSpan } from './server/tracing';
+import { VisitorIds } from './server/visitor-id';
 
 // Cards one client may have searching at once, across all its requests; the rest wait for a slot. The frontend
 // keeps 6 in flight per tab, so one tab never waits, and a second tab (or a shared IP) only slows down.
@@ -34,11 +34,15 @@ const cardSearch = new CardSearchService(
         new CitadelCardSearcher()
     ].map((searcher) => new CachedCardSearcher(searcher))
 );
+// one salt for both routes, so a visitor's searches and clicks share an id
+const visitors = new VisitorIds();
 const search = searchHandler(
     cardSearch,
     new InFlightLimiter(MAX_CARDS_IN_FLIGHT),
-    new ScryfallNameResolver()
+    new ScryfallNameResolver(),
+    visitors
 );
+const click = clickHandler(visitors);
 
 const server = serve({
     // Bun drops a connection after 10 s without a byte (the default), and a search stays quiet while its slowest
@@ -55,20 +59,12 @@ const server = serve({
 
         '/api/search': {
             POST: (req, server) =>
-                withSpan(
-                    'POST /api/search',
-                    SpanKind.SERVER,
-                    {
-                        'http.request.method': 'POST',
-                        'url.path': '/api/search'
-                    },
-                    () =>
-                        search(
-                            req,
-                            clientId(req, server.requestIP(req)?.address)
-                        ),
-                    (res) => res.status
-                )
+                search(req, clientId(req, server.requestIP(req)?.address))
+        },
+
+        '/api/click': {
+            POST: (req, server) =>
+                click(req, clientId(req, server.requestIP(req)?.address))
         }
     },
 
