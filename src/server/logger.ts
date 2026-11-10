@@ -8,7 +8,11 @@
 //   12:00:00.000 WARN  parser found nothing shop=carton url=https://…
 // LOG_LEVEL (debug | info | warn | error, default info) and LOG_FORMAT (json | pretty) override the defaults.
 //
+// Error records also go to Sentry (see reportToSentry).
+//
 // Server-only: it writes to process.stdout / process.stderr.
+
+import { captureException, captureMessage } from '@sentry/node-core/light';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 export type LogFormat = 'json' | 'pretty';
@@ -146,6 +150,24 @@ function log(level: LogLevel, message: string, fields: LogFields = {}) {
         message,
         ...serialized
     });
+    if (level === 'error') reportToSentry(message, fields);
+}
+
+// The server catches its failures and logs them rather than letting them reach the runtime, so Sentry's global
+// handlers never see them; error records are reported from here instead. An Error field becomes the event, with
+// its stack; the message and the other fields go along as context. A no-op until instrumentation.ts initializes
+// Sentry (SENTRY_DSN set), so tests and dev send nothing.
+function reportToSentry(message: string, fields: LogFields) {
+    const error = Object.values(fields).find((value) => value instanceof Error);
+    const context = {
+        message,
+        ...Object.fromEntries(
+            Object.entries(fields).filter(([, value]) => value !== error)
+        )
+    };
+    if (error) captureException(error, { contexts: { log: context } });
+    else
+        captureMessage(message, { level: 'error', contexts: { log: context } });
 }
 
 // Keep `message` a fixed string ("shop search failed") and put what varies in `fields` ({ shop, card, error }),

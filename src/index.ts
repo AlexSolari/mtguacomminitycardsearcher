@@ -68,6 +68,12 @@ const server = serve({
         }
     },
 
+    // A throw that escapes a route handler; logging it as an error also reports it to Sentry
+    error(error) {
+        logger.error('request failed', { error });
+        return Response.json({ error: 'Internal error' }, { status: 500 });
+    },
+
     development: process.env.NODE_ENV !== 'production' && {
         // Enable browser hot reloading in development
         hmr: true,
