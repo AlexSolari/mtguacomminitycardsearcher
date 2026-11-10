@@ -1,15 +1,17 @@
 import type { CardResult } from '../../../search-result';
 import { languageCode } from '../helpers';
 
-// manavaultstore.com/api/v1/prices?q=…&source=… — JSON, one row per printing × finish × condition × language,
-// in stock only, already close to CardResult:
+// One answer of manavaultstore.com's POST /api/v1/prices (`{"answers":[…]}`, one per name, the same as what
+// GET /api/v1/prices?q=… returns) — JSON, one row per printing × finish × condition × language, in stock only,
+// already close to CardResult:
 //   {"query":"sol ring","match":"exact","updatedAt":"2026-11-09T10:44:27.090Z",
 //    "results":[{"shop":"manavault","name":"Sol Ring","set":"NCC","setName":"New Capenna Commander","number":"379",
 //      "url":"https://manavaultstore.com/cards/<scryfall id>?utm_source=price_api&utm_medium=price_api",
 //      "image":"https://cards.scryfall.io/normal/front/…jpg","price":76,"fromPrice":false,"stock":1,"foil":false,
 //      "language":"EN","condition":"NM","artSeries":false}, …]}
 // `match` is "exact" when a card has exactly the queried name (then only it comes back), else "partial": every
-// name containing the query's words. `etched`, `altered` and `signed` appear only when true.
+// name containing the query's words, "none" when nothing matches. A name the API rejects gets `error` instead.
+// `etched`, `altered` and `signed` appear only when true.
 // `fromPrice` marks a row that merges offers at different prices: `price` is the cheapest, `stock` their sum.
 type ManavaultRow = {
     name: string;
@@ -29,12 +31,13 @@ type ManavaultRow = {
     signed?: boolean;
 };
 
-export type ManavaultResponse = {
-    match?: 'exact' | 'partial';
+export type ManavaultAnswer = {
+    match?: 'exact' | 'partial' | 'none';
     results?: ManavaultRow[];
+    error?: string;
 };
 
-export function parseManavault(json: ManavaultResponse): CardResult[] {
+export function parseManavault(json: ManavaultAnswer): CardResult[] {
     return (json.results ?? []).flatMap((row) => {
         if (!row.name || !row.url || !(Number(row.stock) > 0)) return [];
         // "Sol Ring — New Capenna Commander #379, Etched": the edition goes after " — ", where isExactMatch cuts
