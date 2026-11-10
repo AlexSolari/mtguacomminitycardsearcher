@@ -6,12 +6,66 @@ import { withSpan } from './tracing';
 // (cards × shops) requests, and firing them all at once gets us rate-limited (HTTP 429). So requests to a shop
 // are spaced out: each one starts at least `intervalMs` after the previous one. Shops don't wait on each other.
 
-// Keeps the status so callers can tell a block (403) from other failures.
-export class HttpError extends Error {
-    constructor(readonly status: number) {
-        super(`HTTP ${status}`);
+export type RequestDetails = {
+    url?: string;
+    method?: string;
+    contentType?: string;
+    body?: string; // the start of the response body, see bodySnippet
+    cause?: unknown;
+};
+
+// A failed shop request, with what the logs need to tell why: the request, and the response's type and the start of
+// its body (an API's 400, or the HTML page a JSON API served instead, usually says what went wrong). The logger
+// keeps these fields (serializeError). The message stays short, since it's shown to users (SearchError.message).
+export class ShopRequestError extends Error {
+    readonly url?: string;
+    readonly method?: string;
+    readonly contentType?: string;
+    readonly body?: string;
+
+    constructor(message: string, { cause, ...details }: RequestDetails = {}) {
+        super(message, cause === undefined ? undefined : { cause });
+        this.url = details.url;
+        this.method = details.method;
+        this.contentType = details.contentType;
+        this.body = details.body;
     }
 }
+
+// Keeps the status so callers can tell a block (403) from other failures.
+export class HttpError extends ShopRequestError {
+    override readonly name = 'HttpError';
+
+    constructor(
+        readonly status: number,
+        details?: RequestDetails
+    ) {
+        super(`HTTP ${status}`, details);
+    }
+}
+
+// A 200 whose body isn't the JSON asked for, typically a bot challenge or maintenance page served as HTML.
+export class InvalidJsonError extends ShopRequestError {
+    override readonly name = 'InvalidJsonError';
+}
+
+export class RequestTimeoutError extends ShopRequestError {
+    override readonly name = 'RequestTimeoutError';
+}
+
+// Enough to show an API's error message, short of logging a whole HTML error page.
+const MAX_ERROR_BODY = 500;
+
+const bodySnippet = (text: string) =>
+    text.length > MAX_ERROR_BODY
+        ? `${text.slice(0, MAX_ERROR_BODY)}…`
+        : text || undefined;
+
+const responseDetails = (res: Response, method = 'GET') => ({
+    url: res.url,
+    method,
+    contentType: res.headers.get('content-type') ?? undefined
+});
 
 export type ShopClientOptions = {
     intervalMs?: number; // minimum gap between request starts, e.g. 500 for a touchier shop
@@ -91,9 +145,10 @@ export class ShopClient {
                     });
                 } catch (err) {
                     if (timeout.aborted)
-                        throw new Error(
-                            `timeout after ${this.timeoutMs / 1000}s`
-                        );
+                        throw this.timeoutError(err, {
+                            url: target.href,
+                            method: rest.method ?? 'GET'
+                        });
                     throw err;
                 }
             },
@@ -103,14 +158,53 @@ export class ShopClient {
 
     async fetchHtml(url: string, init?: RequestInit): Promise<string> {
         const res = await this.fetch(url, init);
-        if (!res.ok) throw new HttpError(res.status);
-        return res.text();
+        const text = await this.readBody(res, init?.method);
+        if (!res.ok)
+            throw new HttpError(res.status, {
+                ...responseDetails(res, init?.method),
+                body: bodySnippet(text)
+            });
+        return text;
     }
 
+    // Parsed from the text rather than with res.json(), so a body that isn't JSON can be shown in the error.
     async fetchJson<T = unknown>(url: string, init?: RequestInit): Promise<T> {
         const res = await this.fetch(url, init);
-        if (!res.ok) throw new HttpError(res.status);
-        return res.json() as Promise<T>;
+        const text = await this.readBody(res, init?.method);
+        const details = () => ({
+            ...responseDetails(res, init?.method),
+            body: bodySnippet(text)
+        });
+        if (!res.ok) throw new HttpError(res.status, details());
+        try {
+            return JSON.parse(text) as T;
+        } catch (err) {
+            const type = res.headers.get('content-type')?.split(';')[0];
+            throw new InvalidJsonError(
+                type ? `expected JSON, got ${type}` : 'expected JSON',
+                { ...details(), cause: err }
+            );
+        }
+    }
+
+    // The timeout signal also covers the body, so a stalled read is a timeout too, not a bare DOMException.
+    // An error body that fails to read is a best effort: the status still says enough.
+    private async readBody(res: Response, method?: string): Promise<string> {
+        try {
+            return await res.text();
+        } catch (err) {
+            if (!res.ok) return '';
+            if ((err as Error)?.name === 'TimeoutError')
+                throw this.timeoutError(err, responseDetails(res, method));
+            throw err;
+        }
+    }
+
+    private timeoutError(cause: unknown, details: RequestDetails) {
+        return new RequestTimeoutError(
+            `timeout after ${this.timeoutMs / 1000}s`,
+            { ...details, cause }
+        );
     }
 
     // Resolves when this request may start. The queued task is empty: the queue only spaces out the starts, and

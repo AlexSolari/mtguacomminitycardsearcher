@@ -17,7 +17,7 @@ import {
     writeSink,
     type LogRecord
 } from '@/server/logger';
-import { HttpError } from '@/server/shop-client';
+import { HttpError, InvalidJsonError } from '@/server/shop-client';
 import * as Sentry from '@sentry/node-core/light';
 import type { ErrorEvent } from '@sentry/node-core/light';
 import { captureLogs } from './capture-logs';
@@ -64,15 +64,45 @@ describe('logger', () => {
     test('serializes Error fields', () => {
         logger.error('failed', { error: new HttpError(429) });
         expect(logs[0]!.error).toEqual({
-            name: 'Error',
+            name: 'HttpError',
             message: 'HTTP 429',
             status: 429,
             stack: expect.any(String)
         });
     });
+
+    test("keeps an HttpError's request and body", () => {
+        logger.error('failed', {
+            error: new HttpError(400, {
+                method: 'POST',
+                url: 'https://shop.test/api',
+                body: '{"error":"bad query"}'
+            })
+        });
+        expect(logs[0]!.error).toMatchObject({
+            status: 400,
+            method: 'POST',
+            url: 'https://shop.test/api',
+            body: '{"error":"bad query"}'
+        });
+    });
 });
 
 describe('serializeError', () => {
+    test("keeps a request error's content type, and its cause as a message", () => {
+        const err = new InvalidJsonError('expected JSON, got text/html', {
+            contentType: 'text/html',
+            cause: new SyntaxError('Unexpected token <')
+        });
+        expect(serializeError(err)).toEqual({
+            name: 'InvalidJsonError',
+            message: 'expected JSON, got text/html',
+            contentType: 'text/html',
+            cause: 'Unexpected token <',
+            stack: expect.any(String)
+        });
+    });
+
     test('keeps status only when the error has a numeric one', () => {
         expect(serializeError(new TypeError('bad'))).toEqual({
             name: 'TypeError',
@@ -126,6 +156,19 @@ describe('formatPretty', () => {
             formatPretty(record({ level: 'error', message: 'failed', error }))
         ).toBe(
             `12:00:00.000 ERROR failed error="timeout after 15s"\n${error.stack}`
+        );
+    });
+
+    test('an HttpError shows its request and body after the message', () => {
+        const error = serializeError(
+            new HttpError(400, {
+                method: 'POST',
+                url: 'https://shop.test/api',
+                body: 'bad query'
+            })
+        );
+        expect(formatPretty(record({ error }))).toBe(
+            '12:00:00.000 WARN  parser found nothing error="HTTP 400 POST https://shop.test/api bad query"'
         );
     });
 
@@ -237,6 +280,17 @@ describe('Sentry reporting', () => {
             message: 'shop search failed',
             shop: 'gin',
             card: 'Sol Ring'
+        });
+    });
+
+    test("an HttpError's details go along as their own context", async () => {
+        logger.error('shop search failed', {
+            error: new HttpError(404, { url: 'https://shop.test/x' })
+        });
+        await Sentry.flush();
+        expect(events[0]!.contexts?.error).toEqual({
+            status: 404,
+            url: 'https://shop.test/x'
         });
     });
 

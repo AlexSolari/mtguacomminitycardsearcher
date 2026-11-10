@@ -80,7 +80,11 @@ describe('CardSearchService', () => {
                 message: 'shop search failed',
                 shop: 'nerdik',
                 card: 'Sol Ring',
-                error: { name: 'Error', message: 'HTTP 403', status: 403 }
+                error: {
+                    name: 'HttpError',
+                    message: 'HTTP 403',
+                    status: 403
+                }
             },
             {
                 level: 'error',

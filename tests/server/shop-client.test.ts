@@ -1,7 +1,12 @@
 // Against a local server, never the real shops.
 import { afterAll, beforeEach, describe, expect, test } from 'bun:test';
 import { SpanKind, SpanStatusCode } from '@opentelemetry/api';
-import { HttpError, ShopClient } from '@/server/shop-client';
+import {
+    HttpError,
+    InvalidJsonError,
+    RequestTimeoutError,
+    ShopClient
+} from '@/server/shop-client';
 import { captureSpans } from './capture-spans';
 
 const hits: { path: string; at: number }[] = [];
@@ -12,9 +17,21 @@ const server = Bun.serve({
         hits.push({ path, at: Date.now() });
         if (path === '/slow') await Bun.sleep(1000);
         if (path === '/missing') return new Response('nope', { status: 404 });
+        if (path === '/huge-error')
+            return new Response('x'.repeat(10_000), { status: 500 });
         if (path === '/json')
             return Response.json({ key: req.headers.get('x-api-key') });
-        return new Response(`page ${path}`);
+        if (path === '/stalled-body')
+            // headers at once, then a body that never ends
+            return new Response(
+                new ReadableStream({
+                    start: (c) => c.enqueue(new TextEncoder().encode('{'))
+                }),
+                { headers: { 'Content-Type': 'application/json' } }
+            );
+        return new Response(`page ${path}`, {
+            headers: { 'Content-Type': 'text/html; charset=utf-8' }
+        });
     }
 });
 const base = `http://localhost:${server.port}`;
@@ -61,8 +78,23 @@ describe('ShopClient', () => {
                 .call(client, '/missing')
                 .catch((e) => e);
             expect(err).toBeInstanceOf(HttpError);
-            expect(err.status).toBe(404);
+            expect(err).toMatchObject({
+                message: 'HTTP 404',
+                status: 404,
+                method: 'GET',
+                url: `${base}/missing`,
+                body: 'nope'
+            });
         }
+    });
+
+    test("HTTP errors keep the request's method and cut a long body short", async () => {
+        const client = new ShopClient(base);
+        const err = await client
+            .fetchJson<never>('/huge-error', { method: 'POST' })
+            .catch((e: HttpError) => e);
+        expect(err).toMatchObject({ status: 500, method: 'POST' });
+        expect(err.body).toBe(`${'x'.repeat(500)}…`);
     });
 
     test('fetchJson parses the body and sends the given headers', async () => {
@@ -115,6 +147,50 @@ describe('ShopClient', () => {
         await expect(
             client.fetchHtml('/slow', { signal: new AbortController().signal })
         ).rejects.toThrow('timeout after 0.1s');
+    });
+
+    test('a timeout keeps the request and the reason', async () => {
+        const client = new ShopClient(base, { timeoutMs: 100 });
+        const err = await client
+            .fetchHtml('/slow', { method: 'POST' })
+            .then(() => null)
+            .catch((e: RequestTimeoutError) => e);
+        expect(err).toBeInstanceOf(RequestTimeoutError);
+        expect(err).toMatchObject({
+            message: 'timeout after 0.1s',
+            url: `${base}/slow`,
+            method: 'POST'
+        });
+        expect(err?.cause).toBeInstanceOf(Error);
+    });
+
+    test('a body that stalls mid-read times out too', async () => {
+        const client = new ShopClient(base, { timeoutMs: 200 });
+        const err = await client
+            .fetchJson<never>('/stalled-body')
+            .catch((e: RequestTimeoutError) => e);
+        expect(err).toBeInstanceOf(RequestTimeoutError);
+        expect(err).toMatchObject({
+            message: 'timeout after 0.2s',
+            url: `${base}/stalled-body`,
+            contentType: 'application/json'
+        });
+    });
+
+    test('a 200 that is not JSON says what came instead, and shows it', async () => {
+        const client = new ShopClient(base);
+        const err = await client
+            .fetchJson<never>('/challenge')
+            .catch((e: InvalidJsonError) => e);
+        expect(err).toBeInstanceOf(InvalidJsonError);
+        expect(err).toMatchObject({
+            message: 'expected JSON, got text/html',
+            url: `${base}/challenge`,
+            method: 'GET',
+            contentType: 'text/html; charset=utf-8',
+            body: 'page /challenge'
+        });
+        expect(err.cause).toBeInstanceOf(SyntaxError);
     });
 
     test("the caller's signal aborts a running request", async () => {
