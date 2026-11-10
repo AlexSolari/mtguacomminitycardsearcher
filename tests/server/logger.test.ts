@@ -1,4 +1,12 @@
-import { afterAll, afterEach, describe, expect, spyOn, test } from 'bun:test';
+import {
+    afterAll,
+    afterEach,
+    beforeAll,
+    describe,
+    expect,
+    spyOn,
+    test
+} from 'bun:test';
 import {
     configFromEnv,
     configureLogger,
@@ -10,6 +18,8 @@ import {
     type LogRecord
 } from '@/server/logger';
 import { HttpError } from '@/server/shop-client';
+import * as Sentry from '@sentry/node-core/light';
+import type { ErrorEvent } from '@sentry/node-core/light';
 import { captureLogs } from './capture-logs';
 
 const record = (fields: Partial<LogRecord> = {}): LogRecord => ({
@@ -189,5 +199,58 @@ describe('configFromEnv', () => {
         expect(configFromEnv({ LOG_LEVEL: 'debug' }).level).toBe('debug');
         expect(configFromEnv({ LOG_LEVEL: 'toString' }).level).toBe('info');
         expect(configFromEnv({}).level).toBe('info');
+    });
+});
+
+describe('Sentry reporting', () => {
+    captureLogs();
+    const events: ErrorEvent[] = [];
+
+    // Events are recorded and dropped in beforeSend, so nothing leaves the process.
+    beforeAll(() => {
+        Sentry.init({
+            dsn: 'https://key@sentry.invalid/1',
+            defaultIntegrations: false,
+            beforeSend: (event) => {
+                events.push(event);
+                return null;
+            }
+        });
+    });
+    afterEach(() => {
+        events.length = 0;
+    });
+    afterAll(() => Sentry.close());
+
+    test('an error record with an Error field reports the exception, with the rest as context', async () => {
+        logger.error('shop search failed', {
+            shop: 'gin',
+            card: 'Sol Ring',
+            error: new Error('timeout after 15s')
+        });
+        await Sentry.flush();
+        expect(events).toHaveLength(1);
+        expect(events[0]!.exception?.values?.[0]?.value).toBe(
+            'timeout after 15s'
+        );
+        expect(events[0]!.contexts?.log).toEqual({
+            message: 'shop search failed',
+            shop: 'gin',
+            card: 'Sol Ring'
+        });
+    });
+
+    test('an error record without one reports its message', async () => {
+        logger.error('card search failed', { card: 'Sol Ring' });
+        await Sentry.flush();
+        expect(events.map((e) => [e.message, e.level])).toEqual([
+            ['card search failed', 'error']
+        ]);
+    });
+
+    test('lower levels are not reported', async () => {
+        logger.warn('parser found nothing', { shop: 'carton' });
+        await Sentry.flush();
+        expect(events).toEqual([]);
     });
 });
