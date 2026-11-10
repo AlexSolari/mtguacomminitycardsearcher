@@ -1,3 +1,5 @@
+import { HttpError } from './shop-client';
+
 // How long the first item waits for others to join its request by default. The frontend sends cards a few at a
 // time, so they arrive within milliseconds of each other.
 const BATCH_WINDOW_MS = 20;
@@ -15,7 +17,8 @@ type Entry<T, R> = {
     batch?: Batch; // set once the entry is sent
 };
 
-// Sends one result per item, in the items' order. A rejection fails every item in the batch.
+// Sends one result per item, in the items' order. A rejection fails every item in the batch, except one that
+// blames the input (see `rejectsInput`).
 export type SendBatch<T, R> = (items: T[], signal: AbortSignal) => Promise<R[]>;
 
 // For APIs that take many lookups per request under a tight request budget (MTGin, Nerdik): items that arrive
@@ -84,17 +87,36 @@ export class Batcher<T, R> {
         for (const e of entries) e.batch = batch;
 
         try {
-            const results = await this.sendBatch(
-                entries.map((e) => e.item),
-                batch.controller.signal
-            );
-            entries.forEach((e, i) => e.resolve(results[i]!));
-        } catch (err) {
-            // a 429 or timeout fails the whole batch; each card shows the shop as failed
-            for (const e of entries) e.reject(err);
+            await this.sendEntries(entries, batch.controller.signal);
         } finally {
             this.sending = false;
             if (this.pending.length > 0) void this.send();
         }
     }
+
+    // A batch holds different users' items, so when the API rejects its input (one junk name makes the whole
+    // request a 400), the batch is split in half and each half retried: only the bad item's own request fails.
+    // That's about 2·log₂(n) extra requests per bad item. A 429 or timeout isn't the input's fault, and fails the
+    // whole batch; each card shows the shop as failed.
+    private async sendEntries(entries: Entry<T, R>[], signal: AbortSignal) {
+        try {
+            const results = await this.sendBatch(
+                entries.map((e) => e.item),
+                signal
+            );
+            entries.forEach((e, i) => e.resolve(results[i]!));
+        } catch (err) {
+            if (entries.length > 1 && rejectsInput(err) && !signal.aborted) {
+                const half = Math.ceil(entries.length / 2);
+                await this.sendEntries(entries.slice(0, half), signal);
+                await this.sendEntries(entries.slice(half), signal);
+            } else for (const e of entries) e.reject(err);
+        }
+    }
+}
+
+// 400 Bad Request, 413 Content Too Large, 422 Unprocessable Content. Not 401/403: a bad key or a block fails every
+// request, so splitting would only spend the budget.
+function rejectsInput(err: unknown) {
+    return err instanceof HttpError && [400, 413, 422].includes(err.status);
 }

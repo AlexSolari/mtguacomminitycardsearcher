@@ -5,6 +5,7 @@ import { InFlightLimiter } from '@/server/in-flight-limiter';
 import {
     clientId,
     MAX_CARDS_PER_REQUEST,
+    MAX_NAME_LENGTH,
     searchHandler
 } from '@/server/search-route';
 import { withSpan } from '@/server/tracing';
@@ -90,6 +91,31 @@ describe('searchHandler', () => {
         );
         await res.text();
         expect(cardSearch.searched).toEqual(['Sol Ring', 'Daze']);
+    });
+
+    test('drops names no card could have: too long, or with injection characters', async () => {
+        const cardSearch = fakeSearch();
+        const handle = searchHandler(cardSearch, new InFlightLimiter(12));
+        const longest = 'x'.repeat(MAX_NAME_LENGTH);
+        const res = await handle(
+            post({
+                cards: [
+                    '{"username": {"$ne": null}}',
+                    '<machineKey validationKey="[String]" />',
+                    'x'.repeat(MAX_NAME_LENGTH + 1),
+                    longest,
+                    'Kongming, "Sleeping Dragon"',
+                    'Who/What/When/Where/Why'
+                ]
+            }),
+            'a'
+        );
+        await res.text();
+        expect(cardSearch.searched).toEqual([
+            longest,
+            'Kongming, "Sleeping Dragon"',
+            'Who/What/When/Where/Why'
+        ]);
     });
 
     test('a malformed body searches nothing', async () => {

@@ -2,6 +2,7 @@
 // failures and requests held in flight. These cover what's generic about it.
 import { describe, expect, test } from 'bun:test';
 import { Batcher } from '@/server/batcher';
+import { HttpError } from '@/server/shop-client';
 
 describe('Batcher', () => {
     test('items that arrive together go out as one batch, each getting its own result', async () => {
@@ -40,5 +41,65 @@ describe('Batcher', () => {
         await batcher.add('a', caller.signal);
         expect(signals[0]).not.toBe(caller.signal);
         expect(signals[0]!.aborted).toBe(false);
+    });
+
+    // the API rejects any request holding 'bad', as a shop does a junk name
+    const rejectingBad = (status: number, batches: string[][] = []) =>
+        new Batcher<string, string>(async (items) => {
+            batches.push(items);
+            if (items.includes('bad')) throw new HttpError(status);
+            return items.map((item) => item.toUpperCase());
+        }, 10);
+
+    test("a rejected batch is split until only the bad item's request fails", async () => {
+        const batches: string[][] = [];
+        const batcher = rejectingBad(400, batches);
+        const results = await Promise.allSettled(
+            ['a', 'b', 'bad', 'c', 'd'].map((i) => batcher.add(i))
+        );
+        expect(
+            results.map((r) => (r.status === 'fulfilled' ? r.value : 'failed'))
+        ).toEqual(['A', 'B', 'failed', 'C', 'D']);
+        expect(batches).toEqual([
+            ['a', 'b', 'bad', 'c', 'd'],
+            ['a', 'b', 'bad'],
+            ['a', 'b'],
+            ['bad'],
+            ['c', 'd']
+        ]);
+    });
+
+    test('a failure that is not about the input fails the whole batch, without retries', async () => {
+        for (const status of [401, 403, 429, 500]) {
+            const batches: string[][] = [];
+            const batcher = rejectingBad(status, batches);
+            const results = await Promise.allSettled(
+                ['a', 'bad'].map((i) => batcher.add(i))
+            );
+            expect(results.map((r) => r.status)).toEqual([
+                'rejected',
+                'rejected'
+            ]);
+            expect(batches).toHaveLength(1);
+        }
+    });
+
+    test('a rejected batch nobody waits for any more is not split', async () => {
+        const batches: string[][] = [];
+        let fail!: () => void;
+        const batcher = new Batcher<string, string>((items) => {
+            batches.push(items);
+            return new Promise((_, reject) => {
+                fail = () => reject(new HttpError(400));
+            });
+        }, 10);
+        const caller = new AbortController();
+        const results = ['a', 'bad'].map((i) => batcher.add(i, caller.signal));
+        await Bun.sleep(30); // the batch is out
+        caller.abort();
+        fail();
+        await Promise.allSettled(results);
+        await Bun.sleep(5);
+        expect(batches).toEqual([['a', 'bad']]);
     });
 });
