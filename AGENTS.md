@@ -6,16 +6,17 @@ See [README.md](README.md) for what the app does and the request flow.
 
 ## Commands
 
-| Task                                                         | Command                                                                             |
-| ------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
-| Dev server (hot reload, port 3000, `PORT` overrides)         | `bun dev`                                                                           |
-| Production server                                            | `bun start`                                                                         |
-| Type-check                                                   | `bunx tsc --noEmit`                                                                 |
-| Format                                                       | `bun run format` (or `bunx prettier --write <files>`)                               |
-| Static frontend bundle                                       | `bun run build -- --outdir=<dir>` (defaults to `dist/`, which it **deletes first**) |
-| Tests                                                        | `bun test` (offline, ~3 s)                                                          |
-| Coverage (fails under 95% lines / 90% functions in any file) | `bun run test:coverage`                                                             |
-| Refresh the parser fixtures from the real shops              | `bun scripts/update-fixtures.ts` (~7 requests)                                      |
+| Task                                                                | Command                                                                             |
+| ------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Dev server (hot reload, port 3000, `PORT` overrides)                | `bun dev`                                                                           |
+| Production server                                                   | `bun start`                                                                         |
+| Type-check                                                          | `bunx tsc --noEmit`                                                                 |
+| Format                                                              | `bun run format` (or `bunx prettier --write <files>`)                               |
+| Static frontend bundle                                              | `bun run build -- --outdir=<dir>` (defaults to `dist/`, which it **deletes first**) |
+| Tests                                                               | `bun test` (offline, ~3 s)                                                          |
+| Coverage (fails under 95% lines / 90% functions in any file)        | `bun run test:coverage`                                                             |
+| Refresh the parser fixtures from the real shops                     | `bun scripts/update-fixtures.ts` (~7 requests)                                      |
+| Re-render the link preview image (`src/og-image.png`, needs Chrome) | `bun scripts/render-og-image.ts`                                                    |
 
 **Type-check baseline:** zero errors. `bun dev`, `bun run build` and `bun run test` run `bun check` first and stop on any type error.
 

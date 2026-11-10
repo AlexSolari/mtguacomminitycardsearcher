@@ -57,6 +57,17 @@ const server = serve({
         // ...except API paths, where a typo should fail loudly instead of returning the page
         '/api/*': () => Response.json({ error: 'Not found' }, { status: 404 }),
 
+        // the link preview image that index.html's og:image points at
+        '/og-image.png': new Response(
+            await Bun.file(new URL('./og-image.png', import.meta.url)).bytes(),
+            {
+                headers: {
+                    'Content-Type': 'image/png',
+                    'Cache-Control': 'public, max-age=86400'
+                }
+            }
+        ),
+
         '/api/search': {
             POST: (req, server) =>
                 search(req, clientId(req, server.requestIP(req)?.address))

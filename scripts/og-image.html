@@ -1,0 +1,227 @@
+<!doctype html>
+<!-- The link preview image (og:image), 1200×630. `bun scripts/render-og-image.ts` fills in the shop count and
+     names from SHOP_INFO and screenshots it to src/og-image.png. -->
+<html lang="uk">
+    <head>
+        <meta charset="UTF-8" />
+        <link
+            rel="stylesheet"
+            href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Inter:wght@400;500;600;700&display=block"
+        />
+        <style>
+            * {
+                box-sizing: border-box;
+                margin: 0;
+            }
+            body {
+                width: 1200px;
+                height: 630px;
+                overflow: hidden;
+                font-family: Inter, sans-serif;
+                color: #f2f0f7;
+                background:
+                    radial-gradient(
+                        circle at 82% 45%,
+                        rgba(242, 195, 91, 0.16),
+                        transparent 45%
+                    ),
+                    linear-gradient(
+                        135deg,
+                        #2b2150 0%,
+                        #17122b 60%,
+                        #120e22 100%
+                    );
+            }
+            .frame {
+                position: absolute;
+                inset: 28px;
+                border: 1.5px solid rgba(242, 195, 91, 0.35);
+                border-radius: 28px;
+                padding: 52px 56px;
+            }
+            .brand {
+                display: flex;
+                align-items: center;
+                gap: 18px;
+            }
+            .brand img {
+                width: 72px;
+                height: 72px;
+                border-radius: 22%;
+                box-shadow: 0 0 28px rgba(242, 195, 91, 0.3);
+            }
+            .eyebrow {
+                font-size: 17px;
+                font-weight: 600;
+                letter-spacing: 0.14em;
+                text-transform: uppercase;
+                color: #b9b1d6;
+            }
+            h1 {
+                margin-top: 34px;
+                font-family: Cinzel, serif;
+                font-size: 54px;
+                line-height: 1.08;
+                letter-spacing: 0.01em;
+            }
+            h1 span {
+                color: #f2c35b;
+            }
+            .lead {
+                margin-top: 22px;
+                width: 620px;
+                font-size: 26px;
+                line-height: 1.4;
+                color: #d4cfe6;
+            }
+            .lead b {
+                color: #f2c35b;
+                font-weight: 700;
+            }
+            .shops {
+                position: absolute;
+                left: 56px;
+                bottom: 48px;
+                width: 640px;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+            .shops span {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 7px 15px 7px 10px;
+                border: 1px solid rgba(242, 240, 247, 0.18);
+                border-radius: 999px;
+                background: rgba(255, 255, 255, 0.06);
+                font-size: 18px;
+                font-weight: 500;
+            }
+            /* a light tile behind each favicon, so dark ones (Citadel's tower) stay visible on the dark background */
+            .shops img {
+                width: 24px;
+                height: 24px;
+                padding: 2px;
+                border-radius: 6px;
+                background: #f2f0f7;
+                object-fit: contain;
+            }
+
+            /* a fan of three cards on the right, the front one in the logo's blue and yellow */
+            .fan {
+                position: absolute;
+                right: 40px;
+                top: 92px;
+                width: 380px;
+                height: 420px;
+            }
+            .card {
+                position: absolute;
+                left: 95px;
+                top: 20px;
+                width: 230px;
+                height: 322px;
+                border-radius: 16px;
+                border: 3px solid rgba(242, 240, 247, 0.85);
+                box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+                transform-origin: 50% 110%;
+            }
+            .card.back-left {
+                transform: rotate(-16deg) translateX(-40px);
+                background: linear-gradient(160deg, #4a3a85, #2a2150);
+                border-color: rgba(242, 240, 247, 0.4);
+            }
+            .card.back-right {
+                transform: rotate(14deg) translateX(40px);
+                background: linear-gradient(160deg, #3b2f6b, #1f1840);
+                border-color: rgba(242, 240, 247, 0.4);
+            }
+            .card.front {
+                transform: rotate(-3deg);
+                background: linear-gradient(#1f6fd1 0 44%, #ffd23f 44% 100%);
+            }
+            .tag {
+                position: absolute;
+                right: 0;
+                bottom: 30px;
+                padding: 16px 24px 16px 22px;
+                border-radius: 18px;
+                background: #f2c35b;
+                color: #1a1530;
+                box-shadow: 0 14px 30px rgba(0, 0, 0, 0.4);
+                transform: rotate(4deg);
+            }
+            .tag small {
+                display: block;
+                font-size: 15px;
+                font-weight: 600;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+                opacity: 0.75;
+            }
+            .tag strong {
+                font-size: 32px;
+                font-weight: 700;
+            }
+            .lens {
+                position: absolute;
+                left: 20px;
+                bottom: 40px;
+                width: 130px;
+                height: 130px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="frame">
+            <div class="brand">
+                <img src="../src/favicon.svg" alt="" />
+                <div class="eyebrow">Ціни на синглі Magic: The Gathering</div>
+            </div>
+            <h1>MTG UA Community<br /><span>Card Searcher</span></h1>
+            <p class="lead">
+                Вставте список карт і порівняйте ціни в
+                <b>{{SHOP_COUNT}}</b> українських магазинах одразу
+            </p>
+            <div class="shops">{{SHOPS}}</div>
+
+            <div class="fan">
+                <div class="card back-left"></div>
+                <div class="card back-right"></div>
+                <div class="card front"></div>
+                <!-- the logo's gold magnifier, with a dark under-stroke so it reads over the yellow -->
+                <svg class="lens" viewBox="0 0 64 64">
+                    <g stroke="#1a1530" stroke-linecap="round">
+                        <circle
+                            cx="28"
+                            cy="28"
+                            r="17"
+                            fill="none"
+                            stroke-width="12"
+                        />
+                        <path d="M41 41 L54 54" stroke-width="14" />
+                    </g>
+                    <g stroke="#f2c35b" stroke-linecap="round">
+                        <circle
+                            cx="28"
+                            cy="28"
+                            r="17"
+                            fill="rgba(26,21,48,.35)"
+                            stroke-width="6"
+                        />
+                        <path d="M41 41 L54 54" stroke-width="8" />
+                    </g>
+                    <path
+                        d="M28 18 Q29.2 26.8 38 28 Q29.2 29.2 28 38 Q26.8 29.2 18 28 Q26.8 26.8 28 18Z"
+                        fill="#fff"
+                    />
+                </svg>
+                <div class="tag">
+                    <small>Найкраща ціна</small>
+                    <strong>за мить</strong>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
