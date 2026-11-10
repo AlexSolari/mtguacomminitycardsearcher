@@ -115,9 +115,14 @@ const MV_FIELDS = [
     'signed'
 ];
 const manavault = new ShopClient('https://manavaultstore.com');
-const mv = await manavault.fetchJson<any>(
-    manavault.url('/api/v1/prices', { q: CARD, source: manavaultSource() })
-);
+// the batch endpoint the searcher uses, for one card: the fixture is that card's answer
+const [mv] = (
+    await manavault.fetchJson<any>(manavault.url('/api/v1/prices'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cards: [CARD], source: manavaultSource() })
+    })
+).answers;
 await save(
     'manavault-search.json',
     json({

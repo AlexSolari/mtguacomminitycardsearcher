@@ -384,25 +384,162 @@ describe('single-request searchers', () => {
         expect(results.length).toBeGreaterThan(0);
         expect(requests).toEqual([{ url, init: { signal } }]);
     });
+});
 
-    test('ManavaultCardSearcher names its source', async () => {
-        const url =
-            'https://manavaultstore.com/api/v1/prices?q=Counterspell&source=example.up.railway.app';
+describe('ManavaultCardSearcher', () => {
+    const base = 'https://manavaultstore.com';
+    const apiUrl = `${base}/api/v1/prices`;
+    const real = new ShopClient(base);
+
+    // one in-stock row per looked-up name
+    const answers = (cards: string[]) => ({
+        answers: cards.map((name, i) => ({
+            query: name.toLowerCase(),
+            match: 'exact',
+            results: [
+                {
+                    name,
+                    setName: 'Nemesis',
+                    number: String(i + 1),
+                    url: `${base}/cards/${i}`,
+                    price: 100 + i,
+                    stock: 1
+                }
+            ]
+        }))
+    });
+
+    // A client whose POSTs are answered by `answer` (by default, one row per name). `requests` records each
+    // request's URL, options and body.
+    function fakeManavault(answer: (cards: string[]) => unknown = answers) {
+        const requests: {
+            url: string;
+            init: RequestInit;
+            body: { cards: string[]; source: string };
+        }[] = [];
+        const client = {
+            baseUrl: base,
+            url: real.url.bind(real),
+            fetchJson: async (url: string, init: RequestInit) => {
+                const body = JSON.parse(init.body as string);
+                requests.push({ url, init, body });
+                return answer(body.cards);
+            }
+        } as unknown as ShopClient;
+        return { client, requests };
+    }
+
+    // The API allows 60 requests a minute for all our users together, counted in a fixed minute from its first
+    // request: a little over a second apart, so a delayed first request can't let a 61st into its minute.
+    test('sends a request at most every 1.1 seconds', () => {
+        const { client } = new ManavaultCardSearcher() as unknown as {
+            client: { baseUrl: string; intervalMs: number };
+        };
+        expect(client.baseUrl).toBe(base);
+        expect(client.intervalMs).toBe(1100);
+    });
+
+    test('POSTs the name with its source and parses the answer', async () => {
         const body = await fixture('manavault-search.json');
-        const { client, requests } = fakeClient('https://manavaultstore.com', {
-            [url]: body
-        });
-        const signal = new AbortController().signal;
+        const { client, requests } = fakeManavault(() => ({
+            answers: [JSON.parse(body)]
+        }));
         const results = await new ManavaultCardSearcher(
             client,
             'example.up.railway.app'
-        ).search('Counterspell', signal);
+        ).search('Counterspell', new AbortController().signal);
         expect(results).toEqual(parseManavault(JSON.parse(body)));
         expect(results.length).toBeGreaterThan(0);
-        expect(requests).toEqual([{ url, init: { signal } }]);
+        expect(requests).toHaveLength(1);
+        expect(requests[0]!.url).toBe(apiUrl);
+        expect(requests[0]!.init).toMatchObject({
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        expect(requests[0]!.body).toEqual({
+            cards: ['Counterspell'],
+            source: 'example.up.railway.app'
+        });
     });
 
-    test("Mana Vault's source is Railway's public domain, else a fixed name", () => {
+    test('searches that arrive together share one request, each getting its own answer', async () => {
+        const { client, requests } = fakeManavault();
+        const mv = new ManavaultCardSearcher(client, 'test');
+        const [daze, sol] = await Promise.all([
+            mv.search('Daze'),
+            mv.search('Sol Ring')
+        ]);
+        expect(requests.map((r) => r.body.cards)).toEqual([
+            ['Daze', 'Sol Ring']
+        ]);
+        expect(daze!.map((r) => r.name)).toEqual(['Daze — Nemesis #1']);
+        expect(sol!.map((r) => r.name)).toEqual(['Sol Ring — Nemesis #2']);
+    });
+
+    // every 10 names cost a request of the 60 a minute, so bigger batches wouldn't find cards any faster
+    test('more than 10 searches are split into requests of 10', async () => {
+        const { client, requests } = fakeManavault();
+        const mv = new ManavaultCardSearcher(client, 'test');
+        const names = Array.from({ length: 25 }, (_, i) => `Card ${i}`);
+        const results = await Promise.all(names.map((n) => mv.search(n)));
+        expect(requests.map((r) => r.body.cards.length)).toEqual([10, 10, 5]);
+        expect(results[17]![0]!.name).toStartWith('Card 17 — ');
+    });
+
+    test("a name the API rejects fails only that name's search", async () => {
+        const { client } = fakeManavault((cards) => ({
+            answers: cards.map((name) =>
+                name.length < 2
+                    ? {
+                          query: name,
+                          match: 'none',
+                          results: [],
+                          error: 'Назва коротша за 2 літери'
+                      }
+                    : answers([name]).answers[0]
+            )
+        }));
+        const mv = new ManavaultCardSearcher(client, 'test');
+        const [bad, good] = await Promise.allSettled([
+            mv.search('X'),
+            mv.search('Daze')
+        ]);
+        expect(bad).toMatchObject({
+            status: 'rejected',
+            reason: { message: 'Назва коротша за 2 літери' }
+        });
+        expect(good).toMatchObject({
+            status: 'fulfilled',
+            value: [expect.objectContaining({ name: 'Daze — Nemesis #1' })]
+        });
+    });
+
+    test('a name with no match, or no answer, gives [], quietly', async () => {
+        const { client } = fakeManavault(() => ({
+            answers: [{ query: 'daze', match: 'none', results: [] }]
+        }));
+        const mv = new ManavaultCardSearcher(client, 'test');
+        expect(
+            await Promise.all([mv.search('Daze'), mv.search('Opt')])
+        ).toEqual([[], []]);
+        expect(logs).toEqual([]);
+    });
+
+    test('a failed request fails every search in it', async () => {
+        const { client } = fakeManavault(() => {
+            throw new HttpError(429);
+        });
+        const mv = new ManavaultCardSearcher(client, 'test');
+        const settled = await Promise.allSettled([
+            mv.search('Daze'),
+            mv.search('Opt')
+        ]);
+        expect(
+            settled.map((s) => s.status === 'rejected' && s.reason.message)
+        ).toEqual(['HTTP 429', 'HTTP 429']);
+    });
+
+    test("its source is Railway's public domain, else a fixed name", () => {
         const saved = process.env.RAILWAY_PUBLIC_DOMAIN;
         try {
             process.env.RAILWAY_PUBLIC_DOMAIN = 'example.up.railway.app';
@@ -413,15 +550,6 @@ describe('single-request searchers', () => {
             if (saved === undefined) delete process.env.RAILWAY_PUBLIC_DOMAIN;
             else process.env.RAILWAY_PUBLIC_DOMAIN = saved;
         }
-    });
-
-    // the API allows 60 requests a minute for all our users together
-    test('ManavaultCardSearcher sends at most one request a second', () => {
-        const { client } = new ManavaultCardSearcher() as unknown as {
-            client: { baseUrl: string; intervalMs: number };
-        };
-        expect(client.baseUrl).toBe('https://manavaultstore.com');
-        expect(client.intervalMs).toBe(1000);
     });
 });
 

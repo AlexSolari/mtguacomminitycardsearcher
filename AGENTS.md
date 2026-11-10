@@ -101,9 +101,12 @@ See [README.md](README.md) for what the app does and the request flow.
   "Æther Vial" vs "Aether Vial" and "Lim-Dûl" vs "Lim-Dul" both depend on it.
 - **`parsePrice` returns `null` when there are no digits.** Don't "simplify" it back to `Number(...)`: that turns "—" into 0 ₴, which then wins best price.
 - **Decimal prices:** `"1 234,50"` parses as 123450. No shop shows kopecks today. Handle it per shop if one starts.
-- **Mana Vault's price API allows 60 requests a minute, with no key**, shared by every user. Its client spaces requests a second apart (`intervalMs: 1000`); don't lower it. There's no batch endpoint, so a long list fills Mana Vault's results more slowly than the other shops'.
 - **MTGin batches its searches:** the API key allows 60 requests a minute, shared by every user. `GinCardSearcher` sends concurrent searches as one request (up to 100 cards), one request at a time, at most one a second. Don't turn it back into a request per card.
-  Nerdik's batch API is batched the same way; both go through `Batcher` (`src/server/batcher.ts`).
+  Nerdik's and Mana Vault's batch APIs are batched the same way; all three go through `Batcher` (`src/server/batcher.ts`).
+- **Mana Vault's price API allows 60 requests a minute per IP, with no key**, shared by every user ([docs](https://manavaultstore.com/api/docs)).
+    - The minute is a fixed window that starts at its first request, so its client spaces requests 1.1 s apart (`intervalMs: 1100`), leaving slack for network jitter. Don't lower it.
+    - `POST /api/v1/prices` takes up to 50 names, but every 10 names count as one request. `ManavaultCardSearcher` sends batches of at most 10: bigger ones spend the budget faster without finding cards any faster.
+    - A name the API rejects (under 2 letters) gets an `error` in its own answer rather than failing the batch; the searcher fails only that card.
 - **Nerdik's batch API matches only a card's full name:** "Bonecrusher Giant // Stomp" finds it, "Bonecrusher Giant" finds nothing.
   The name resolver gives shops the front face, so searchers also get `fullName` (Scryfall's name for the whole card) as the third argument of `search()`; `NerdikCardSearcher` searches by it.
   `CachedCardSearcher` keys on both names.
