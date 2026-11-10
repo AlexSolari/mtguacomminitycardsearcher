@@ -13,6 +13,22 @@ export const MAX_CARDS_PER_REQUEST = 100;
 // A long list logs only its first few names; `count` has the rest.
 const LOGGED_NAMES = 5;
 
+// The longest card name is 141 characters ("Our Market Research Shows That Players Like Really Long Card Names…").
+export const MAX_NAME_LENGTH = 150;
+// No card name uses these; they turn up in scanners' injection probes (`{"$ne": null}`, `<machineKey …>`).
+const NOT_IN_NAMES = /[{}<>$=]/;
+
+// Whether a name could be a card. Anything else is dropped before it reaches the shops: in a batched API (MTGin,
+// Nerdik) a name the shop rejects costs extra requests to isolate (see Batcher).
+// `normalize` leaves nothing of a name with nothing searchable ("!!!" would otherwise match every listing).
+export function isSearchableName(name: string) {
+    return (
+        name.length <= MAX_NAME_LENGTH &&
+        !NOT_IN_NAMES.test(name) &&
+        normalize(name) !== ''
+    );
+}
+
 type CardSearch = {
     search(
         card: string,
@@ -73,11 +89,10 @@ export function searchHandler(
         const body = (await req.json().catch(() => null)) as {
             cards?: unknown[];
         } | null;
-        // drop non-strings and names with nothing searchable ("!!!" would otherwise match every listing)
         const cards = (Array.isArray(body?.cards) ? body.cards : [])
             .filter((c): c is string => typeof c === 'string')
             .map((c) => c.trim())
-            .filter((c) => normalize(c) !== '');
+            .filter(isSearchableName);
         logger.info('search', {
             cards: cards.slice(0, LOGGED_NAMES),
             count: cards.length
