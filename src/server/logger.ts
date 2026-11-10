@@ -34,14 +34,31 @@ const LEVELS: Record<LogLevel, number> = {
 };
 
 // JSON.stringify turns an Error into {}, so errors are copied into a plain object first.
-// `status` is kept for errors that carry one (HttpError), so 403s and 429s can be counted.
+// A ShopRequestError's details are kept: `status`, so 403s and 429s can be counted, and the request, the response's
+// type and the start of its body, which usually say what went wrong. A `cause` is kept as its message.
 export function serializeError(err: Error) {
-    const status = (err as { status?: unknown }).status;
     return {
         name: err.name,
         message: err.message,
-        ...(typeof status === 'number' ? { status } : {}),
+        ...errorDetails(err),
         stack: err.stack
+    };
+}
+
+function errorDetails(err: Error) {
+    const { status, method, url, contentType, body, cause } = err as Partial<
+        Record<
+            'status' | 'method' | 'url' | 'contentType' | 'body' | 'cause',
+            unknown
+        >
+    >;
+    return {
+        ...(typeof status === 'number' ? { status } : {}),
+        ...(typeof method === 'string' ? { method } : {}),
+        ...(typeof url === 'string' ? { url } : {}),
+        ...(typeof contentType === 'string' ? { contentType } : {}),
+        ...(typeof body === 'string' ? { body } : {}),
+        ...(cause instanceof Error ? { cause: cause.message } : {})
     };
 }
 
@@ -69,7 +86,16 @@ export function formatJson(record: LogRecord): string {
 
 // Strings without spaces are printed as is; anything else as JSON, so `key=value` pairs stay unambiguous.
 function prettyValue(value: unknown): string {
-    if (isSerializedError(value)) return prettyValue(value.message);
+    // error="HTTP 400 POST https://… {\"error\":\"bad query\"}"
+    if (isSerializedError(value)) {
+        const { message, method, url, body } = value as SerializedError &
+            Partial<Record<'method' | 'url' | 'body', string>>;
+        return prettyValue(
+            [message, url && `${method ?? 'GET'} ${url}`, body]
+                .filter(Boolean)
+                .join(' ')
+        );
+    }
     if (typeof value === 'string' && value !== '' && !/\s/.test(value))
         return value;
     try {
@@ -165,8 +191,16 @@ function reportToSentry(message: string, fields: LogFields) {
             Object.entries(fields).filter(([, value]) => value !== error)
         )
     };
-    if (error) captureException(error, { contexts: { log: context } });
-    else
+    // Sentry records only an error's name, message and stack; its other fields go along as their own context
+    if (error) {
+        const details = errorDetails(error as Error);
+        captureException(error, {
+            contexts: {
+                log: context,
+                ...(Object.keys(details).length ? { error: details } : {})
+            }
+        });
+    } else
         captureMessage(message, { level: 'error', contexts: { log: context } });
 }
 
