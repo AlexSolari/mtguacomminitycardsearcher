@@ -215,14 +215,28 @@ describe('ShopClient spans', () => {
             attributes: {
                 'http.request.method': 'GET',
                 'server.address': host,
+                'url.scheme': 'http',
+                'url.path': '/a',
                 'url.full': `${base}/a`,
                 'http.response.status_code': 200
             },
             status: { code: SpanStatusCode.UNSET }
         });
+        expect(a!.attributes).not.toHaveProperty('url.query');
         expect(a!.attributes['shop.queue_wait_ms']).toBeLessThan(50);
         // '/b' waited an interval for its slot, inside its span
         expect(b!.attributes['shop.queue_wait_ms']).toBeGreaterThanOrEqual(90);
+    });
+
+    test('the query is kept out of url.full, so each shop span is described by its host and path', async () => {
+        const client = new ShopClient(base);
+        await client.fetchHtml(client.url('/search', { q: 'Sol Ring' }));
+        const [span] = spans();
+        expect(span!.attributes).toMatchObject({
+            'url.full': `${base}/search`,
+            'url.path': '/search',
+            'url.query': 'q=Sol+Ring'
+        });
     });
 
     test('"server busy" is an error span', async () => {
