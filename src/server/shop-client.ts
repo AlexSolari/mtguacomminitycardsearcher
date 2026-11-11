@@ -120,13 +120,19 @@ export class ShopClient {
         const { signal, ...rest } = init;
         // Bun's fetch isn't auto-instrumented, so each shop request gets its own client span by hand. It starts
         // before the wait for a slot: the queue is often most of a request's time, and "server busy" happens there.
+        // The query (the card name) goes in `url.query`, not `url.full`: Sentry builds the span's description from
+        // `url.full`, and a scrubbed one turns every shop's span into the same "GET [Filtered]". The shops are
+        // searched in parallel, so identical descriptions get flagged as an N+1 API call.
         return withSpan(
             `${rest.method ?? 'GET'} ${this.host}`,
             SpanKind.CLIENT,
             {
                 'http.request.method': rest.method ?? 'GET',
                 'server.address': this.host,
-                'url.full': target.href
+                'url.scheme': target.protocol.replace(/:$/, ''),
+                'url.path': target.pathname,
+                'url.full': `${target.origin}${target.pathname}`,
+                ...(target.search && { 'url.query': target.search.slice(1) })
             },
             async (span) => {
                 const queued = performance.now();
