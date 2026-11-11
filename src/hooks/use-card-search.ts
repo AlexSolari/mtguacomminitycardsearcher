@@ -19,6 +19,11 @@ export const isComplete = (entry: SearchEntry) =>
 // handful in flight finishes a deck about as fast as all of them at once.
 const CONCURRENT_CARDS = 6;
 
+// Cards in one search, as the server's MAX_CARDS_PER_REQUEST. A shared link fills in the list and searches it on
+// opening, so without a cap whoever writes the link decides how much work the opener's browser starts against the
+// shops; the cap also covers lists typed or pasted in.
+export const MAX_SEARCH_CARDS = 100;
+
 // Reads the NDJSON lines of /api/search as they arrive, passing each update on. Resolves once the stream ends.
 async function readUpdates(
     res: Response,
@@ -87,7 +92,7 @@ export function useCardSearch() {
 
     // Returns whether a search was started. A search started while another is running replaces it.
     function search(cards: CardEntry[]) {
-        if (cards.length === 0) return false;
+        if (cards.length === 0 || cards.length > MAX_SEARCH_CARDS) return false;
 
         // cancel the previous search: its pending requests, and any responses still on their way
         searchRef.current?.abort();

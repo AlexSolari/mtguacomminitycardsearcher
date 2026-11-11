@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { formatCardList } from '@/decklist';
 import { useDeckImport, type ImportNote } from '@/hooks/use-deck-import';
 import { useFileDrop } from '@/hooks/use-file-drop';
+import { MAX_SEARCH_CARDS } from '@/hooks/use-card-search';
 import { CARDS, plural } from '@/i18n';
 
 const DECK_FILE_ACCEPT = '.txt,.dec,.dek,.csv,.mwDeck,text/plain,text/csv';
@@ -46,6 +47,7 @@ export function CardListForm({
         onTextChange(formatCardList(cards))
     );
     const drop = useFileDrop(deckImport.importFiles);
+    const tooMany = cardNames.length > MAX_SEARCH_CARDS;
 
     function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
         if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
@@ -130,10 +132,11 @@ export function CardListForm({
 
             {deckImport.note && <ImportNoteMessage note={deckImport.note} />}
             {links.length > 0 && <DeckLinksNotice count={links.length} />}
+            {tooMany && <TooManyCardsNotice count={cardNames.length} />}
 
             <Button
                 type='submit'
-                disabled={cardNames.length === 0}
+                disabled={cardNames.length === 0 || tooMany}
                 className='h-11 font-semibold shadow-lg shadow-primary/20 transition hover:brightness-95 dark:bg-linear-to-r dark:from-primary dark:to-amber-500 dark:hover:brightness-110'
             >
                 {/* still clickable while searching: it restarts the search with the edited list */}
@@ -191,6 +194,16 @@ function DeckLinksNotice({ count }: { count: number }) {
                 {count === 1 ? 'Посилання пропущено.' : 'Посилання пропущені.'}
             </p>
         </div>
+    );
+}
+
+function TooManyCardsNotice({ count }: { count: number }) {
+    return (
+        <p className='flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive'>
+            <AlertTriangle className='size-4 shrink-0' />У списку{' '}
+            {plural(count, CARDS)}, а один пошук вміщує до {MAX_SEARCH_CARDS}.
+            Розбийте список на кілька пошуків.
+        </p>
     );
 }
 
