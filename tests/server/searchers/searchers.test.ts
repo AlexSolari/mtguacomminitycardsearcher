@@ -1,6 +1,7 @@
 // Every searcher, on saved pages served by a fake client: which URLs it asks for, and what it does with the
 // answers (MTGin's batching, CartOn's follow-up pages, fallbacks when they fail).
 import { describe, expect, test } from 'bun:test';
+import { BATCH_WINDOW_MS } from '@/server/batcher';
 import { HttpError, ShopClient } from '@/server/shop-client';
 import { parseCarton } from '@/server/parsers/scrapers/carton';
 import { parseManavault } from '@/server/parsers/api/manavault';
@@ -15,6 +16,7 @@ import {
 } from '@/server/searchers/manavault-card-searcher';
 import { NerdikCardSearcher } from '@/server/searchers/nerdik-card-searcher';
 import { PaytowinCardSearcher } from '@/server/searchers/paytowin-card-searcher';
+import type { WindowBudget } from '@/server/window-budget';
 import { captureLogs } from '../capture-logs';
 
 const fixture = (name: string) =>
@@ -109,7 +111,7 @@ describe('GinCardSearcher', () => {
     }
 
     // long enough for the batch window to pass and the request to go out
-    const waitForBatch = () => Bun.sleep(40);
+    const waitForBatch = () => Bun.sleep(BATCH_WINDOW_MS + 20);
 
     // the key allows 60 requests a minute for all our users together
     test('sends at most one request a second', () => {
@@ -159,6 +161,16 @@ describe('GinCardSearcher', () => {
         expect(requests.map((r) => r.names)).toEqual([['Daze', 'Sol Ring']]);
         expect(daze!.map((r) => r.name)).toEqual(['Daze — Nemesis #1']);
         expect(sol!.map((r) => r.name)).toEqual(['Sol Ring — Nemesis #2']);
+    });
+
+    // a search's first cards (see searchHandler) skip the batch window
+    test('an urgent search is sent without waiting for the batch window', async () => {
+        const { client, requests } = fakeGin();
+        const gin = new GinCardSearcher(client, 'test-key');
+        const daze = gin.search('Daze', undefined, undefined, true);
+        await Bun.sleep(5);
+        expect(requests.map((r) => r.names)).toEqual([['Daze']]);
+        await daze;
     });
 
     test('searches arriving while a request is out go in the next one', async () => {
@@ -429,14 +441,61 @@ describe('ManavaultCardSearcher', () => {
         return { client, requests };
     }
 
-    // The API allows 60 requests a minute for all our users together, counted in a fixed minute from its first
-    // request: a little over a second apart, so a delayed first request can't let a 61st into its minute.
-    test('sends a request at most every 1.1 seconds', () => {
-        const { client } = new ManavaultCardSearcher() as unknown as {
+    // The minute's budget (WindowBudget) is what keeps us within the API's limit; the client keeps the usual spacing.
+    test('uses the default client spacing and a budget of 55 requests per 61 s', () => {
+        const { client, budget } = new ManavaultCardSearcher() as unknown as {
             client: { baseUrl: string; intervalMs: number };
+            budget: { capacity: number; windowMs: number };
         };
         expect(client.baseUrl).toBe(base);
-        expect(client.intervalMs).toBe(1100);
+        expect(client.intervalMs).toBe(200);
+        expect(budget).toMatchObject({ capacity: 55, windowMs: 61_000 });
+    });
+
+    // A budget that records what each request was charged.
+    function recordingBudget() {
+        const costs: number[] = [];
+        let exhausted = false;
+        const budget = {
+            run: (cost: number, fn: () => Promise<unknown>) => {
+                costs.push(cost);
+                return fn();
+            },
+            exhaust: () => (exhausted = true)
+        } as unknown as WindowBudget;
+        return { budget, costs, exhausted: () => exhausted };
+    }
+
+    test('each request is charged a request per 10 names', async () => {
+        const { client, requests } = fakeManavault();
+        const { budget, costs } = recordingBudget();
+        const mv = new ManavaultCardSearcher(client, 'test', budget);
+        const names = Array.from({ length: 61 }, (_, i) => `Card ${i}`);
+        await Promise.all(names.map((n) => mv.search(n)));
+        expect(requests.map((r) => r.body.cards.length)).toEqual([50, 11]);
+        expect(costs).toEqual([5, 2]);
+    });
+
+    test('a 429 spends the rest of the minute', async () => {
+        const { client } = fakeManavault(() => {
+            throw new HttpError(429);
+        });
+        const { budget, exhausted } = recordingBudget();
+        await expect(
+            new ManavaultCardSearcher(client, 'test', budget).search('Daze')
+        ).rejects.toThrow('HTTP 429');
+        expect(exhausted()).toBe(true);
+    });
+
+    test('another failure leaves the budget alone', async () => {
+        const { client } = fakeManavault(() => {
+            throw new HttpError(503);
+        });
+        const { budget, exhausted } = recordingBudget();
+        await expect(
+            new ManavaultCardSearcher(client, 'test', budget).search('Daze')
+        ).rejects.toThrow('HTTP 503');
+        expect(exhausted()).toBe(false);
     });
 
     test('POSTs the name with its source and parses the answer', async () => {
@@ -476,14 +535,13 @@ describe('ManavaultCardSearcher', () => {
         expect(sol!.map((r) => r.name)).toEqual(['Sol Ring — Nemesis #2']);
     });
 
-    // every 10 names cost a request of the 60 a minute, so bigger batches wouldn't find cards any faster
-    test('more than 10 searches are split into requests of 10', async () => {
+    test('more than 50 searches are split into requests of 50', async () => {
         const { client, requests } = fakeManavault();
         const mv = new ManavaultCardSearcher(client, 'test');
-        const names = Array.from({ length: 25 }, (_, i) => `Card ${i}`);
+        const names = Array.from({ length: 120 }, (_, i) => `Card ${i}`);
         const results = await Promise.all(names.map((n) => mv.search(n)));
-        expect(requests.map((r) => r.body.cards.length)).toEqual([10, 10, 5]);
-        expect(results[17]![0]!.name).toStartWith('Card 17 — ');
+        expect(requests.map((r) => r.body.cards.length)).toEqual([50, 50, 20]);
+        expect(results[77]![0]!.name).toStartWith('Card 77 — ');
     });
 
     test("a name the API rejects fails only that name's search", async () => {

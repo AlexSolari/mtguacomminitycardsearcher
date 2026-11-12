@@ -1,8 +1,8 @@
 import PQueue from 'p-queue';
 
-// Caps how many cards one client can have searching at once. The shop queues are shared by every user, and the
-// browser's own cap (CONCURRENT_CARDS in use-card-search.ts) only binds our frontend, so a script could
-// otherwise fill the queues and leave everyone else with "server busy".
+// Caps how many tasks each key has running at once; the route keys it by client and shop (see ShopLimits). The shop
+// queues are shared by every user, so without it one client's long list (or a script) could fill them and leave
+// everyone else with "server busy".
 // Cards over the cap aren't refused: they wait their turn (first come, first served) and start as running ones
 // finish. A waiting card leaves the queue when its request is cancelled (e.g. the client disconnects).
 export class InFlightLimiter {

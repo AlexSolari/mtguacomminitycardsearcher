@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import type { CardEntry } from '@/decklist';
 import type { SearchResult, SearchUpdate } from '@/search-result';
 
-// One entry per searched card, in list order. Each card is fetched by its own request, so sections fill in
-// as soon as their card is done instead of waiting for the slowest one. Within a card, the server streams the
-// result each time a shop finishes, so `result` can be partial: `result.pending` lists the shops still searching.
+// One entry per searched card, in list order. The whole list goes in one request (or a few, for a long list), and
+// the server streams each card's result each time one of its shops finishes, so sections fill in as their shops
+// answer instead of waiting for the slowest one. `result` can be partial: `result.pending` lists the shops still
+// searching.
 export type SearchEntry = {
     card: string;
     count: number; // copies wanted, from the list's quantity
@@ -14,10 +15,13 @@ export type SearchEntry = {
 export const isComplete = (entry: SearchEntry) =>
     entry.result !== null && !entry.result.pending?.length;
 
-// Cards in flight at once. The server's per-shop request queues are shared by every user and capped
-// (see ShopClient), so one big deck mustn't fill them. The shops' rate limit caps throughput anyway, so a
-// handful in flight finishes a deck about as fast as all of them at once.
-const CONCURRENT_CARDS = 6;
+// Cards per request: the server's MAX_CARDS_PER_REQUEST. The server paces each shop itself (see ShopLimits in
+// search-route.ts), so a list is sent whole: batched shops (MTGin, Nerdik, Mana Vault) then look it all up at once.
+const CARDS_PER_REQUEST = 100;
+
+// The first few cards go in a request of their own, sent before the rest, so they reach the name lookup and the
+// batched shops first and the top of the list fills in sooner.
+const FIRST_REQUEST_CARDS = 2;
 
 // Cards in one search, as the server's MAX_CARDS_PER_REQUEST. A shared link fills in the list and searches it on
 // opening, so without a cap whoever writes the link decides how much work the opener's browser starts against the
@@ -43,40 +47,43 @@ async function readUpdates(
     if (buffered.trim()) onUpdate(JSON.parse(buffered) as SearchUpdate);
 }
 
-// Searches one card, calling `onResult` with every snapshot the server streams. The last call has the complete
-// result; a failure becomes a result with a card-level error, so the card always ends complete.
-async function searchCard(
-    card: string,
+// Searches a list of cards in one request, calling `onResult` with every snapshot the server streams for card `i`.
+// Each card's last call has its complete result; a failure becomes a card-level error on every card not yet
+// complete, so every card always ends complete.
+async function searchCards(
+    cards: string[],
     signal: AbortSignal,
-    onResult: (result: SearchResult) => void
+    onResult: (i: number, result: SearchResult) => void
 ) {
-    // `as`: assigned in a callback, which TypeScript's narrowing doesn't see
-    let last = null as SearchResult | null;
+    const last: (SearchResult | null)[] = cards.map(() => null);
     const fail = (message: string) =>
-        onResult({
-            card: last?.card ?? card,
-            typed: last?.typed,
-            links: last?.links ?? [],
-            errors: [...(last?.errors ?? []), { message }]
+        cards.forEach((card, i) => {
+            const r = last[i];
+            if (r && !r.pending?.length) return;
+            onResult(i, {
+                card: r?.card ?? card,
+                typed: r?.typed,
+                links: r?.links ?? [],
+                errors: [...(r?.errors ?? []), { message }]
+            });
         });
     try {
         const res = await fetch('/api/search', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ cards: [card] }),
+            body: JSON.stringify({ cards }),
             signal
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        await readUpdates(res, ({ result }) => {
-            last = result;
-            onResult(result);
+        await readUpdates(res, ({ index, result }) => {
+            last[index] = result;
+            onResult(index, result);
         });
-        if (!last) onResult({ card, links: [], errors: [] });
-        // the stream ended before the card did (server restart, dropped connection)
-        else if (last.pending?.length) fail('connection closed');
+        // the stream ended before every card did (server restart, dropped connection)
+        fail('connection closed');
     } catch (err) {
         if (signal.aborted) throw err;
-        console.error(`search for "${card}" failed`, err);
+        console.error('search failed', err);
         fail((err as Error).message);
     }
 }
@@ -106,28 +113,35 @@ export function useCardSearch() {
                 result: null
             }))
         );
-        // CONCURRENT_CARDS workers take the next card in list order until none are left
-        let next = 0;
-        const work = async () => {
-            while (next < cards.length) {
-                const i = next++;
-                await searchCard(
-                    cards[i]!.name,
-                    controller.signal,
-                    (result) => {
-                        if (controller.signal.aborted) return;
-                        setEntries(
-                            (prev) =>
-                                prev &&
-                                prev.map((e, j) =>
-                                    j === i ? { ...e, result } : e
-                                )
-                        );
-                    }
+        // the first FIRST_REQUEST_CARDS cards, then the rest CARDS_PER_REQUEST at a time
+        const ranges: [number, number][] = [];
+        for (let start = 0; start < cards.length;) {
+            const end = Math.min(
+                cards.length,
+                start + (start === 0 ? FIRST_REQUEST_CARDS : CARDS_PER_REQUEST)
+            );
+            ranges.push([start, end]);
+            start = end;
+        }
+        // sent in list order, one right after another: the first request's names reach the name lookup's queue first
+        const send = (k: number) => {
+            const range = ranges[k];
+            if (!range) return;
+            const [start, end] = range;
+            const names = cards.slice(start, end).map((c) => c.name);
+            searchCards(names, controller.signal, (i, result) => {
+                if (controller.signal.aborted) return;
+                setEntries(
+                    (prev) =>
+                        prev &&
+                        prev.map((e, j) =>
+                            j === start + i ? { ...e, result } : e
+                        )
                 );
-            }
+            }).catch(() => {}); // aborted
+            send(k + 1);
         };
-        for (let w = 0; w < CONCURRENT_CARDS; w++) work().catch(() => {}); // aborted
+        send(0);
         return true;
     }
 

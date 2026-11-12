@@ -1,7 +1,7 @@
 // The batching itself is exercised through GinCardSearcher (tests/server/searchers/searchers.test.ts): aborts,
 // failures and requests held in flight. These cover what's generic about it.
 import { describe, expect, test } from 'bun:test';
-import { Batcher } from '@/server/batcher';
+import { Batcher, BATCH_WINDOW_MS } from '@/server/batcher';
 import { HttpError } from '@/server/shop-client';
 
 describe('Batcher', () => {
@@ -95,11 +95,51 @@ describe('Batcher', () => {
         }, 10);
         const caller = new AbortController();
         const results = ['a', 'bad'].map((i) => batcher.add(i, caller.signal));
-        await Bun.sleep(30); // the batch is out
+        await Bun.sleep(BATCH_WINDOW_MS + 10); // the batch is out
         caller.abort();
         fail();
         await Promise.allSettled(results);
         await Bun.sleep(5);
         expect(batches).toEqual([['a', 'bad']]);
+    });
+});
+
+describe('Batcher urgent items', () => {
+    test('an urgent item goes out at once, with whatever was waiting', async () => {
+        const batches: string[][] = [];
+        const batcher = new Batcher<string, string>(
+            async (items) => {
+                batches.push(items);
+                return items;
+            },
+            10,
+            10_000
+        );
+        const waiting = batcher.add('a');
+        const urgent = batcher.add('b', undefined, true);
+        expect(await Promise.all([waiting, urgent])).toEqual(['a', 'b']);
+        expect(batches).toEqual([['a', 'b']]);
+    });
+
+    test('an urgent item that arrives while a batch is out goes in the next one, right after', async () => {
+        const batches: string[][] = [];
+        let release!: () => void;
+        const held = new Promise<void>((r) => (release = r));
+        const batcher = new Batcher<string, string>(
+            async (items) => {
+                batches.push(items);
+                if (batches.length === 1) await held;
+                return items;
+            },
+            10,
+            10_000
+        );
+        const first = batcher.add('a', undefined, true);
+        const second = batcher.add('b', undefined, true);
+        await Bun.sleep(5);
+        expect(batches).toEqual([['a']]);
+        release();
+        expect(await Promise.all([first, second])).toEqual(['a', 'b']);
+        expect(batches).toEqual([['a'], ['b']]);
     });
 });
