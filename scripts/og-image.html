@@ -139,7 +139,16 @@
             }
             .card.front {
                 transform: rotate(-3deg);
-                background: linear-gradient(#1f6fd1 0 44%, #ffd23f 44% 100%);
+                background: linear-gradient(#1f6fd1 0 50%, #ffd23f 50% 100%);
+            }
+            .wheel {
+                position: absolute;
+                left: 50%;
+                top: 50%;
+                width: 104px;
+                height: 104px;
+                transform: translate(-50%, -50%);
+                filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.35));
             }
             .tag {
                 position: absolute;
@@ -151,6 +160,7 @@
                 color: #1a1530;
                 box-shadow: 0 14px 30px rgba(0, 0, 0, 0.4);
                 transform: rotate(4deg);
+                text-align: center;
             }
             .tag small {
                 display: block;
@@ -177,11 +187,11 @@
         <div class="frame">
             <div class="brand">
                 <img src="../src/favicon.svg" alt="" />
-                <div class="eyebrow">Ціни на синглі Magic: The Gathering</div>
+                <div class="eyebrow">Ціни на сингли Magic: The Gathering</div>
             </div>
             <h1>MTG UA Community<br /><span>Card Searcher</span></h1>
             <p class="lead">
-                Вставте список карт і порівняйте ціни в
+                Вставте список карт та порівняйте ціни<br />в
                 <b>{{SHOP_COUNT}}</b> українських магазинах одразу
             </p>
             <div class="shops">{{SHOPS}}</div>
@@ -189,7 +199,51 @@
             <div class="fan">
                 <div class="card back-left"></div>
                 <div class="card back-right"></div>
-                <div class="card front"></div>
+                <div class="card front">
+                    <!-- a simplified colour wheel on the flag's seam: the five mana colours, clockwise from white -->
+                    <svg class="wheel" viewBox="0 0 80 80">
+                        <circle
+                            cx="40"
+                            cy="40"
+                            r="38"
+                            fill="#1a1530"
+                            stroke="#f2f0f7"
+                            stroke-opacity=".85"
+                            stroke-width="2"
+                        />
+                        <g
+                            stroke="#f2f0f7"
+                            stroke-opacity=".5"
+                            stroke-width="1.5"
+                        >
+                            <circle cx="40" cy="18" r="7" fill="#f8f3d6" />
+                            <circle
+                                cx="60.92"
+                                cy="33.2"
+                                r="7"
+                                fill="#1f7ad1"
+                            />
+                            <circle
+                                cx="52.93"
+                                cy="57.8"
+                                r="7"
+                                fill="#4a4060"
+                            />
+                            <circle
+                                cx="27.07"
+                                cy="57.8"
+                                r="7"
+                                fill="#d8332b"
+                            />
+                            <circle
+                                cx="19.08"
+                                cy="33.2"
+                                r="7"
+                                fill="#1f8f4e"
+                            />
+                        </g>
+                    </svg>
+                </div>
                 <!-- the logo's gold magnifier, with a dark under-stroke so it reads over the yellow -->
                 <svg class="lens" viewBox="0 0 64 64">
                     <g stroke="#1a1530" stroke-linecap="round">
