@@ -3,6 +3,7 @@ import type { OfferClick, OfferGroup } from '../search-result';
 import { SHOP_INFO, type ShopId } from '../shops';
 import { requestContext, tracer } from './tracing';
 import type { VisitorIds } from './visitor-id';
+import { logger } from './logger';
 
 // A click is a few short fields; anything bigger isn't from our frontend.
 export const MAX_CLICK_BYTES = 1024;
@@ -78,6 +79,7 @@ export function clickHandler(visitors: VisitorIds) {
                 requestContext(req)
             )
             .end();
+        logger.info('click', { ...attributes, client });
         return new Response(null, { status: 204 });
     };
 }
