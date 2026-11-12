@@ -18,7 +18,7 @@ The UI is in Ukrainian.
 | Magic Swamp         | [magicswamp.com.ua](https://magicswamp.com.ua)   |
 | Citadel             | [citadel.kyiv.ua](https://citadel.kyiv.ua)       |
 
-MTGin, Nerdik, PayToWin (auctions) and Magic Swamp are read from their APIs; the other shops don't offer one, so prices are scraped from their search pages.
+MTGin, Mana Vault, Nerdik, PayToWin (auctions) and Magic Swamp are read from their APIs; the other shops (CartOn, Kartoteka, Citadel) don't offer one, so prices are scraped from their pages.
 MTGin's and Nerdik's APIs match card names exactly, so they never contribute fuzzy "other matches".
 A shop redesign can break its parser. If one shop stops returning results, that's the likely cause.
 
@@ -36,10 +36,14 @@ A shop redesign can break its parser. If one shop stops returning results, that'
 - **Summary**: how many cards have an exact match, the number of offers, the cheapest total and which shops failed.
   The total counts exact matches only, for the quantity in the list, within each shop's stock. Cards with no exact match or too few copies are listed separately.
 - Results for each card appear as soon as each shop answers; there's no waiting for the whole list or the slowest shop.
+- **Shareable links**: the search is kept in the page's URL (`?q=Fatal+Push&q=2+Consider`), so a link opens the same list and searches it.
+- **Not found**: cards that no shop has are listed together.
+- **Blocked shops**: when a shop refuses our server (HTTP 403, as Nerdik and Kartoteka do to some server IPs), the card links to that shop's own search to check by hand.
+- **Light and dark themes**, following the system setting unless you pick one.
 
 ## Running locally
 
-Requires [Bun](https://bun.com) 1.3 or newer.
+Requires [Bun](https://bun.com) 1.4.3 or newer (for `bun check`, the built-in type checker the scripts run).
 
 ```bash
 bun install
@@ -60,6 +64,8 @@ bun start      # NODE_ENV=production, serves the app and the API
 
 `bun start` bundles the frontend on startup, so there's no separate build step.
 `bun run build` writes a static frontend bundle to `dist/` if you need one for other hosting; the server doesn't use it.
+
+Tracing is optional: `bun start` sends spans over OTLP when `OTEL_EXPORTER_OTLP_ENDPOINT` is set (Railway sets it when tracing is on), and to Sentry, along with server errors, when `SENTRY_DSN` is set. With neither, nothing is sent.
 
 ## How it works
 
@@ -91,25 +97,33 @@ browser ──POST /api/search {cards:[…]}──▶ Bun server
 
 ```
 src/
-  index.ts                  Bun server: /api/search + serves the frontend
+  index.ts                  Bun server: /api/search, /api/click, serves the frontend
+  instrumentation.ts        OpenTelemetry / Sentry setup, preloaded by `bun start`
   shops.ts                  shop list (used by server and browser)
   search-result.ts          API result types (used by server and browser)
   matching.ts               card name matching (used by server and browser)
   decklist.ts, deckfile.ts  card list / deck file parsing, with counts (browser)
   results.ts                grouping offers per card, best price, the cheapest total (browser)
   i18n.ts                   Ukrainian plural forms
+  theme.ts                  light / dark theme choice
   server/
-    search-route.ts         POST /api/search: input checks, per-client limit
+    search-route.ts         POST /api/search: input checks, per-client limit, NDJSON streaming
+    click-route.ts          POST /api/click: records which offer a user opened
+    name-resolver.ts        Scryfall lookup of each typed name
     shop-client.ts          rate-limited fetch with timeout, one per shop
     card-search-service.ts  searches all shops for one card
     cached-card-searcher.ts result cache
+    batcher.ts              many cards per request for the batched APIs (MTGin, Nerdik, Mana Vault)
+    window-budget.ts        Mana Vault's 60-requests-a-minute budget
+    logger.ts, tracing.ts   structured logs, spans
     searchers/              one per shop: which URLs to fetch
     parsers/                one per shop: turns a response into CardResult[]
       api/                  JSON APIs (MTGin, Nerdik, PayToWin, Magic Swamp, Mana Vault)
       scrapers/             HTML search pages (Carton, Citadel, Kartoteka)
   App.tsx                   page layout and state
   components/               UI (card-section.tsx renders a card's results, search-summary.tsx the totals)
-  hooks/                    search, deck import, drag-and-drop
+  hooks/                    search, deck import, drag-and-drop, theme
+  lib/                      shareable search URLs, click reporting
 ```
 
 ## Contributing
