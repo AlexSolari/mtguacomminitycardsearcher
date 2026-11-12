@@ -10,15 +10,16 @@ See [README.md](README.md) for what the app does and the request flow.
 | ------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
 | Dev server (hot reload, port 3000, `PORT` overrides)                | `bun dev`                                                                           |
 | Production server                                                   | `bun start`                                                                         |
-| Type-check                                                          | `bunx tsc --noEmit`                                                                 |
+| Type-check                                                          | `bun check`                                                                         |
 | Format                                                              | `bun run format` (or `bunx prettier --write <files>`)                               |
 | Static frontend bundle                                              | `bun run build -- --outdir=<dir>` (defaults to `dist/`, which it **deletes first**) |
-| Tests                                                               | `bun test` (offline, ~3 s)                                                          |
+| Tests                                                               | `bun test` (offline, ~6 s)                                                          |
 | Coverage (fails under 95% lines / 90% functions in any file)        | `bun run test:coverage`                                                             |
-| Refresh the parser fixtures from the real shops                     | `bun scripts/update-fixtures.ts` (~7 requests)                                      |
+| Refresh the parser fixtures from the real shops                     | `bun scripts/update-fixtures.ts` (~9 requests)                                      |
 | Re-render the link preview image (`src/og-image.png`, needs Chrome) | `bun scripts/render-og-image.ts`                                                    |
 
-**Type-check baseline:** zero errors. `bun dev`, `bun run build` and `bun run test` run `bun check` first and stop on any type error.
+**Type-check baseline:** zero errors. `bun dev`, `bun run build`, `bun run test` and `bun run test:coverage` run `bun check` first and stop on any type error.
+TypeScript isn't a dependency: don't use `bunx tsc`, which fetches an unrelated npm package named `tsc`.
 
 **Tests** live in `tests/`, mirroring `src/` (`src/server/shop-client.ts` → `tests/server/shop-client.test.ts`), import with `@/`, and never touch the real shops.
 
@@ -26,7 +27,8 @@ See [README.md](README.md) for what the app does and the request flow.
   A parser change that alters output fails its snapshot. If the change is intended, review the diff and run `bun test --update-snapshots`.
   When a shop redesigns, refresh the fixtures, fix the parser, then update the snapshots.
   Prettier ignores `tests/fixtures/` and `__snapshots__/`, so formatting never rewrites them.
-- **Fixtures hold no personal data:** `update-fixtures.ts` keeps only the PayToWin and MTGin fields the parsers read, dropping sellers, bidders and descriptions. Keep it that way for any new source.
+- **Fixtures hold no personal data:** `update-fixtures.ts` keeps only the fields the parsers read (via `pick`), dropping sellers, bidders, descriptions and cart reservations (PayToWin, MTGin, Magic Swamp, CartOn's product pages, Citadel, Mana Vault). Keep it that way for any new source.
+  Nerdik's and MTGin's fixtures need `NERDIK_API_KEY` / `MTGIN_API_KEY` in `.env`; without a key that fixture is left as it is.
 - **New code:** add tests for it at the mirrored path in `tests/`. For a new shop, add its page to `update-fixtures.ts` and a test file next to the parser's mirrored path (`tests/server/parsers/{api,scrapers}/<shop>.test.ts`, using `parser-fixtures.ts`).
 - **Server:** for an end-to-end check, start it on a spare port (`PORT=3917 bun src/index.ts`) and `curl -X POST localhost:3917/api/search -d '{"cards":["Sol Ring"]}'`.
   This hits the real shops, so keep it to a handful of requests.
@@ -47,7 +49,7 @@ See [README.md](README.md) for what the app does and the request flow.
 - **Icons:** lucide-react, except brand logos. lucide is removing those, so they're inline SVGs in `components/icons.tsx`.
 - **Light and dark themes:** colours must work in both. Use the theme tokens (`text-primary`, `bg-card`, …), which `src/index.css` defines for each; give a hard-coded colour a `dark:` variant (`text-emerald-700 dark:text-emerald-400`).
   Overlays on card images (`bg-black/70 text-white`) are the exception: the image is behind them in both themes.
-  The theme choice logic is in `src/theme.ts`, and the inline script in `index.html` repeats it before first paint; change both together.
+  The theme choice logic is in `src/theme.ts`, and the inline script in `src/index.html` repeats it before first paint; change both together.
 
 ## Architecture rules
 
@@ -76,6 +78,7 @@ See [README.md](README.md) for what the app does and the request flow.
     - the message is a fixed string, and everything that varies goes in fields: `logger.warn('parser found nothing', { shop, url })`
     - pass errors as a field (`error: err`); the logger serializes them
     - production writes JSON lines to stdout in Railway's structured format (`message`, `level`, every other key a filterable attribute); elsewhere it writes one readable line. `LOG_LEVEL` and `LOG_FORMAT` override this
+    - `logger.error` also reports to Sentry when it's configured (see Tracing)
     - tests call `captureLogs()` from `tests/server/capture-logs.ts` and assert on the records, not on `console`
     - never log client IPs. To count unique visitors, use `VisitorIds` (`src/server/visitor-id.ts`): a daily-salted hash that's never stored. Don't add a cookie or a localStorage id; that would need a consent banner
 - **Prices:**
@@ -84,9 +87,13 @@ See [README.md](README.md) for what the app does and the request flow.
     - auctions set `auction`, and their price never counts toward best price or totals
     - the summary total uses exact matches only, times the list quantity, within stock (`cheapestCopies` in `src/results.ts`)
 
+- **Tracing:** `bun start` preloads `src/instrumentation.ts`, which starts OpenTelemetry only when `OTEL_EXPORTER_OTLP_ENDPOINT` (Railway) or `SENTRY_DSN` is set; otherwise the spans in the code (`tracer` in `src/server/tracing.ts`) are no-ops, so dev and tests are unaffected.
+  Tests assert on spans with `tests/server/capture-spans.ts`.
+- **Secrets:** MTGin and Nerdik need `MTGIN_API_KEY` and `NERDIK_API_KEY` (Bun loads `.env`). Without one, that shop fails every search with an error rather than silently finding nothing.
+
 ### Adding a shop
 
-1. **Shop info:** add its id to `ShopId` and an entry to `SHOP_INFO` in `src/shops.ts` (label, homepage, favicon).
+1. **Shop info:** add its id to `ShopId` and an entry to `SHOP_INFO` in `src/shops.ts` (`label`, `homepage`, `icon`; `searchUrl` if the shop may answer our server 403 and the user should get a link to search it by hand, see `manualSearchUrl`).
 2. **Parser:** write `src/server/parsers/api/<shop>.ts` if the shop has a JSON API, otherwise `src/server/parsers/scrapers/<shop>.ts`. Start with a comment showing the markup or JSON shape it reads.
     - Fill the optional `CardResult` fields the shop exposes: foil, language, stock, condition, old price.
     - Drop out-of-stock items unless the shop only lists in-stock ones.
@@ -129,6 +136,6 @@ See [README.md](README.md) for what the app does and the request flow.
 
 ## Scraping etiquette
 
-- **Request rate:** keep it at or below today's (≥200 ms between requests per shop, at most 6 cards per client at each shop at once, `CARDS_PER_SHOP` in `src/index.ts`).
-- **Bot challenges:** some shop pages sit behind one, like Kartoteka's product pages and Nerdik's "in stock" filter URL. Work from the pages that don't, rather than trying to get around the challenge.
+- **Request rate:** keep it at or below today's (≥200 ms between requests per shop, the `ShopClient` default; at most 6 cards per client at each scraped shop at once, `CARDS_PER_SHOP` in `src/index.ts`; batched shops take a whole request's list, `MAX_CARDS_PER_REQUEST`, since it goes out in few requests).
+- **Bot challenges:** some shop pages sit behind one, like Kartoteka's product pages and Nerdik's site search (we use Nerdik's API instead). Work from the pages that don't, rather than trying to get around the challenge.
 - **Live testing:** a few searches at most; don't loop over many cards against the real shops.
