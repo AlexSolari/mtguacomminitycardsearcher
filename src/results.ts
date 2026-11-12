@@ -75,3 +75,8 @@ export function cheapestCopies(offers: CardResult[], count: number) {
     }
     return { cost, copies };
 }
+
+// Nothing to show for the card: no offers, no shop failed (a failure shows a "check manually" tile), and no shop
+// still searching.
+export const isNotFound = (r: SearchResult) =>
+    r.links.length === 0 && r.errors.length === 0 && !r.pending?.length;

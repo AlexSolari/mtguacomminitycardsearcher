@@ -333,3 +333,40 @@ export function CardSectionSkeleton({
         </section>
     );
 }
+
+// Cards no shop has, gathered into one block at the bottom instead of a section each.
+export function NotFoundSection({
+    entries
+}: {
+    entries: { id: string; card: string; count: number; typed?: string }[];
+}) {
+    return (
+        <section className='flex flex-col gap-3 rounded-xl border border-dashed px-4 py-4 animate-in fade-in duration-500'>
+            <div className='flex items-center gap-2 text-sm text-muted-foreground'>
+                <SearchX className='size-4 shrink-0' />
+                Не знайдено в жодному магазині
+                <span className='rounded-full bg-muted px-2 py-0.5 text-xs tabular-nums'>
+                    {entries.length}
+                </span>
+            </div>
+            <ul className='flex flex-wrap gap-2'>
+                {entries.map((e) => (
+                    <li
+                        key={e.id}
+                        title={
+                            e.typed ? `Виправлено з «${e.typed}»` : undefined
+                        }
+                        className='rounded-full border bg-muted/40 px-3 py-1 text-sm'
+                    >
+                        {e.card}
+                        {e.count > 1 && (
+                            <span className='ml-1.5 text-muted-foreground tabular-nums'>
+                                ×{e.count}
+                            </span>
+                        )}
+                    </li>
+                ))}
+            </ul>
+        </section>
+    );
+}

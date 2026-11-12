@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { cheapestCopies, offerKey, splitMatches } from '@/results';
+import { cheapestCopies, isNotFound, offerKey, splitMatches } from '@/results';
 import type { CardResult, SearchResult } from '@/search-result';
 
 const offer = (
@@ -112,4 +112,31 @@ test('offerKey tells apart offers that share a URL', () => {
     expect(offerKey(a)).not.toBe(offerKey({ ...a, condition: 'LP' }));
     expect(offerKey(a)).not.toBe(offerKey({ ...a, language: 'JA' }));
     expect(offerKey(a)).not.toBe(offerKey({ ...a, foil: true }));
+});
+
+describe('isNotFound', () => {
+    test('no offers, no errors, nothing pending', () => {
+        expect(isNotFound(result('Sol Ring', []))).toBe(true);
+    });
+
+    test('any offer counts as found', () => {
+        expect(isNotFound(result('Sol Ring', [offer('Sol Ring', 10)]))).toBe(
+            false
+        );
+    });
+
+    test('a failed shop is not "not found": it gets a manual check tile', () => {
+        expect(
+            isNotFound({
+                ...result('Sol Ring', []),
+                errors: [{ shop: 'carton', message: 'timeout' }]
+            })
+        ).toBe(false);
+    });
+
+    test('a shop still searching is not "not found" yet', () => {
+        expect(
+            isNotFound({ ...result('Sol Ring', []), pending: ['carton'] })
+        ).toBe(false);
+    });
 });
