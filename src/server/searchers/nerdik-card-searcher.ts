@@ -13,6 +13,7 @@ const MAX_BATCH = 100;
 // "Bonecrusher Giant // Stomp" does. So it's searched by the full name, and never returns fuzzy "other matches".
 export class NerdikCardSearcher implements CardSearcher {
     readonly shop = 'nerdik';
+    readonly batched = true;
     private readonly batcher = new Batcher<string, CardResult[]>(
         (names, signal) => this.send(names, signal),
         MAX_BATCH
@@ -26,11 +27,12 @@ export class NerdikCardSearcher implements CardSearcher {
     search(
         card: string,
         signal?: AbortSignal,
-        fullName = card
+        fullName = card,
+        urgent = false
     ): Promise<CardResult[]> {
         if (!this.apiKey)
             return Promise.reject(new Error('NERDIK_API_KEY is not set'));
-        return this.batcher.add(fullName, signal);
+        return this.batcher.add(fullName, signal, urgent);
     }
 
     private async send(names: string[], signal: AbortSignal) {

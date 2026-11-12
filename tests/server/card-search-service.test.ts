@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import type { ShopLimit } from '@/server/card-search-service';
 import type { CardResult, SearchResult } from '@/search-result';
 import type { ShopId } from '@/shops';
 import type { CardSearcher } from '@/server/card-searcher';
@@ -182,5 +183,69 @@ describe('CardSearchService', () => {
             )
         ).rejects.toHaveProperty('name', 'AbortError');
         expect(updates).toEqual([]);
+    });
+});
+
+describe('CardSearchService limit', () => {
+    test('runs each shop search through `limit`, which sees the searcher', async () => {
+        const seen: ShopId[] = [];
+        const limit: ShopLimit = (s, run) => {
+            seen.push(s.shop);
+            return run();
+        };
+        const service = new CardSearchService([
+            searcher('carton', async () => [listing('carton', 'Sol Ring')]),
+            searcher('gin', async () => [])
+        ]);
+        const result = await service.search(
+            'Sol Ring',
+            undefined,
+            undefined,
+            undefined,
+            limit
+        );
+        expect(seen).toEqual(['carton', 'gin']);
+        expect(result.links).toHaveLength(1);
+    });
+
+    test('a limit that rejects fails only that shop', async () => {
+        const service = new CardSearchService([
+            searcher('carton', async () => [listing('carton', 'Sol Ring')]),
+            searcher('gin', async () => [])
+        ]);
+        const result = await service.search(
+            'Sol Ring',
+            undefined,
+            undefined,
+            undefined,
+            (s, run) =>
+                s.shop === 'gin' ? Promise.reject(new Error('busy')) : run()
+        );
+        expect(result.errors).toEqual([{ shop: 'gin', message: 'busy' }]);
+        expect(logs).toHaveLength(1);
+    });
+});
+
+describe('CardSearchService urgent', () => {
+    test('passes `urgent` on to every shop', async () => {
+        const seen: (boolean | undefined)[] = [];
+        const record: CardSearcher['search'] = async (_c, _s, _f, urgent) => {
+            seen.push(urgent);
+            return [];
+        };
+        const service = new CardSearchService([
+            searcher('carton', record),
+            searcher('gin', record)
+        ]);
+        await service.search(
+            'Daze',
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            true
+        );
+        await service.search('Daze');
+        expect(seen).toEqual([true, true, false, false]);
     });
 });

@@ -139,3 +139,29 @@ describe('CachedCardSearcher', () => {
         expect(stats.aborts).toBe(0);
     });
 });
+
+describe('CachedCardSearcher batched', () => {
+    test('passes on whether its shop is batched', () => {
+        const inner = fakeSearcher().searcher;
+        expect(new CachedCardSearcher(inner).batched).toBeUndefined();
+        expect(
+            new CachedCardSearcher({ ...inner, batched: true }).batched
+        ).toBe(true);
+    });
+});
+
+describe('CachedCardSearcher urgent', () => {
+    test('passes `urgent` on to the search it starts', async () => {
+        const seen: (boolean | undefined)[] = [];
+        const cached = new CachedCardSearcher({
+            shop: 'gin',
+            search: async (_card, _signal, _fullName, urgent) => {
+                seen.push(urgent);
+                return RESULT;
+            }
+        });
+        await cached.search('Daze', undefined, undefined, true);
+        await cached.search('Opt');
+        expect(seen).toEqual([true, false]);
+    });
+});

@@ -13,6 +13,7 @@ const MAX_BATCH = 100;
 // "other matches" a search page would.
 export class GinCardSearcher implements CardSearcher {
     readonly shop = 'gin';
+    readonly batched = true;
     private readonly batcher = new Batcher<string, CardResult[]>(
         (cards, signal) => this.send(cards, signal),
         MAX_BATCH
@@ -26,10 +27,15 @@ export class GinCardSearcher implements CardSearcher {
         private readonly apiKey = process.env.MTGIN_API_KEY
     ) {}
 
-    search(card: string, signal?: AbortSignal): Promise<CardResult[]> {
+    search(
+        card: string,
+        signal?: AbortSignal,
+        _fullName?: string,
+        urgent = false
+    ): Promise<CardResult[]> {
         if (!this.apiKey)
             return Promise.reject(new Error('MTGIN_API_KEY is not set'));
-        return this.batcher.add(card, signal);
+        return this.batcher.add(card, signal, urgent);
     }
 
     private async send(cards: string[], signal: AbortSignal) {

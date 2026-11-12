@@ -1,6 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 import { SpanKind, SpanStatusCode } from '@opentelemetry/api';
 import type { SearchResult, SearchUpdate } from '@/search-result';
+import type { ShopId } from '@/shops';
+import type { CardSearcher } from '@/server/card-searcher';
+import { CardSearchService } from '@/server/card-search-service';
 import { InFlightLimiter } from '@/server/in-flight-limiter';
 import {
     clientId,
@@ -39,6 +42,27 @@ function fakeSearch() {
     };
 }
 
+const limits = (shops = 12, batched = 100) => ({
+    shops: new InFlightLimiter(shops),
+    batched: new InFlightLimiter(batched)
+});
+
+// A shop that takes 5 ms per card, recording the most cards it had at once.
+function slowShop(shop: ShopId, batched = false) {
+    const stats = { active: 0, peak: 0 };
+    const searcher: CardSearcher = {
+        shop,
+        batched,
+        search: async () => {
+            stats.peak = Math.max(stats.peak, ++stats.active);
+            await Bun.sleep(5);
+            stats.active--;
+            return [];
+        }
+    };
+    return { searcher, stats };
+}
+
 const post = (body: unknown, init: RequestInit = {}) =>
     new Request('http://localhost/api/search', {
         method: 'POST',
@@ -69,7 +93,7 @@ const requestSpans = () => spans().filter((s) => s.name === 'POST /api/search');
 describe('searchHandler', () => {
     test('searches each card and streams the results', async () => {
         const cardSearch = fakeSearch();
-        const handle = searchHandler(cardSearch, new InFlightLimiter(12));
+        const handle = searchHandler(cardSearch, limits());
         const res = await handle(post({ cards: ['Sol Ring', 'Daze'] }), 'a');
         expect(res.status).toBe(200);
         expect(res.headers.get('content-type')).toStartWith(
@@ -84,7 +108,7 @@ describe('searchHandler', () => {
 
     test('drops non-strings and names with nothing searchable, and trims the rest', async () => {
         const cardSearch = fakeSearch();
-        const handle = searchHandler(cardSearch, new InFlightLimiter(12));
+        const handle = searchHandler(cardSearch, limits());
         const res = await handle(
             post({ cards: ['  Sol Ring ', 42, null, '!!!', '   ', 'Daze'] }),
             'a'
@@ -95,7 +119,7 @@ describe('searchHandler', () => {
 
     test('drops names no card could have: too long, or with injection characters', async () => {
         const cardSearch = fakeSearch();
-        const handle = searchHandler(cardSearch, new InFlightLimiter(12));
+        const handle = searchHandler(cardSearch, limits());
         const longest = 'x'.repeat(MAX_NAME_LENGTH);
         const res = await handle(
             post({
@@ -119,7 +143,7 @@ describe('searchHandler', () => {
     });
 
     test('a malformed body searches nothing', async () => {
-        const handle = searchHandler(fakeSearch(), new InFlightLimiter(12));
+        const handle = searchHandler(fakeSearch(), limits());
         for (const body of ['not json', { cards: 'Sol Ring' }, {}]) {
             const res = await handle(post(body), 'a');
             expect(await res.text()).toBe('');
@@ -127,7 +151,7 @@ describe('searchHandler', () => {
     });
 
     test('logs the first few names and the count', async () => {
-        const handle = searchHandler(fakeSearch(), new InFlightLimiter(12));
+        const handle = searchHandler(fakeSearch(), limits());
         const cards = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
         await (await handle(post({ cards }), 'a')).text();
         expect(logs).toMatchObject([
@@ -142,7 +166,7 @@ describe('searchHandler', () => {
 
     test('too many cards is a 400, and nothing is searched', async () => {
         const cardSearch = fakeSearch();
-        const handle = searchHandler(cardSearch, new InFlightLimiter(12));
+        const handle = searchHandler(cardSearch, limits());
         const cards = Array.from(
             { length: MAX_CARDS_PER_REQUEST + 1 },
             (_, i) => `Card ${i}`
@@ -155,26 +179,96 @@ describe('searchHandler', () => {
         expect(cardSearch.searched).toEqual([]);
     });
 
-    test("a client's cards go through the limiter", async () => {
-        let active = 0;
-        let peak = 0;
+    test("a client's cards take turns at each shop; a batched shop gets them all at once", async () => {
+        const carton = slowShop('carton');
+        const citadel = slowShop('citadel');
+        const gin = slowShop('gin', true);
         const handle = searchHandler(
-            {
-                search: async (card) => {
-                    peak = Math.max(peak, ++active);
-                    await Bun.sleep(5);
-                    active--;
-                    return result(card);
-                }
-            },
-            new InFlightLimiter(2)
+            new CardSearchService([
+                carton.searcher,
+                citadel.searcher,
+                gin.searcher
+            ]),
+            limits(2)
         );
+        const cards = ['A', 'B', 'C', 'D', 'E'];
+        await (await handle(post({ cards }), 'a')).text();
+        expect(carton.stats.peak).toBe(2);
+        expect(citadel.stats.peak).toBe(2);
+        expect(gin.stats.peak).toBe(5);
+    });
+
+    test('each client has its own turns, across its requests', async () => {
+        const carton = slowShop('carton');
+        const handle = searchHandler(
+            new CardSearchService([carton.searcher]),
+            limits(2)
+        );
+        const cards = ['A', 'B', 'C'];
+        await Promise.all(
+            ['a', 'a', 'b'].map(async (client) =>
+                (await handle(post({ cards }), client)).text()
+            )
+        );
+        // client a: 2 at once over both its requests; client b: 2 more
+        expect(carton.stats.peak).toBe(4);
+    });
+
+    // a slow shop no longer holds a card's other shops back from the next cards
+    test("a shop's pace doesn't depend on the other shops", async () => {
+        const order: string[] = [];
+        const shop = (id: ShopId, ms: number): CardSearcher => ({
+            shop: id,
+            search: async (card) => {
+                await Bun.sleep(ms);
+                order.push(`${id} ${card}`);
+                return [];
+            }
+        });
+        const handle = searchHandler(
+            new CardSearchService([shop('kartoteka', 30), shop('citadel', 1)]),
+            limits(1)
+        );
+        await (await handle(post({ cards: ['A', 'B'] }), 'a')).text();
+        expect(order.slice(0, 2)).toEqual(['citadel A', 'citadel B']);
+    });
+
+    test("names that can't be cards get an empty result at once, under their own index", async () => {
+        const cardSearch = fakeSearch();
+        const handle = searchHandler(cardSearch, limits());
         const res = await handle(
-            post({ cards: ['A', 'B', 'C', 'D', 'E'] }),
+            post({ cards: ['Sol Ring', 42, '!!!', 'Daze'] }),
             'a'
         );
-        await res.text();
-        expect(peak).toBe(2);
+        const lines = await updates(res);
+        expect(lines[0]).toEqual({ index: 2, result: result('!!!') });
+        expect(lines.slice(1)).toEqual([
+            { index: 0, result: result('Sol Ring') },
+            { index: 3, result: result('Daze') }
+        ]);
+    });
+
+    test('resolves the whole list at once when the resolver can', async () => {
+        const cardSearch = fakeSearch();
+        const lists: string[][] = [];
+        const handle = searchHandler(cardSearch, limits(), {
+            resolve: async () => {
+                throw new Error('one by one');
+            },
+            resolveAll: (cards) => {
+                lists.push(cards);
+                return cards.map(async (card) => ({
+                    name: card.toUpperCase(),
+                    fullName: card.toUpperCase()
+                }));
+            }
+        });
+        const res = await handle(post({ cards: ['sol ring', 'daze'] }), 'a');
+        expect(await finalResults(res)).toEqual([
+            { ...result('SOL RING'), typed: 'sol ring' },
+            { ...result('DAZE'), typed: 'daze' }
+        ]);
+        expect(lists).toEqual([['sol ring', 'daze']]);
     });
 
     test('streams each partial result before the complete one', async () => {
@@ -186,7 +280,7 @@ describe('searchHandler', () => {
                     return result(card);
                 }
             },
-            new InFlightLimiter(12)
+            limits()
         );
         const res = await handle(post({ cards: ['Sol Ring'] }), 'a');
         expect(await updates(res)).toEqual([
@@ -206,7 +300,7 @@ describe('searchHandler', () => {
                     return result(card);
                 }
             },
-            new InFlightLimiter(12)
+            limits()
         );
         const res = await handle(post({ cards: ['Slow', 'Fast'] }), 'a');
         expect(await updates(res)).toEqual([
@@ -229,7 +323,7 @@ describe('searchHandler', () => {
                     );
                 }
             },
-            new InFlightLimiter(12)
+            limits()
         );
         const res = await handle(
             post({ cards: ['Sol Ring'] }, { signal: controller.signal }),
@@ -246,7 +340,7 @@ describe('searchHandler', () => {
 
     test('searches under the corrected name and keeps the typed one', async () => {
         const cardSearch = fakeSearch();
-        const handle = searchHandler(cardSearch, new InFlightLimiter(12), {
+        const handle = searchHandler(cardSearch, limits(), {
             resolve: async (card) =>
                 card === 'overlord balemurk'
                     ? {
@@ -281,7 +375,7 @@ describe('searchHandler', () => {
 
     test("passes the card's full name along for the shops that need it", async () => {
         const cardSearch = fakeSearch();
-        const handle = searchHandler(cardSearch, new InFlightLimiter(12), {
+        const handle = searchHandler(cardSearch, limits(), {
             resolve: async () => ({
                 name: 'Bonecrusher Giant',
                 fullName: 'Bonecrusher Giant // Stomp'
@@ -294,7 +388,7 @@ describe('searchHandler', () => {
 
     test('without a resolver, the full name is the name as sent', async () => {
         const cardSearch = fakeSearch();
-        const handle = searchHandler(cardSearch, new InFlightLimiter(12));
+        const handle = searchHandler(cardSearch, limits());
         await (await handle(post({ cards: ['Daze'] }), 'a')).text();
         expect(cardSearch.fullNames).toEqual(['Daze']);
     });
@@ -307,7 +401,7 @@ describe('searchHandler', () => {
                     return result(card);
                 }
             },
-            new InFlightLimiter(12),
+            limits(),
             {
                 resolve: async () => ({
                     name: 'Overlord of the Balemurk',
@@ -330,7 +424,7 @@ describe('searchHandler', () => {
                     return result(card);
                 }
             },
-            new InFlightLimiter(12)
+            limits()
         );
         const res = await handle(post({ cards: ['Sol Ring', 'Daze'] }), 'a');
         expect(await finalResults(res)).toEqual([
@@ -359,7 +453,7 @@ describe('searchHandler spans', () => {
                         return result(card);
                     })
             },
-            new InFlightLimiter(12)
+            limits()
         );
         const res = await handle(post({ cards: ['Sol Ring'] }), 'a');
         // the Response is back, but the search is still running
@@ -384,7 +478,7 @@ describe('searchHandler spans', () => {
         const visitors = new VisitorIds(undefined, () => 'salt');
         const handle = searchHandler(
             fakeSearch(),
-            new InFlightLimiter(12),
+            limits(),
             undefined,
             visitors
         );
@@ -397,7 +491,7 @@ describe('searchHandler spans', () => {
     });
 
     test('too many cards ends the span with a 400', async () => {
-        const handle = searchHandler(fakeSearch(), new InFlightLimiter(12));
+        const handle = searchHandler(fakeSearch(), limits());
         const cards = Array.from(
             { length: MAX_CARDS_PER_REQUEST + 1 },
             (_, i) => `Card ${i}`
@@ -416,7 +510,7 @@ describe('searchHandler spans', () => {
                     return result(card);
                 }
             },
-            new InFlightLimiter(12)
+            limits()
         );
         await (await handle(post({ cards: ['Sol Ring', 'Daze'] }), 'a')).text();
         const [request] = requestSpans();
@@ -440,7 +534,7 @@ describe('searchHandler spans', () => {
                         )
                     )
             },
-            new InFlightLimiter(12)
+            limits()
         );
         const res = await handle(
             post({ cards: ['Sol Ring'] }, { signal: controller.signal }),
@@ -455,7 +549,7 @@ describe('searchHandler spans', () => {
     });
 
     test('a handler that throws ends the span as an error', async () => {
-        const handle = searchHandler(fakeSearch(), new InFlightLimiter(12));
+        const handle = searchHandler(fakeSearch(), limits());
         const req = post({ cards: ['Sol Ring'] });
         // a body that isn't JSON rejects, which is caught; json() throwing outright stands in for an unexpected failure
         Object.defineProperty(req, 'json', {
@@ -487,5 +581,46 @@ describe('clientId', () => {
 
     test('with neither, a shared fallback', () => {
         expect(clientId(req(), undefined)).toBe('unknown');
+    });
+});
+
+describe('searchHandler first cards', () => {
+    // a search that records whether each card was marked urgent
+    function urgencySearch() {
+        const urgent: Record<string, boolean | undefined> = {};
+        return {
+            urgent,
+            search: async (
+                card: string,
+                _signal?: AbortSignal,
+                _onUpdate?: unknown,
+                _fullName?: string,
+                _limit?: unknown,
+                isUrgent?: boolean
+            ) => {
+                urgent[card] = isUrgent;
+                return result(card);
+            }
+        };
+    }
+
+    test('a request of 2 cards or fewer is a search’s first cards: they are urgent', async () => {
+        const cardSearch = urgencySearch();
+        const handle = searchHandler(cardSearch, limits());
+        await (await handle(post({ cards: ['Sol Ring', 'Daze'] }), 'a')).text();
+        expect(cardSearch.urgent).toEqual({ 'Sol Ring': true, Daze: true });
+    });
+
+    test('a longer request is not', async () => {
+        const cardSearch = urgencySearch();
+        const handle = searchHandler(cardSearch, limits());
+        await (
+            await handle(post({ cards: ['Sol Ring', 'Daze', 'Opt'] }), 'a')
+        ).text();
+        expect(cardSearch.urgent).toEqual({
+            'Sol Ring': false,
+            Daze: false,
+            Opt: false
+        });
     });
 });

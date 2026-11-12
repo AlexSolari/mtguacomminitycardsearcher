@@ -1,8 +1,9 @@
 import { HttpError } from './shop-client';
 
-// How long the first item waits for others to join its request by default. The frontend sends cards a few at a
-// time, so they arrive within milliseconds of each other.
-const BATCH_WINDOW_MS = 20;
+// How long the first item waits for others to join its request by default. A search's cards reach the batchers
+// as their names resolve, the bulk of a list within a few milliseconds of each other. A search's first cards
+// don't wait for it (see `urgent`).
+export const BATCH_WINDOW_MS = 100;
 
 type Batch = {
     controller: AbortController;
@@ -37,7 +38,8 @@ export class Batcher<T, R> {
         private readonly windowMs = BATCH_WINDOW_MS
     ) {}
 
-    add(item: T, signal?: AbortSignal): Promise<R> {
+    // An `urgent` item goes out at once (with whatever else is waiting) instead of waiting for the window.
+    add(item: T, signal?: AbortSignal, urgent = false): Promise<R> {
         if (signal?.aborted) return Promise.reject(signal.reason);
         return new Promise((resolve, reject) => {
             const onAbort = () => this.abandon(entry);
@@ -56,7 +58,8 @@ export class Batcher<T, R> {
             };
             signal?.addEventListener('abort', onAbort, { once: true });
             this.pending.push(entry);
-            this.schedule();
+            if (urgent) this.flush();
+            else this.schedule();
         });
     }
 
@@ -66,6 +69,13 @@ export class Batcher<T, R> {
         const { batch } = entry;
         if (!batch) this.pending.splice(this.pending.indexOf(entry), 1);
         else if (--batch.waiting === 0) batch.controller.abort(reason);
+    }
+
+    private flush() {
+        if (this.sending) return; // sent as soon as the batch in flight is answered
+        if (this.timer) clearTimeout(this.timer);
+        this.timer = null;
+        void this.send();
     }
 
     private schedule() {

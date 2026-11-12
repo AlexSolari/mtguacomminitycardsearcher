@@ -64,10 +64,12 @@ bun start      # NODE_ENV=production, serves the app and the API
 ## How it works
 
 ```
-browser ──POST /api/search {cards:[name]}──▶ Bun server
-                                               │  one request per card, up to 6 at a time from the frontend
+browser ──POST /api/search {cards:[…]}──▶ Bun server
+                                               │  the first 2 cards in a request of their own, then the rest (100 per request)
+                                               │  names resolved by Scryfall: the first 2 one by one, the rest in bulk, at the same time
                                                ▼
                                      CardSearchService
+                                               │  per client and shop: 6 cards at a time, a whole list for batched APIs
                                                │  every shop, in parallel; a failing shop is reported, not fatal
                                                │  streams the card's result (NDJSON) each time a shop finishes
                                                ▼
@@ -79,7 +81,8 @@ browser ──POST /api/search {cards:[name]}──▶ Bun server
 ```
 
 - **Rate limiting:** a deck fans out to (cards × shops) requests. Each searcher's own `ShopClient` spaces out its shop's requests so the shops don't rate-limit us (HTTP 429).
-  The queues are shared by every user, so a request that would wait more than 30 s fails as "server busy", and the frontend keeps at most 6 cards in flight.
+  The queues are shared by every user, so a request that would wait more than 30 s fails as "server busy", and each client has at most 6 cards at a time at each shop.
+  Each shop goes through a list at its own pace, so a slow shop doesn't hold back the others; the batched APIs (MTGin, Nerdik, Mana Vault) get the whole list at once.
 - **Streaming:** `/api/search` answers in NDJSON, a line per card each time one of its shops finishes, so a slow shop (Kartoteka) doesn't hold back the others; the card shows which shops are still searching.
 - **Filtering:** the server keeps only listings whose name contains the searched card. Shop search is fuzzy, so "Sol Ring" also matches "Soldier of the Grey Host".
 - **Grouping:** the browser groups the results.

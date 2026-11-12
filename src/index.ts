@@ -14,12 +14,16 @@ import { ManavaultCardSearcher } from './server/searchers/manavault-card-searche
 import { NerdikCardSearcher } from './server/searchers/nerdik-card-searcher';
 import { PaytowinCardSearcher } from './server/searchers/paytowin-card-searcher';
 import { clickHandler } from './server/click-route';
-import { clientId, searchHandler } from './server/search-route';
+import {
+    clientId,
+    MAX_CARDS_PER_REQUEST,
+    searchHandler
+} from './server/search-route';
 import { VisitorIds } from './server/visitor-id';
 
-// Cards one client may have searching at once, across all its requests; the rest wait for a slot. The frontend
-// keeps 6 in flight per tab, so one tab never waits, and a second tab (or a shared IP) only slows down.
-const MAX_CARDS_IN_FLIGHT = 12;
+// Cards one client may have at one shop at once (see ShopLimits). 6 is what one browser tab had in flight when it
+// sent a card per request, so no shop gets more of a client's requests at once than before.
+const CARDS_PER_SHOP = 6;
 
 // Each searcher creates its own ShopClient, so each shop has its own rate limit and request queue.
 const cardSearch = new CardSearchService(
@@ -38,7 +42,11 @@ const cardSearch = new CardSearchService(
 const visitors = new VisitorIds();
 const search = searchHandler(
     cardSearch,
-    new InFlightLimiter(MAX_CARDS_IN_FLIGHT),
+    {
+        shops: new InFlightLimiter(CARDS_PER_SHOP),
+        // a whole request's list, so it goes out in as few batches as it can
+        batched: new InFlightLimiter(MAX_CARDS_PER_REQUEST)
+    },
     new ScryfallNameResolver(),
     visitors
 );
