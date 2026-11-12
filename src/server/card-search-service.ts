@@ -7,11 +7,18 @@ import { HttpError } from './shop-client';
 
 type ShopOutcome = { links: CardResult[]; error: SearchError | null };
 
+// Runs one shop search for a card when the caller allows it: the route uses it to cap how many cards each client has
+// at each shop at once.
+export type ShopLimit = (
+    searcher: CardSearcher,
+    run: () => Promise<CardResult[]>
+) => Promise<CardResult[]>;
+
 // Searches every shop for a card. A failing shop doesn't fail the card — it's reported in `errors`.
 // `signal` is the client's request: when it disconnects, the search rejects and its queued shop requests are dropped.
 // One slow shop (Kartoteka) mustn't hold back the others, so `onUpdate` gets the result so far each time a shop
 // finishes while others are still searching (`pending` lists them); the returned promise is the complete result.
-// `fullName` goes to the searchers that need it (see CardSearcher).
+// `fullName` goes to the searchers that need it (see CardSearcher). `limit`, when given, runs each shop search.
 export class CardSearchService {
     constructor(private readonly searchers: CardSearcher[]) {}
 
@@ -19,7 +26,9 @@ export class CardSearchService {
         card: string,
         signal?: AbortSignal,
         onUpdate?: (partial: SearchResult) => void,
-        fullName = card
+        fullName = card,
+        limit: ShopLimit = (_, run) => run(),
+        urgent = false
     ): Promise<SearchResult> {
         // in searcher order, so links and errors keep the same order however the shops finish
         const outcomes: (ShopOutcome | undefined)[] = this.searchers.map(
@@ -32,7 +41,9 @@ export class CardSearchService {
                     searcher,
                     card,
                     fullName,
-                    signal
+                    limit,
+                    signal,
+                    urgent
                 );
                 if (--remaining > 0 && onUpdate && !signal?.aborted)
                     onUpdate(this.snapshot(card, outcomes));
@@ -45,11 +56,15 @@ export class CardSearchService {
         searcher: CardSearcher,
         card: string,
         fullName: string,
-        signal?: AbortSignal
+        limit: ShopLimit,
+        signal?: AbortSignal,
+        urgent = false
     ): Promise<ShopOutcome> {
         try {
             return {
-                links: await searcher.search(card, signal, fullName),
+                links: await limit(searcher, () =>
+                    searcher.search(card, signal, fullName, urgent)
+                ),
                 error: null
             };
         } catch (err) {

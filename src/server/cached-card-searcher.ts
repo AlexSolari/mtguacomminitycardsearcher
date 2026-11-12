@@ -18,6 +18,7 @@ type Entry = {
 // still waiting on it gives up, which takes its requests out of the shop's queue.
 export class CachedCardSearcher implements CardSearcher {
     readonly shop: ShopId;
+    readonly batched?: boolean;
     // Insertion order = expiry order (fixed TTL), so expired entries are always at the front.
     private readonly cache = new Map<string, Entry>();
 
@@ -26,12 +27,14 @@ export class CachedCardSearcher implements CardSearcher {
         private readonly ttlMs = 5 * 60_000
     ) {
         this.shop = inner.shop;
+        this.batched = inner.batched;
     }
 
     search(
         card: string,
         signal?: AbortSignal,
-        fullName = card
+        fullName = card,
+        urgent = false
     ): Promise<CardResult[]> {
         if (signal?.aborted) return Promise.reject(signal.reason);
         // "Æther Vial" and "aether vial" are the same search. The full name is part of the key: a name searched
@@ -41,7 +44,7 @@ export class CachedCardSearcher implements CardSearcher {
         let entry = this.cache.get(key);
         if (!entry || entry.expires <= now) {
             this.evictExpired(now);
-            entry = this.start(key, card, fullName, now);
+            entry = this.start(key, card, fullName, now, urgent);
         }
         return this.wait(key, entry, signal);
     }
@@ -50,10 +53,16 @@ export class CachedCardSearcher implements CardSearcher {
         key: string,
         card: string,
         fullName: string,
-        now: number
+        now: number,
+        urgent: boolean
     ): Entry {
         const controller = new AbortController();
-        const results = this.inner.search(card, controller.signal, fullName);
+        const results = this.inner.search(
+            card,
+            controller.signal,
+            fullName,
+            urgent
+        );
         const entry: Entry = {
             expires: now + this.ttlMs,
             results,

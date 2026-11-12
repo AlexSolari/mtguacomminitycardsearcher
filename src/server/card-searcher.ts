@@ -8,12 +8,17 @@ import { logger } from './logger';
 // `card` is the name to search for (for a double-faced card, the face shops list it under). `fullName` is the whole
 // card's name ("Bonecrusher Giant // Stomp", see ResolvedName); it defaults to `card`, and only searchers whose API
 // matches full names exactly need it.
+// `batched` searchers send many cards per request (see Batcher), so they should get a whole list at once rather than
+// a few cards at a time (see the route's per-shop limits).
 export interface CardSearcher {
     readonly shop: ShopId;
+    readonly batched?: boolean;
+    // `urgent`: one of a search's first cards; batched searchers send it without waiting for their batch window
     search(
         card: string,
         signal?: AbortSignal,
-        fullName?: string
+        fullName?: string,
+        urgent?: boolean
     ): Promise<CardResult[]>;
 }
 

@@ -68,7 +68,7 @@ See [README.md](README.md) for what the app does and the request flow.
   An optional follow-up request that falls back on failure goes through `warnFallback` in its `catch`, never a silent catch.
   Prefer a page or API that lists every offer at once (Mana Vault's `/api/v1/prices`). Where a shop has none and its search shows only a printing's cheapest price (CartOn), fetch each printing's page through `expandCheapest`, which caps them at `MAX_PRODUCT_PAGES` per search; don't fetch product pages around it.
 - **Wiring:** searchers are registered in `src/index.ts`, each wrapped in `CachedCardSearcher`.
-  The `/api/search` handler lives in `src/server/search-route.ts` (input checks, `InFlightLimiter`, NDJSON streaming: a `SearchUpdate` line per card each time a shop finishes), so it's tested without starting a server.
+  The `/api/search` handler lives in `src/server/search-route.ts` (input checks, per-client limits at each shop (`ShopLimits`), NDJSON streaming: a `SearchUpdate` line per card each time a shop finishes), so it's tested without starting a server.
   `/api/click` (`src/server/click-route.ts`) records which offer a user opened (the frontend sends it with `reportClick` in `src/lib/report-click.ts`) as an `offer click` span.
 - **One instance only:** the shop rate limits, the result cache, the per-client limiter and MTGin's batching all live in process memory.
   A second replica would double the request rate to every shop and split MTGin's and Mana Vault's 60-a-minute budgets. Don't scale horizontally without moving those to shared state first.
@@ -104,9 +104,16 @@ See [README.md](README.md) for what the app does and the request flow.
 - **MTGin batches its searches:** the API key allows 60 requests a minute, shared by every user. `GinCardSearcher` sends concurrent searches as one request (up to 100 cards), one request at a time, at most one a second. Don't turn it back into a request per card.
   Nerdik's and Mana Vault's batch APIs are batched the same way; all three go through `Batcher` (`src/server/batcher.ts`).
 - **Mana Vault's price API allows 60 requests a minute per IP, with no key**, shared by every user ([docs](https://manavaultstore.com/api/docs)).
-    - The minute is a fixed window that starts at its first request, so its client spaces requests 1.1 s apart (`intervalMs: 1100`), leaving slack for network jitter. Don't lower it.
-    - `POST /api/v1/prices` takes up to 50 names, but every 10 names count as one request. `ManavaultCardSearcher` sends batches of at most 10: bigger ones spend the budget faster without finding cards any faster.
+    - The minute is a fixed window that starts at the API's first request after the last one ended (not at :00, not rolling). `WindowBudget` (`src/server/window-budget.ts`) mirrors it: requests go out at once until 55 are spent, then wait for the next window.
+    - Our window is timed from when its first request _settles_, which is always after the API received it, plus a second. Timing it from the send could end ours before theirs. The 55 (not 60) covers a request that straddles two windows.
+    - `POST /api/v1/prices` takes up to 50 names, and every 10 names count as one request. `ManavaultCardSearcher` sends batches of up to 50 and charges each `ceil(names / 10)`.
+    - A 429 spends the rest of the window (`exhaust()`): the API has counted more than we have, e.g. another client on our IP.
     - A name the API rejects (under 2 letters) gets an `error` in its own answer rather than failing the batch; the searcher fails only that card.
+- **Scryfall (name lookups) allows 2 requests a second on `/cards/named` and `/cards/collection`** ([rate limits](https://scryfall.com/docs/api/rate-limits)), shared by every user.
+    - `ScryfallNameResolver` keeps a client per endpoint, each spacing requests 500 ms apart. Don't lower it: a 429 limits access for 30 s, and ignoring 429s can get the app banned.
+    - After a 429 every lookup stops for 60 s (`RATE_LIMIT_PAUSE_MS`) and names are searched as typed.
+    - A search's first 2 cards come in a request of their own (`FIRST_REQUEST_CARDS` in `use-card-search.ts`): they are looked up by fuzzy name while the rest go in one collection request, and they are `urgent`, so batched shops send them without waiting for the batch window.
+    - Tests must give the resolver fakes for both clients (its first and third arguments), or it calls the real API.
 - **Nerdik's batch API matches only a card's full name:** "Bonecrusher Giant // Stomp" finds it, "Bonecrusher Giant" finds nothing.
   The name resolver gives shops the front face, so searchers also get `fullName` (Scryfall's name for the whole card) as the third argument of `search()`; `NerdikCardSearcher` searches by it.
   `CachedCardSearcher` keys on both names.
@@ -122,6 +129,6 @@ See [README.md](README.md) for what the app does and the request flow.
 
 ## Scraping etiquette
 
-- **Request rate:** keep it at or below today's (≥200 ms between requests per shop, at most 6 cards in flight per browser tab).
+- **Request rate:** keep it at or below today's (≥200 ms between requests per shop, at most 6 cards per client at each shop at once, `CARDS_PER_SHOP` in `src/index.ts`).
 - **Bot challenges:** some shop pages sit behind one, like Kartoteka's product pages and Nerdik's "in stock" filter URL. Work from the pages that don't, rather than trying to get around the challenge.
 - **Live testing:** a few searches at most; don't loop over many cards against the real shops.
