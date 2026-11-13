@@ -466,6 +466,7 @@ describe('searchHandler spans', () => {
                 'http.request.method': 'POST',
                 'url.path': '/api/search',
                 'http.response.status_code': 200,
+                'search.cards': 'Sol Ring',
                 'search.card_count': 1
             },
             status: { code: SpanStatusCode.UNSET }
@@ -488,6 +489,16 @@ describe('searchHandler spans', () => {
         expect(requestSpans()[0]!.attributes['visitor.id']).toBe(
             new VisitorIds(undefined, () => 'salt').id('1.2.3.4', 'Firefox')
         );
+    });
+
+    test('the span names every card, even past what the log line shows', async () => {
+        const handle = searchHandler(fakeSearch(), limits());
+        const cards = ['A1', 'B2', 'C3', 'D4', 'E5', 'F6'];
+        await (await handle(post({ cards }), 'a')).text();
+        expect(requestSpans()[0]!.attributes).toMatchObject({
+            'search.cards': 'A1; B2; C3; D4; E5; F6',
+            'search.card_count': 6
+        });
     });
 
     test('too many cards ends the span with a 400', async () => {

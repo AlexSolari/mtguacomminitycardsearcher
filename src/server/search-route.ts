@@ -125,7 +125,10 @@ export function searchHandler(
             cards: cards.slice(0, LOGGED_NAMES),
             count: cards.length
         });
+        // One string rather than an array attribute, so a Sentry table widget can show it as a column.
+        // Every name, unlike the log line; MAX_CARDS_PER_REQUEST × MAX_NAME_LENGTH bounds it at ~15 KB.
         span.setAttributes({
+            'search.cards': cards.join('; '),
             'search.card_count': cards.length,
             'visitor.id': visitors.id(client, req.headers.get('user-agent'))
         });
