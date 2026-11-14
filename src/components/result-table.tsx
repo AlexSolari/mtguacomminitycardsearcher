@@ -11,6 +11,22 @@ import {
     PriceBlock
 } from '@/components/offer-parts';
 import { ShopBadge } from '@/components/shop-badge';
+import { useNearViewport } from '@/hooks/use-near-viewport';
+
+// Loads the image only once the row is about to scroll into view.
+function Thumbnail({ src }: { src: string | null }) {
+    const [ref, near] = useNearViewport<HTMLDivElement>();
+    return (
+        <div
+            ref={ref}
+            className='aspect-488/680 w-9 overflow-hidden rounded-sm bg-muted'
+        >
+            {src && near && (
+                <img src={src} alt='' className='size-full object-cover' />
+            )}
+        </div>
+    );
+}
 
 // Table view: one compact row per offer; the whole row is a link.
 export function ResultTable({
@@ -71,16 +87,7 @@ export function ResultTable({
                                 )}
                             >
                                 <td className='py-1.5 pl-3'>
-                                    <div className='aspect-488/680 w-9 overflow-hidden rounded-sm bg-muted'>
-                                        {link.image && (
-                                            <img
-                                                src={link.image}
-                                                alt=''
-                                                loading='lazy'
-                                                className='size-full object-cover'
-                                            />
-                                        )}
-                                    </div>
+                                    <Thumbnail src={link.image} />
                                 </td>
                                 <td className='px-3 py-1.5'>
                                     {/* real link for keyboard / middle-click / copy-link; the row click covers the rest */}

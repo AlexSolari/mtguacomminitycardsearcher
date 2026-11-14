@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { Hourglass, ImageOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useNearViewport } from '@/hooks/use-near-viewport';
 import { BIDS, plural } from '@/i18n';
 import type { AuctionInfo, CardResult } from '@/search-result';
 
@@ -61,6 +62,11 @@ export function CardImage({
     className?: string;
 }) {
     const [failed, setFailed] = useState(false);
+    const [placeholder, near] = useNearViewport<HTMLDivElement>();
+    if (src && !failed && !near) {
+        // the card's bg-muted frame shows until the image is close enough to load
+        return <div ref={placeholder} className='size-full' />;
+    }
     if (!src || failed) {
         return (
             <div className='flex size-full flex-col items-center justify-center gap-2 p-4 text-center text-xs text-muted-foreground'>
@@ -73,7 +79,6 @@ export function CardImage({
         <img
             src={src}
             alt={alt}
-            loading='lazy'
             onError={() => setFailed(true)}
             className={cn(
                 'size-full rounded-[4.75%/3.5%] object-cover transition duration-500 ease-out group-hover:scale-[1.04]',
