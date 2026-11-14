@@ -4,7 +4,7 @@ import { ShopUnavailableError } from './circuit-breaker';
 import { logger } from './logger';
 import { HttpError, RequestTimeoutError, ShopClient } from './shop-client';
 
-// Names already resolved, kept for the life of the process: card names don't change. Bounded so a stream of
+// Names already looked up, kept for the life of the process: card names don't change. Bounded so a stream of
 // junk input can't grow it forever; the oldest entries go first.
 const MAX_CACHED = 10_000;
 
@@ -53,11 +53,16 @@ class LookupsPaused extends Error {}
 // An unknown or ambiguous name ("delver secrets" also fits "Delver of Secrets" and others) is a 404.
 type ScryfallCard = { name: string; card_faces?: { name: string }[] };
 
+// What the cache keeps for a name: the card Scryfall found, or null when it found none (searched as typed). Not the
+// ResolvedName: that depends on how this search typed the name (see pickName), and the cache is shared by every
+// search, so one user's "aether vial" would otherwise come back as another's "Aether Vial", corrected.
+type Lookup = ScryfallCard | null;
+
 // Turns a typed name into the card's real English name before the shops are searched: "overlord balemurk" →
 // "Overlord of the Balemurk". The shops search by substring, so a missing word finds nothing.
 // Falls back to the name as typed whenever Scryfall can't help: unknown, ambiguous, non-English, or failing.
 export class ScryfallNameResolver implements NameResolver {
-    private readonly cache = new Map<string, ResolvedName>();
+    private readonly cache = new Map<string, Lookup>();
     private pausedUntil = 0;
 
     constructor(
@@ -95,34 +100,31 @@ export class ScryfallNameResolver implements NameResolver {
     async resolve(card: string, signal?: AbortSignal): Promise<ResolvedName> {
         const key = normalize(card);
         const cached = this.cache.get(key);
-        if (cached !== undefined) return cached;
+        if (cached !== undefined) return resolveAs(card, cached);
 
-        const asTyped = { name: card, fullName: card };
         const url = this.client.url('/cards/named', { fuzzy: card });
-        let resolved: ResolvedName;
+        let found: Lookup;
         try {
-            const found = await this.fetchJson<ScryfallCard>(url, {
+            found = await this.fetchJson<ScryfallCard>(url, {
                 signal,
                 headers: HEADERS
             });
-            resolved = { name: pickName(card, found), fullName: found.name };
         } catch (err) {
             if (signal?.aborted) throw err;
-            if (err instanceof HttpError && err.status === 404)
-                resolved = asTyped;
+            if (err instanceof HttpError && err.status === 404) found = null;
             // already logged once, when the pause began; not cached
-            else if (err instanceof LookupsPaused) return asTyped;
+            else if (err instanceof LookupsPaused) return resolveAs(card, null);
             else {
                 // not cached: the next search tries again
                 logger.warn('name lookup failed, searching as typed', {
                     card,
                     error: err
                 });
-                return asTyped;
+                return resolveAs(card, null);
             }
         }
-        this.remember(key, resolved);
-        return resolved;
+        this.remember(key, found);
+        return resolveAs(card, found);
     }
 
     // A list's names, a request per 75 rather than one per name: most of a list is typed right, and an exact lookup
@@ -142,15 +144,11 @@ export class ScryfallNameResolver implements NameResolver {
         return cards.map(async (card, i) => {
             const key = keys[i]!;
             const cached = this.cache.get(key);
-            if (cached) return cached;
+            if (cached !== undefined) return resolveAs(card, cached);
             const found = (await exact)?.get(key);
             if (!found) return this.resolve(card, signal);
-            const resolved = {
-                name: pickName(card, found),
-                fullName: found.name
-            };
-            this.remember(key, resolved);
-            return resolved;
+            this.remember(key, found);
+            return resolveAs(card, found);
         });
     }
 
@@ -248,11 +246,27 @@ export class ScryfallNameResolver implements NameResolver {
                 found.set(normalize(name), card);
     }
 
-    private remember(key: string, name: ResolvedName) {
+    // Only the names are kept: a Scryfall card object runs to kilobytes, and the cache holds thousands.
+    private remember(key: string, found: Lookup) {
         if (this.cache.size >= MAX_CACHED)
             this.cache.delete(this.cache.keys().next().value!);
-        this.cache.set(key, name);
+        this.cache.set(
+            key,
+            found && {
+                name: found.name,
+                ...(found.card_faces && {
+                    card_faces: found.card_faces.map(({ name }) => ({ name }))
+                })
+            }
+        );
     }
+}
+
+// The names to search `typed` under, given what Scryfall found for it (null: nothing, so as typed).
+function resolveAs(typed: string, found: Lookup): ResolvedName {
+    return found
+        ? { name: pickName(typed, found), fullName: found.name }
+        : { name: typed, fullName: typed };
 }
 
 // Keeps the typed name when it already is the card (or one of its faces), so "Insectile Aberration" isn't

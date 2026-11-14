@@ -7,9 +7,11 @@ import {
     parseClick
 } from '@/server/click-route';
 import { VisitorIds } from '@/server/visitor-id';
+import { captureLogs } from './capture-logs';
 import { captureSpans } from './capture-spans';
 
 const spans = captureSpans();
+const logs = captureLogs();
 
 const CLICK: OfferClick = {
     shop: 'carton',
@@ -49,6 +51,17 @@ describe('clickHandler', () => {
                 }
             }
         ]);
+    });
+
+    test('logs the click by visitor id, never by IP', async () => {
+        await clickHandler(visitors())(post(CLICK), '1.2.3.4');
+        expect(logs).toHaveLength(1);
+        expect(logs[0]).toMatchObject({
+            message: 'click',
+            'click.card': 'Sol Ring',
+            'visitor.id': visitors().id('1.2.3.4', 'Firefox')
+        });
+        expect(JSON.stringify(logs[0])).not.toContain('1.2.3.4');
     });
 
     test('a manual check has no price, so none is recorded', async () => {

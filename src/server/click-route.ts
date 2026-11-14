@@ -79,7 +79,8 @@ export function clickHandler(visitors: VisitorIds) {
                 requestContext(req)
             )
             .end();
-        logger.info('click', { ...attributes, client });
+        // `client` is the IP: the visitor id stands in for it (see "never log client IPs" in AGENTS.md)
+        logger.info('click', attributes);
         return new Response(null, { status: 204 });
     };
 }

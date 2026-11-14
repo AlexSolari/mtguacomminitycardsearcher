@@ -58,6 +58,22 @@ describe('ScryfallNameResolver', () => {
         });
     });
 
+    test('a cached name answers each search as it typed the name, not as the first one did', async () => {
+        const { client, requests } = fakeScryfall(() => ({
+            name: 'Aether Vial'
+        }));
+        const resolver = new ScryfallNameResolver(client);
+        expect(await resolver.resolve('aether vial')).toEqual({
+            name: 'aether vial',
+            fullName: 'Aether Vial'
+        });
+        expect(await resolver.resolve('Aether Vial')).toEqual({
+            name: 'Aether Vial',
+            fullName: 'Aether Vial'
+        });
+        expect(requests).toHaveLength(1);
+    });
+
     test('a double-faced card: the front face, or the face typed, and the full name', async () => {
         const delver = {
             name: 'Delver of Secrets // Insectile Aberration',
@@ -82,9 +98,15 @@ describe('ScryfallNameResolver', () => {
     test('an unknown or ambiguous name (404) is searched as typed, and remembered', async () => {
         const { client, requests } = fakeScryfall(() => new HttpError(404));
         const resolver = new ScryfallNameResolver(client);
-        const asTyped = { name: 'Сол Рінг', fullName: 'Сол Рінг' };
-        expect(await resolver.resolve('Сол Рінг')).toEqual(asTyped);
-        expect(await resolver.resolve('сол рінг')).toEqual(asTyped);
+        expect(await resolver.resolve('Сол Рінг')).toEqual({
+            name: 'Сол Рінг',
+            fullName: 'Сол Рінг'
+        });
+        // remembered as not found, so each search keeps its own typing
+        expect(await resolver.resolve('сол рінг')).toEqual({
+            name: 'сол рінг',
+            fullName: 'сол рінг'
+        });
         expect(requests).toHaveLength(1);
         expect(logs).toEqual([]);
     });
@@ -240,10 +262,19 @@ describe('ScryfallNameResolver.resolveAll', () => {
     test('remembers what it found, and asks once per name', async () => {
         const { client, calls } = fakeCollection();
         const resolver = new ScryfallNameResolver(client, undefined, client);
-        await Promise.all(
+        const first = await Promise.all(
             resolver.resolveAll(['Sol Ring', 'sol ring', 'Daze', 'Opt'])
         );
-        await Promise.all(resolver.resolveAll(['SOL RING']));
+        // each as typed, though both share one lookup and one cache entry
+        expect(first.map((r) => r.name)).toEqual([
+            'Sol Ring',
+            'sol ring',
+            'Daze',
+            'Opt'
+        ]);
+        expect(await Promise.all(resolver.resolveAll(['SOL RING']))).toEqual([
+            { name: 'SOL RING', fullName: 'Sol Ring' }
+        ]);
         expect(calls.collection).toEqual([['Sol Ring', 'Daze', 'Opt']]);
         expect(await resolver.resolve('sol ring')).toEqual({
             name: 'sol ring',
