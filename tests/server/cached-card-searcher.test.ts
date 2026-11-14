@@ -2,6 +2,8 @@ import { describe, expect, test } from 'bun:test';
 import type { CardResult } from '@/search-result';
 import { CachedCardSearcher } from '@/server/cached-card-searcher';
 import type { CardSearcher } from '@/server/card-searcher';
+import { tracer } from '@/server/tracing';
+import { captureSpans } from './capture-spans';
 
 const RESULT: CardResult[] = [
     {
@@ -37,7 +39,26 @@ function fakeSearcher({ ms = 30, fail = false } = {}) {
     return { searcher, stats };
 }
 
+const spans = captureSpans();
+
 describe('CachedCardSearcher', () => {
+    test("counts hits and misses on the search's span, a search still in flight as a hit", async () => {
+        const cached = new CachedCardSearcher(fakeSearcher().searcher);
+        await tracer.startActiveSpan('search', async (span) => {
+            await Promise.all([
+                cached.search('Sol Ring'),
+                cached.search('Sol Ring')
+            ]);
+            await cached.search('sol ring');
+            await cached.search('Daze');
+            span.end();
+        });
+        expect(spans()[0]!.attributes).toEqual({
+            'cache.misses': 2,
+            'cache.hits': 2
+        });
+    });
+
     test('caches results; "Æther Vial" and "aether vial" share an entry', async () => {
         const { searcher, stats } = fakeSearcher();
         const cache = new CachedCardSearcher(searcher);

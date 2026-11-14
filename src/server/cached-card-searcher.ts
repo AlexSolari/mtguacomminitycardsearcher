@@ -2,6 +2,7 @@ import { normalize } from '../matching';
 import type { CardResult } from '../search-result';
 import type { ShopId } from '../shops';
 import type { CardSearcher } from './card-searcher';
+import { countOnActiveSpan } from './tracing';
 
 type Entry = {
     expires: number;
@@ -24,7 +25,7 @@ export class CachedCardSearcher implements CardSearcher {
 
     constructor(
         private readonly inner: CardSearcher,
-        private readonly ttlMs = 5 * 60_000
+        private readonly ttlMs = 10 * 60_000
     ) {
         this.shop = inner.shop;
         this.batched = inner.batched;
@@ -42,10 +43,12 @@ export class CachedCardSearcher implements CardSearcher {
         const key = `${normalize(card)}\n${normalize(fullName)}`;
         const now = Date.now();
         let entry = this.cache.get(key);
+        // counted on the search's span, one per card and shop: a joined search still in flight is a hit too
         if (!entry || entry.expires <= now) {
+            countOnActiveSpan('cache.misses');
             this.evictExpired(now);
             entry = this.start(key, card, fullName, now, urgent);
-        }
+        } else countOnActiveSpan('cache.hits');
         return this.wait(key, entry, signal);
     }
 

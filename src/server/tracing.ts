@@ -72,3 +72,16 @@ export function withSpan<T>(
         }
     });
 }
+
+// Running totals on the active span, e.g. a search's cache hits across all its shop lookups. An attribute can only
+// be set, not added to, so the counts are kept here, for as long as the span is.
+const counts = new WeakMap<Span, Record<string, number>>();
+
+export function countOnActiveSpan(attribute: string): void {
+    const span = trace.getActiveSpan();
+    if (!span) return;
+    let spanCounts = counts.get(span);
+    if (!spanCounts) counts.set(span, (spanCounts = {}));
+    spanCounts[attribute] = (spanCounts[attribute] ?? 0) + 1;
+    span.setAttribute(attribute, spanCounts[attribute]);
+}

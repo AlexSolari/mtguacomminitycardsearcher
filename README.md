@@ -79,7 +79,7 @@ browser ──POST /api/search {cards:[…]}──▶ Bun server
                                                │  every shop, in parallel; a failing shop is reported, not fatal
                                                │  streams the card's result (NDJSON) each time a shop finishes
                                                ▼
-                         CachedCardSearcher (5 min per shop + card)
+                         CachedCardSearcher (10 min per shop + card)
                                                ▼
                          <Shop>CardSearcher ──▶ ShopClient, one per shop (≥200 ms between requests, 15 s timeout, ≤30 s queue)
                                                ▼

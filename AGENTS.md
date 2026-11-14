@@ -127,7 +127,7 @@ TypeScript isn't a dependency: don't use `bunx tsc`, which fetches an unrelated 
 - **Two Bun versions:** `bun-plugin-tailwind` pulls a project-local Bun into `node_modules` (1.4.4 today), and `bun run <script>` (`bun dev`, `bun start`, `bun run test:coverage`) uses it.
   A bare `bun …` uses the global install, which may be older. Behaviour and coverage numbers can differ between them; when in doubt, go through a script.
 - **`Bun.serve`'s `idleTimeout` (in `src/index.ts`) must outlast the slowest shop.** The default 10 s dropped streams while Kartoteka was still searching.
-- **The result cache is 5 minutes.** When testing parser changes against a running server, restart it, or you'll see cached results.
+- **The result cache is 10 minutes.** When testing parser changes against a running server, restart it, or you'll see cached results.
 - **Frontend performance relies on stable `SearchResult` objects:**
     - `CardSection` is `memo`ized
     - `splitMatches` caches per result object in a `WeakMap`

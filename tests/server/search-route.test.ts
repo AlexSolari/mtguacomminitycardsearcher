@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { SpanKind, SpanStatusCode } from '@opentelemetry/api';
 import type { SearchResult, SearchUpdate } from '@/search-result';
 import type { ShopId } from '@/shops';
+import { CachedCardSearcher } from '@/server/cached-card-searcher';
 import type { CardSearcher } from '@/server/card-searcher';
 import { CardSearchService } from '@/server/card-search-service';
 import { InFlightLimiter } from '@/server/in-flight-limiter';
@@ -633,5 +634,24 @@ describe('searchHandler first cards', () => {
             Daze: false,
             Opt: false
         });
+    });
+});
+
+describe('searchHandler cache counts', () => {
+    test("the search's span counts the shop lookups the result cache answered", async () => {
+        const handle = searchHandler(
+            new CardSearchService([
+                new CachedCardSearcher(slowShop('carton').searcher),
+                new CachedCardSearcher(slowShop('citadel').searcher)
+            ]),
+            limits()
+        );
+        await (await handle(post({ cards: ['Sol Ring', 'Daze'] }), 'a')).text();
+        await (await handle(post({ cards: ['Sol Ring', 'Opt'] }), 'a')).text();
+        expect(requestSpans().map((s) => s.attributes)).toMatchObject([
+            { 'cache.misses': 4 },
+            { 'cache.hits': 2, 'cache.misses': 2 }
+        ]);
+        expect(requestSpans()[0]!.attributes).not.toHaveProperty('cache.hits');
     });
 });
