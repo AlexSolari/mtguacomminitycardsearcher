@@ -23,7 +23,11 @@ export type GinOffer = {
     imageUrl: string | null;
 };
 
-export type GinLookupResult = { offers?: GinOffer[] };
+// `query` echoes the lookup as sent (the searcher pairs answers with names by it, see pairAnswers)
+export type GinLookupResult = {
+    query?: { name?: string };
+    offers?: GinOffer[];
+};
 export type GinResponse = { results?: GinLookupResult[] };
 
 export function parseGin(

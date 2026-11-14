@@ -1,4 +1,7 @@
-import { HttpError } from './shop-client';
+import { normalize } from '../matching';
+import type { ShopId } from '../shops';
+import { logger } from './logger';
+import { HttpError, ShopRequestError } from './shop-client';
 
 // How long the first item waits for others to join its request by default. A search's cards reach the batchers
 // as their names resolve, the bulk of a list within a few milliseconds of each other. A search's first cards
@@ -18,9 +21,12 @@ type Entry<T, R> = {
     batch?: Batch; // set once the entry is sent
 };
 
-// Sends one result per item, in the items' order. A rejection fails every item in the batch, except one that
-// blames the input (see `rejectsInput`).
-export type SendBatch<T, R> = (items: T[], signal: AbortSignal) => Promise<R[]>;
+// Sends one result per item, in the items' order. An Error in an item's place fails only that item (see
+// pairAnswers). A rejection fails every item in the batch, except one that blames the input (see `rejectsInput`).
+export type SendBatch<T, R> = (
+    items: T[],
+    signal: AbortSignal
+) => Promise<(R | Error)[]>;
 
 // For APIs that take many lookups per request under a tight request budget (MTGin, Nerdik): items that arrive
 // together go out as one request of up to `maxBatch`, and only one request is in flight at a time. Whatever arrives
@@ -114,7 +120,11 @@ export class Batcher<T, R> {
                 entries.map((e) => e.item),
                 signal
             );
-            entries.forEach((e, i) => e.resolve(results[i]!));
+            entries.forEach((e, i) => {
+                const result = results[i]!;
+                if (result instanceof Error) e.reject(result);
+                else e.resolve(result);
+            });
         } catch (err) {
             if (entries.length > 1 && rejectsInput(err) && !signal.aborted) {
                 const half = Math.ceil(entries.length / 2);
@@ -129,4 +139,50 @@ export class Batcher<T, R> {
 // request, so splitting would only spend the budget.
 export function rejectsInput(err: unknown) {
     return err instanceof HttpError && [400, 413, 422].includes(err.status);
+}
+
+// A batch API answers its names in request order, but pairing by position alone would put every card after a
+// dropped or reordered answer on another card's offers: wrong prices, shown without an error and cached. All three
+// APIs echo each answer's name as sent (MTGin `query.name`, Mana Vault `query`, Nerdik `name`), so each name gets the
+// answer echoing it: in its own place, or anywhere in the batch when the answers are out of order. An answer with
+// no echo is taken by position only when there's one per name. A name left without an answer fails on its own.
+export function pairAnswers<A>(
+    shop: ShopId,
+    names: string[],
+    answers: (A | null | undefined)[] | null | undefined,
+    echoOf: (answer: A) => string | undefined
+): (A | Error)[] {
+    const list = (Array.isArray(answers) ? answers : []).map((answer) => ({
+        answer,
+        echo: answer == null ? undefined : echoOf(answer)
+    }));
+    const onePerName = list.length === names.length;
+    const fits = (at: (typeof list)[number] | undefined, name: string) =>
+        at?.answer != null &&
+        (at.echo === undefined
+            ? onePerName
+            : normalize(at.echo) === normalize(name));
+    let moved = 0;
+    let missing = 0;
+    const paired = names.map((name, i) => {
+        if (fits(list[i], name)) return list[i]!.answer!;
+        const found = list.find(
+            (at) => at.echo !== undefined && fits(at, name)
+        );
+        if (found) {
+            moved++;
+            return found.answer!;
+        }
+        missing++;
+        return new ShopRequestError('no answer for this card');
+    });
+    if (moved + missing > 0)
+        logger.warn("batch answers don't match the request", {
+            shop,
+            sent: names.length,
+            answered: list.length,
+            moved,
+            missing
+        });
+    return paired;
 }

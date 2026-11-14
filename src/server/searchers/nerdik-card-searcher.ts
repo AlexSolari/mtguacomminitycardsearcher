@@ -1,6 +1,10 @@
-import { parseNerdik, type NerdikBatchResponse } from '../parsers/api/nerdik';
+import {
+    parseNerdik,
+    type NerdikBatchResponse,
+    type NerdikResult
+} from '../parsers/api/nerdik';
 import type { CardResult } from '../../search-result';
-import { Batcher } from '../batcher';
+import { Batcher, pairAnswers } from '../batcher';
 import type { CardSearcher } from '../card-searcher';
 import { ShopClient } from '../shop-client';
 
@@ -14,7 +18,7 @@ const MAX_BATCH = 100;
 export class NerdikCardSearcher implements CardSearcher {
     readonly shop = 'nerdik';
     readonly batched = true;
-    private readonly batcher = new Batcher<string, CardResult[]>(
+    private readonly batcher = new Batcher<string, NerdikResult>(
         (names, signal) => this.send(names, signal),
         MAX_BATCH
     );
@@ -24,15 +28,15 @@ export class NerdikCardSearcher implements CardSearcher {
         private readonly apiKey = process.env.NERDIK_API_KEY
     ) {}
 
-    search(
+    // Parsed here rather than for the whole batch, so a result the parser chokes on fails only its own card.
+    async search(
         card: string,
         signal?: AbortSignal,
         fullName = card,
         urgent = false
     ): Promise<CardResult[]> {
-        if (!this.apiKey)
-            return Promise.reject(new Error('NERDIK_API_KEY is not set'));
-        return this.batcher.add(fullName, signal, urgent);
+        if (!this.apiKey) throw new Error('NERDIK_API_KEY is not set');
+        return parseNerdik(await this.batcher.add(fullName, signal, urgent));
     }
 
     private async send(names: string[], signal: AbortSignal) {
@@ -54,7 +58,6 @@ export class NerdikCardSearcher implements CardSearcher {
                 signal
             }
         );
-        // results come back in request order
-        return names.map((_, i) => parseNerdik(json?.results?.[i]));
+        return pairAnswers(this.shop, names, json?.results, (r) => r.name);
     }
 }

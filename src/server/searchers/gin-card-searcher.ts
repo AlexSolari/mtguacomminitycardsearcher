@@ -1,6 +1,10 @@
-import { parseGin, type GinResponse } from '../parsers/api/gin';
+import {
+    parseGin,
+    type GinLookupResult,
+    type GinResponse
+} from '../parsers/api/gin';
 import type { CardResult } from '../../search-result';
-import { Batcher } from '../batcher';
+import { Batcher, pairAnswers } from '../batcher';
 import type { CardSearcher } from '../card-searcher';
 import { ShopClient } from '../shop-client';
 
@@ -14,7 +18,7 @@ const MAX_BATCH = 100;
 export class GinCardSearcher implements CardSearcher {
     readonly shop = 'gin';
     readonly batched = true;
-    private readonly batcher = new Batcher<string, CardResult[]>(
+    private readonly batcher = new Batcher<string, GinLookupResult>(
         (cards, signal) => this.send(cards, signal),
         MAX_BATCH
     );
@@ -27,15 +31,18 @@ export class GinCardSearcher implements CardSearcher {
         private readonly apiKey = process.env.MTGIN_API_KEY
     ) {}
 
-    search(
+    // Parsed here rather than for the whole batch, so an answer the parser chokes on fails only its own card.
+    async search(
         card: string,
         signal?: AbortSignal,
         _fullName?: string,
         urgent = false
     ): Promise<CardResult[]> {
-        if (!this.apiKey)
-            return Promise.reject(new Error('MTGIN_API_KEY is not set'));
-        return this.batcher.add(card, signal, urgent);
+        if (!this.apiKey) throw new Error('MTGIN_API_KEY is not set');
+        return parseGin(
+            await this.batcher.add(card, signal, urgent),
+            this.client.baseUrl
+        );
     }
 
     private async send(cards: string[], signal: AbortSignal) {
@@ -53,9 +60,11 @@ export class GinCardSearcher implements CardSearcher {
                 signal
             }
         );
-        // results come back in request order
-        return cards.map((_, i) =>
-            parseGin(json?.results?.[i], this.client.baseUrl)
+        return pairAnswers(
+            this.shop,
+            cards,
+            json?.results,
+            (r) => r.query?.name
         );
     }
 }

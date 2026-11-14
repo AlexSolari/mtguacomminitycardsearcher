@@ -1,10 +1,29 @@
 // The batching itself is exercised through GinCardSearcher (tests/server/searchers/searchers.test.ts): aborts,
 // failures and requests held in flight. These cover what's generic about it.
 import { describe, expect, test } from 'bun:test';
-import { Batcher, BATCH_WINDOW_MS } from '@/server/batcher';
-import { HttpError } from '@/server/shop-client';
+import { Batcher, BATCH_WINDOW_MS, pairAnswers } from '@/server/batcher';
+import { HttpError, ShopRequestError } from '@/server/shop-client';
+import { captureLogs } from './capture-logs';
+
+const logs = captureLogs();
 
 describe('Batcher', () => {
+    test('an Error in place of a result fails only its item', async () => {
+        const batcher = new Batcher<string, string>(
+            async (items) =>
+                items.map((item) =>
+                    item === 'bad' ? new Error('no answer') : item
+                ),
+            10
+        );
+        expect(
+            await Promise.allSettled(['a', 'bad'].map((i) => batcher.add(i)))
+        ).toMatchObject([
+            { status: 'fulfilled', value: 'a' },
+            { status: 'rejected', reason: { message: 'no answer' } }
+        ]);
+    });
+
     test('items that arrive together go out as one batch, each getting its own result', async () => {
         const batches: string[][] = [];
         const batcher = new Batcher<string, string>(async (items) => {
@@ -141,5 +160,86 @@ describe('Batcher urgent items', () => {
         release();
         expect(await Promise.all([first, second])).toEqual(['a', 'b']);
         expect(batches).toEqual([['a'], ['b']]);
+    });
+});
+
+describe('pairAnswers', () => {
+    type Answer = { echo?: string; n: number };
+    const pair = (names: string[], answers: Answer[] | undefined) =>
+        pairAnswers<Answer>('gin', names, answers, (a) => a.echo);
+    const unanswered = expect.any(ShopRequestError);
+
+    test('in order, each name gets the answer in its place, quietly', () => {
+        expect(
+            pair(
+                ['Daze', 'Æther Vial'],
+                [
+                    { echo: 'Daze', n: 0 },
+                    { echo: 'aether vial', n: 1 } // echoes compare as normalize()d names
+                ]
+            )
+        ).toEqual([
+            { echo: 'Daze', n: 0 },
+            { echo: 'aether vial', n: 1 }
+        ]);
+        expect(logs).toEqual([]);
+    });
+
+    test('out of order, each name still gets the answer echoing it', () => {
+        expect(
+            pair(
+                ['Daze', 'Opt'],
+                [
+                    { echo: 'Opt', n: 1 },
+                    { echo: 'Daze', n: 0 }
+                ]
+            ).map((a) => (a instanceof Error ? a : a.n))
+        ).toEqual([0, 1]);
+        expect(logs).toMatchObject([
+            {
+                level: 'warn',
+                message: "batch answers don't match the request",
+                shop: 'gin',
+                moved: 2,
+                missing: 0
+            }
+        ]);
+    });
+
+    // the bug this guards against: every answer after a dropped one landing on the card before it
+    test('a dropped answer fails only its own name, not the names after it', () => {
+        expect(
+            pair(
+                ['Daze', 'Opt', 'Sol Ring'],
+                [
+                    { echo: 'Daze', n: 0 },
+                    { echo: 'Sol Ring', n: 2 }
+                ]
+            ).map((a) => (a instanceof Error ? a : a.n))
+        ).toEqual([0, unanswered, 2]);
+        expect(logs[0]).toMatchObject({ sent: 3, answered: 2, missing: 1 });
+    });
+
+    test('answers without an echo pair by position, but only with one per name', () => {
+        expect(pair(['Daze', 'Opt'], [{ n: 0 }, { n: 1 }])).toEqual([
+            { n: 0 },
+            { n: 1 }
+        ]);
+        expect(pair(['Daze', 'Opt'], [{ n: 0 }])).toEqual([
+            unanswered,
+            unanswered
+        ]);
+    });
+
+    test('no answers at all fail every name', () => {
+        expect(pair(['Daze'], undefined)).toEqual([unanswered]);
+    });
+
+    test('the same name twice shares its answer', () => {
+        expect(
+            pair(['Daze', 'daze'], [{ echo: 'Daze', n: 0 }]).map((a) =>
+                a instanceof Error ? a : a.n
+            )
+        ).toEqual([0, 0]);
     });
 });

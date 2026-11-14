@@ -1,6 +1,6 @@
 import { parseManavault, type ManavaultAnswer } from '../parsers/api/manavault';
 import type { CardResult } from '../../search-result';
-import { Batcher } from '../batcher';
+import { Batcher, pairAnswers } from '../batcher';
 import type { CardSearcher } from '../card-searcher';
 import { HttpError, ShopClient, ShopRequestError } from '../shop-client';
 import { WindowBudget } from '../window-budget';
@@ -71,7 +71,6 @@ export class ManavaultCardSearcher implements CardSearcher {
             },
             signal
         );
-        // answers come back in request order
-        return cards.map((_, i) => json?.answers?.[i] ?? {});
+        return pairAnswers(this.shop, cards, json?.answers, (a) => a.query);
     }
 }

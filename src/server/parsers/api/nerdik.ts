@@ -27,7 +27,8 @@ type NerdikCard = {
     }[];
 };
 
-export type NerdikResult = { cards?: NerdikCard[] };
+// `name` echoes the name as sent (the searcher pairs results with names by it, see pairAnswers)
+export type NerdikResult = { name?: string; cards?: NerdikCard[] };
 export type NerdikBatchResponse = { results?: NerdikResult[] };
 
 export function parseNerdik(json: NerdikResult | undefined): CardResult[] {

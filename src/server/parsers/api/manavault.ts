@@ -32,6 +32,7 @@ type ManavaultRow = {
 };
 
 export type ManavaultAnswer = {
+    query?: string; // the name as sent (the searcher pairs answers with names by it, see pairAnswers)
     match?: 'exact' | 'partial' | 'none';
     results?: ManavaultRow[];
     error?: string;

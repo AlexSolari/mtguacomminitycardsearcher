@@ -163,6 +163,22 @@ describe('GinCardSearcher', () => {
         expect(sol!.map((r) => r.name)).toEqual(['Sol Ring — Nemesis #2']);
     });
 
+    // paired by the name each answer echoes, not by position (see pairAnswers)
+    test('answers out of order still reach their own searches', async () => {
+        const { client } = fakeGin((names) => {
+            const answer = offers(names);
+            answer.results.reverse();
+            return answer;
+        });
+        const gin = new GinCardSearcher(client, 'test-key');
+        const [daze, sol] = await Promise.all([
+            gin.search('Daze'),
+            gin.search('Sol Ring')
+        ]);
+        expect(daze!.map((r) => r.name)).toEqual(['Daze — Nemesis #1']);
+        expect(sol!.map((r) => r.name)).toEqual(['Sol Ring — Nemesis #2']);
+    });
+
     // a search's first cards (see searchHandler) skip the batch window
     test('an urgent search is sent without waiting for the batch window', async () => {
         const { client, requests } = fakeGin();
@@ -572,15 +588,31 @@ describe('ManavaultCardSearcher', () => {
         });
     });
 
-    test('a name with no match, or no answer, gives [], quietly', async () => {
+    test('a name with no match gives [], quietly', async () => {
         const { client } = fakeManavault(() => ({
-            answers: [{ query: 'daze', match: 'none', results: [] }]
+            answers: [{ query: 'Daze', match: 'none', results: [] }]
         }));
         const mv = new ManavaultCardSearcher(client, 'test');
-        expect(
-            await Promise.all([mv.search('Daze'), mv.search('Opt')])
-        ).toEqual([[], []]);
+        expect(await mv.search('Daze')).toEqual([]);
         expect(logs).toEqual([]);
+    });
+
+    // not [], which would read as "not in stock" (and be cached as such); see pairAnswers
+    test("a name the API didn't answer fails, the rest keep their answers", async () => {
+        const { client } = fakeManavault((cards) => answers(cards.slice(1)));
+        const mv = new ManavaultCardSearcher(client, 'test');
+        const [daze, sol] = await Promise.allSettled([
+            mv.search('Daze'),
+            mv.search('Sol Ring')
+        ]);
+        expect(daze).toMatchObject({
+            status: 'rejected',
+            reason: { message: 'no answer for this card' }
+        });
+        expect(sol).toMatchObject({
+            status: 'fulfilled',
+            value: [expect.objectContaining({ name: 'Sol Ring — Nemesis #1' })]
+        });
     });
 
     test('a failed request fails every search in it', async () => {
@@ -681,30 +713,43 @@ describe('NerdikCardSearcher', () => {
     test('searches that arrive together share one request, each getting its own result', async () => {
         const { client, requests } = fakeNerdik(() => ({
             results: [
-                { cards: [] },
+                { name: 'Lightning Bolt', cards: [] },
                 JSON.parse(
-                    // a result per name, in request order; the API sent one fewer than asked
-                    '{"cards":[{"name":"Daze","game":"mtg","set_name":"Nemesis","number":"31","language":"en","treatment":"regular","image_url":null,"nerdik_url":"https://nerdik.club/mtg/singles/nem/31/en/","offers":[{"price_uah":"90.00","available_quantity":2,"nerdik_url":null}]}]}'
+                    // a result per name, in request order, each echoing its name
+                    '{"name":"Daze","cards":[{"name":"Daze","game":"mtg","set_name":"Nemesis","number":"31","language":"en","treatment":"regular","image_url":null,"nerdik_url":"https://nerdik.club/mtg/singles/nem/31/en/","offers":[{"price_uah":"90.00","available_quantity":2,"nerdik_url":null}]}]}'
                 )
             ]
         }));
         const nerdik = new NerdikCardSearcher(client, 'test-key');
-        const [bolt, daze, missing] = await Promise.all([
+        const [bolt, daze] = await Promise.all([
             nerdik.search('Lightning Bolt'),
-            nerdik.search('Daze'),
-            nerdik.search('Force of Will')
+            nerdik.search('Daze')
         ]);
         expect(requests).toHaveLength(1);
         expect(requests[0]!.body.cards.map((c) => c.name)).toEqual([
             'Lightning Bolt',
-            'Daze',
-            'Force of Will'
+            'Daze'
         ]);
         expect(bolt).toEqual([]);
         expect(daze!.map((r) => [r.name, r.price])).toEqual([
             ['Daze — Nemesis #31', 90]
         ]);
-        expect(missing).toEqual([]);
+    });
+
+    test('a result the parser chokes on fails only its own card', async () => {
+        const { client } = fakeNerdik(() => ({
+            results: [
+                { name: 'Daze', cards: [{ name: 'Daze', game: 'mtg' }] }, // no `offers`
+                { name: 'Opt', cards: [] }
+            ]
+        }));
+        const nerdik = new NerdikCardSearcher(client, 'test-key');
+        const [daze, opt] = await Promise.allSettled([
+            nerdik.search('Daze'),
+            nerdik.search('Opt')
+        ]);
+        expect(daze.status).toBe('rejected');
+        expect(opt).toEqual({ status: 'fulfilled', value: [] });
     });
 
     test('without a key it fails without a request', async () => {
