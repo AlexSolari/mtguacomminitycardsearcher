@@ -4,7 +4,11 @@ import {
     ScryfallNameResolver
 } from '@/server/name-resolver';
 import { ShopUnavailableError } from '@/server/circuit-breaker';
-import { HttpError, ShopClient } from '@/server/shop-client';
+import {
+    HttpError,
+    RequestTimeoutError,
+    ShopClient
+} from '@/server/shop-client';
 import { captureLogs } from './capture-logs';
 
 const base = 'https://api.scryfall.com';
@@ -173,7 +177,7 @@ describe('ScryfallNameResolver.resolveAll', () => {
     // `fuzzy`, or 404. `collection` records each POST's names, `fuzzy` each GET's query.
     function fakeCollection(
         fuzzy: (q: string) => unknown = () => new HttpError(404),
-        collectionFails?: Error
+        collectionFails?: Error | ((names: string[]) => Error | undefined)
     ) {
         const real = new ShopClient(base);
         const calls = { collection: [] as string[][], fuzzy: [] as string[] };
@@ -188,7 +192,11 @@ describe('ScryfallNameResolver.resolveAll', () => {
                         }[]
                     ).map((i) => i.name);
                     calls.collection.push(names);
-                    if (collectionFails) throw collectionFails;
+                    const failure =
+                        typeof collectionFails === 'function'
+                            ? collectionFails(names)
+                            : collectionFails;
+                    if (failure) throw failure;
                     return {
                         data: names.flatMap((n) => known[n.toLowerCase()] ?? [])
                     };
@@ -263,11 +271,75 @@ describe('ScryfallNameResolver.resolveAll', () => {
             (await Promise.all(resolver.resolveAll(['sol ring', 'x', 'y'])))[0]
         ).toEqual({ name: 'sol ring', fullName: 'Sol Ring' });
         expect(calls.fuzzy).toEqual(['sol ring', 'x', 'y']);
+        expect(calls.collection).toHaveLength(2); // a 503 is retried once
         expect(logs[0]).toMatchObject({
             level: 'warn',
             message: 'bulk name lookup failed, looking names up one by one',
             count: 3
         });
+    });
+
+    test('a rejected request is split until the name Scryfall refuses is alone', async () => {
+        const { client, calls } = fakeCollection(undefined, (names) =>
+            names.includes('bad') ? new HttpError(422) : undefined
+        );
+        const resolver = new ScryfallNameResolver(client, undefined, client);
+        await Promise.all(
+            resolver.resolveAll(['sol ring', 'daze', 'opt', 'bad'])
+        );
+        expect(calls.collection).toEqual([
+            ['sol ring', 'daze', 'opt', 'bad'],
+            ['sol ring', 'daze'],
+            ['opt', 'bad'],
+            ['opt'],
+            ['bad']
+        ]);
+        expect(calls.fuzzy).toEqual(['bad']);
+        expect(logs).toMatchObject([
+            {
+                level: 'warn',
+                message: 'bulk name lookup failed, looking names up one by one',
+                count: 1
+            },
+            { message: 'bulk name lookup missed names', count: 4, missed: 1 }
+        ]);
+    });
+
+    test('splitting stops after 16 more requests when Scryfall refuses every name', async () => {
+        const { client, calls } = fakeCollection(undefined, new HttpError(400));
+        const resolver = new ScryfallNameResolver(client, undefined, client);
+        const cards = Array.from({ length: 75 }, (_, i) => `Card ${i}`);
+        await Promise.all(resolver.resolveAll(cards));
+        expect(calls.collection).toHaveLength(17);
+        expect(calls.fuzzy).toHaveLength(75);
+    });
+
+    test('a timeout is retried once, and found names need no single lookups', async () => {
+        let failures = 1;
+        const { client, calls } = fakeCollection(undefined, () =>
+            failures-- > 0
+                ? new RequestTimeoutError('timeout after 15s')
+                : undefined
+        );
+        const resolver = new ScryfallNameResolver(client, undefined, client);
+        await Promise.all(resolver.resolveAll(['sol ring', 'daze', 'opt']));
+        expect(calls.collection).toHaveLength(2);
+        expect(calls.fuzzy).toEqual([]);
+        expect(logs).toEqual([]);
+    });
+
+    test('names the bulk lookup misses are counted in the log', async () => {
+        const { client } = fakeCollection();
+        const resolver = new ScryfallNameResolver(client, undefined, client);
+        await Promise.all(resolver.resolveAll(['sol ring', 'Сол Ринг', 'Опт']));
+        expect(logs).toMatchObject([
+            {
+                level: 'info',
+                message: 'bulk name lookup missed names',
+                count: 3,
+                missed: 2
+            }
+        ]);
     });
 
     test('an aborted lookup rejects every name it holds', async () => {

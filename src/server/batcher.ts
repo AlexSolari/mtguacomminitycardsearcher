@@ -127,6 +127,6 @@ export class Batcher<T, R> {
 
 // 400 Bad Request, 413 Content Too Large, 422 Unprocessable Content. Not 401/403: a bad key or a block fails every
 // request, so splitting would only spend the budget.
-function rejectsInput(err: unknown) {
+export function rejectsInput(err: unknown) {
     return err instanceof HttpError && [400, 413, 422].includes(err.status);
 }

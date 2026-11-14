@@ -1,7 +1,8 @@
 import { normalize } from '../matching';
+import { rejectsInput } from './batcher';
 import { ShopUnavailableError } from './circuit-breaker';
 import { logger } from './logger';
-import { HttpError, ShopClient } from './shop-client';
+import { HttpError, RequestTimeoutError, ShopClient } from './shop-client';
 
 // Names already resolved, kept for the life of the process: card names don't change. Bounded so a stream of
 // junk input can't grow it forever; the oldest entries go first.
@@ -25,6 +26,15 @@ const FUZZY_ONLY_MAX = 2;
 
 // Names per POST /cards/collection, Scryfall's maximum.
 const MAX_COLLECTION = 75;
+
+// Requests a rejected collection request may be split into (see lookupChunk). One bad name in 75 takes about 14;
+// past this, the rest of its names are looked up one by one.
+const SPLIT_REQUESTS = 16;
+
+// Worth one more try: Scryfall was slow or briefly failing, not refusing these names.
+const isTransient = (err: unknown) =>
+    err instanceof RequestTimeoutError ||
+    (err instanceof HttpError && err.status >= 500);
 
 // Scryfall rejects requests without these
 const HEADERS = { 'User-Agent': 'searcher/0.1', Accept: 'application/json' };
@@ -153,45 +163,89 @@ export class ScryfallNameResolver implements NameResolver {
         signal?: AbortSignal
     ): Promise<Map<string, ScryfallCard>> {
         const found = new Map<string, ScryfallCard>();
-        for (let i = 0; i < cards.length; i += MAX_COLLECTION) {
-            const chunk = cards.slice(i, i + MAX_COLLECTION);
-            try {
-                const { data } = await this.fetchJson<{
-                    data?: ScryfallCard[];
-                }>(
-                    this.collectionClient.url('/cards/collection'),
-                    {
-                        method: 'POST',
-                        signal,
-                        headers: {
-                            ...HEADERS,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            identifiers: chunk.map((name) => ({ name }))
-                        })
-                    },
-                    this.collectionClient
-                );
-                for (const card of data ?? [])
-                    for (const name of [
-                        card.name,
-                        ...(card.card_faces?.map((f) => f.name) ?? [])
-                    ])
-                        found.set(normalize(name), card);
-            } catch (err) {
-                if (signal?.aborted) throw err;
-                if (err instanceof LookupsPaused) continue;
-                logger.warn(
-                    'bulk name lookup failed, looking names up one by one',
-                    {
-                        count: chunk.length,
-                        error: err
-                    }
-                );
-            }
-        }
+        for (let i = 0; i < cards.length; i += MAX_COLLECTION)
+            await this.lookupChunk(
+                cards.slice(i, i + MAX_COLLECTION),
+                found,
+                { left: SPLIT_REQUESTS },
+                signal
+            );
+        // Each miss costs a lookup of its own, 500 ms apart: a list that mostly misses (names in another language, an
+        // export format the list parser doesn't know) shows up here rather than only as a burst of single lookups.
+        const missed = cards.filter((c) => !found.has(normalize(c))).length;
+        if (missed > 0)
+            logger.info('bulk name lookup missed names', {
+                count: cards.length,
+                missed
+            });
         return found;
+    }
+
+    // One request's worth of names, into `found`. A whole request fails when Scryfall rejects its input (400/422),
+    // so it's split in half and each half retried, as Batcher does: a bad name costs ~2·log₂(75) requests rather
+    // than 75 single lookups. `splits` caps that, in case every name is rejected. A timeout or a 5xx is retried once.
+    // Whatever still fails falls back to `resolve`, name by name.
+    private async lookupChunk(
+        chunk: string[],
+        found: Map<string, ScryfallCard>,
+        splits: { left: number },
+        signal?: AbortSignal,
+        retried = false
+    ): Promise<void> {
+        let data: ScryfallCard[] | undefined;
+        try {
+            ({ data } = await this.fetchJson<{ data?: ScryfallCard[] }>(
+                this.collectionClient.url('/cards/collection'),
+                {
+                    method: 'POST',
+                    signal,
+                    headers: {
+                        ...HEADERS,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        identifiers: chunk.map((name) => ({ name }))
+                    })
+                },
+                this.collectionClient
+            ));
+        } catch (err) {
+            if (signal?.aborted) throw err;
+            if (err instanceof LookupsPaused) return;
+            if (rejectsInput(err) && chunk.length > 1 && splits.left >= 2) {
+                splits.left -= 2;
+                const half = Math.ceil(chunk.length / 2);
+                await this.lookupChunk(
+                    chunk.slice(0, half),
+                    found,
+                    splits,
+                    signal
+                );
+                await this.lookupChunk(
+                    chunk.slice(half),
+                    found,
+                    splits,
+                    signal
+                );
+                return;
+            }
+            if (!retried && isTransient(err))
+                return this.lookupChunk(chunk, found, splits, signal, true);
+            logger.warn(
+                'bulk name lookup failed, looking names up one by one',
+                {
+                    count: chunk.length,
+                    error: err
+                }
+            );
+            return;
+        }
+        for (const card of data ?? [])
+            for (const name of [
+                card.name,
+                ...(card.card_faces?.map((f) => f.name) ?? [])
+            ])
+                found.set(normalize(name), card);
     }
 
     private remember(key: string, name: ResolvedName) {
