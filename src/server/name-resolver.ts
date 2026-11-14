@@ -1,4 +1,5 @@
 import { normalize } from '../matching';
+import { ShopUnavailableError } from './circuit-breaker';
 import { logger } from './logger';
 import { HttpError, ShopClient } from './shop-client';
 
@@ -75,6 +76,8 @@ export class ScryfallNameResolver implements NameResolver {
                 });
                 throw new LookupsPaused();
             }
+            // Scryfall found down: its client logged that once, and lookups resume when it answers again
+            if (err instanceof ShopUnavailableError) throw new LookupsPaused();
             throw err;
         }
     }

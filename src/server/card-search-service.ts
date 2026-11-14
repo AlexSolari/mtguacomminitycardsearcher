@@ -2,6 +2,7 @@ import { normalize } from '../matching';
 import type { CardResult, SearchError, SearchResult } from '../search-result';
 import type { ShopId } from '../shops';
 import type { CardSearcher } from './card-searcher';
+import { ShopUnavailableError } from './circuit-breaker';
 import { logger } from './logger';
 import { HttpError } from './shop-client';
 
@@ -69,11 +70,13 @@ export class CardSearchService {
             };
         } catch (err) {
             if (signal?.aborted) throw err;
-            logger.error('shop search failed', {
-                shop: searcher.shop,
-                card,
-                error: err
-            });
+            // a shop found down is logged once, when its client pauses it, not for every card it fails
+            if (!(err instanceof ShopUnavailableError))
+                logger.error('shop search failed', {
+                    shop: searcher.shop,
+                    card,
+                    error: err
+                });
             return {
                 links: [],
                 error: {

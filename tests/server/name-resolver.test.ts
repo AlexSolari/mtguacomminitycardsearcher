@@ -3,6 +3,7 @@ import {
     RATE_LIMIT_PAUSE_MS,
     ScryfallNameResolver
 } from '@/server/name-resolver';
+import { ShopUnavailableError } from '@/server/circuit-breaker';
 import { HttpError, ShopClient } from '@/server/shop-client';
 import { captureLogs } from './capture-logs';
 
@@ -119,6 +120,20 @@ describe('ScryfallNameResolver', () => {
             message: 'name lookup failed, searching as typed',
             card: 'Sol Ring'
         });
+    });
+
+    test('while Scryfall is found down, names are searched as typed without a warning each', async () => {
+        const { client, requests } = fakeScryfall(
+            () => new ShopUnavailableError()
+        );
+        const resolver = new ScryfallNameResolver(client);
+        expect(await resolver.resolve('Sol Ring')).toEqual({
+            name: 'Sol Ring',
+            fullName: 'Sol Ring'
+        });
+        await resolver.resolve('Sol Ring');
+        expect(requests).toHaveLength(2); // not cached: the next search tries again
+        expect(logs).toEqual([]);
     });
 
     test('an aborted search rejects instead of falling back', async () => {

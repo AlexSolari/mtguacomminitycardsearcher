@@ -1,5 +1,13 @@
 import { SpanKind } from '@opentelemetry/api';
 import PQueue from 'p-queue';
+import {
+    CircuitBreaker,
+    FAILURES_TO_OPEN,
+    OPEN_MS,
+    ShopUnavailableError,
+    type Verdict
+} from './circuit-breaker';
+import { logger } from './logger';
 import { withSpan } from './tracing';
 
 // Each card searcher owns one client, so every shop gets its own request queue. A deck list fans out to
@@ -71,7 +79,15 @@ export type ShopClientOptions = {
     intervalMs?: number; // minimum gap between request starts, e.g. 500 for a touchier shop
     timeoutMs?: number; // per request, counted from when it actually starts (after waiting for its slot)
     maxWaitMs?: number; // a request that would wait longer than this for its slot fails at once (see waitForSlot)
+    failuresToOpen?: number; // see CircuitBreaker
+    openMs?: number;
 };
+
+// Statuses that mean the shop (or the proxy in front of it) is down, not that this request failed. A 500 can be one
+// card's query tripping the shop's search, so it doesn't count.
+const DOWN_STATUSES = new Set([502, 503, 504]);
+
+type Fetched = { res: Response; text: string };
 
 export class ShopClient {
     private readonly intervalMs: number;
@@ -81,6 +97,7 @@ export class ShopClient {
     // Only the starts are queued (see waitForSlot), one per `intervalMs`. `strict` counts actual start times in a
     // sliding window, so two requests can't start back to back at a window boundary.
     private readonly queue: PQueue;
+    private readonly breaker: CircuitBreaker;
 
     // `baseUrl` is the shop's origin, e.g. "https://carton.cards"; paths and `url()` resolve against it.
     constructor(
@@ -88,7 +105,9 @@ export class ShopClient {
         {
             intervalMs = 200,
             timeoutMs = 15_000,
-            maxWaitMs = 30_000
+            maxWaitMs = 30_000,
+            failuresToOpen = FAILURES_TO_OPEN,
+            openMs = OPEN_MS
         }: ShopClientOptions = {}
     ) {
         this.host = new URL(baseUrl).host;
@@ -100,6 +119,16 @@ export class ShopClient {
             intervalCap: 1,
             strict: true
         });
+        // logged once per outage; the card searches it fails aren't (see CardSearchService)
+        this.breaker = new CircuitBreaker(
+            () =>
+                logger.warn('shop not responding, pausing its requests', {
+                    host: this.host,
+                    pause_s: openMs / 1000
+                }),
+            failuresToOpen,
+            openMs
+        );
     }
 
     // ("/search", { q: "Sol Ring" }) → "https://carton.cards/search?q=Sol+Ring"
@@ -113,10 +142,29 @@ export class ShopClient {
     // The timeout signal also covers reading the body, so a stalled res.text() times out too.
     // `init.signal` (the caller giving up) is honoured alongside it, both in the queue and during the request.
     // Takes a path or an absolute URL on the shop's own host. Another host would dodge that host's rate limit.
-    async fetch(url: string, init: RequestInit = {}): Promise<Response> {
+    // Each request, body included, tells the circuit breaker whether the shop answered.
+    private async fetch(url: string, init: RequestInit = {}): Promise<Fetched> {
         const target = new URL(url, this.baseUrl);
         if (target.host !== this.host)
             throw new Error(`${target.host} is not ${this.host}`);
+        this.breaker.admit();
+        const opened = this.breaker.opened;
+        let verdict: Verdict = null;
+        try {
+            return await this.send(target, init, opened, (v) => {
+                verdict = v;
+            });
+        } finally {
+            this.breaker.settle(verdict);
+        }
+    }
+
+    private send(
+        target: URL,
+        init: RequestInit,
+        opened: AbortSignal,
+        judge: (verdict: Verdict) => void
+    ): Promise<Fetched> {
         const { signal, ...rest } = init;
         // Bun's fetch isn't auto-instrumented, so each shop request gets its own client span by hand. It starts
         // before the wait for a slot: the queue is often most of a request's time, and "server busy" happens there.
@@ -136,35 +184,48 @@ export class ShopClient {
             },
             async (span) => {
                 const queued = performance.now();
-                await this.waitForSlot(signal ?? undefined);
+                await this.waitForSlot(signal ?? undefined, opened);
                 span.setAttribute(
                     'shop.queue_wait_ms',
                     Math.round(performance.now() - queued)
                 );
                 const timeout = AbortSignal.timeout(this.timeoutMs);
+                // past the queue, a failure is the shop's (it's down, or dropped the connection), unless the caller
+                // gave up
                 try {
-                    return await fetch(target, {
-                        ...rest,
-                        signal: signal
-                            ? AbortSignal.any([signal, timeout])
-                            : timeout
-                    });
-                } catch (err) {
-                    if (timeout.aborted)
-                        throw this.timeoutError(err, {
-                            url: target.href,
-                            method: rest.method ?? 'GET'
+                    let res: Response;
+                    try {
+                        res = await fetch(target, {
+                            ...rest,
+                            signal: signal
+                                ? AbortSignal.any([signal, timeout])
+                                : timeout
                         });
+                    } catch (err) {
+                        if (timeout.aborted)
+                            throw this.timeoutError(err, {
+                                url: target.href,
+                                method: rest.method ?? 'GET'
+                            });
+                        throw err;
+                    }
+                    const text = await this.readBody(res, rest.method);
+                    judge(DOWN_STATUSES.has(res.status) ? 'down' : 'up');
+                    return { res, text };
+                } catch (err) {
+                    if (!signal?.aborted) judge('down');
                     throw err;
                 }
             },
-            { statusOf: (res) => res.status, signal: signal ?? undefined }
+            {
+                statusOf: ({ res }) => res.status,
+                signal: signal ?? undefined
+            }
         );
     }
 
     async fetchHtml(url: string, init?: RequestInit): Promise<string> {
-        const res = await this.fetch(url, init);
-        const text = await this.readBody(res, init?.method);
+        const { res, text } = await this.fetch(url, init);
         if (!res.ok)
             throw new HttpError(res.status, {
                 ...responseDetails(res, init?.method),
@@ -175,8 +236,7 @@ export class ShopClient {
 
     // Parsed from the text rather than with res.json(), so a body that isn't JSON can be shown in the error.
     async fetchJson<T = unknown>(url: string, init?: RequestInit): Promise<T> {
-        const res = await this.fetch(url, init);
-        const text = await this.readBody(res, init?.method);
+        const { res, text } = await this.fetch(url, init);
         const details = () => ({
             ...responseDetails(res, init?.method),
             body: bodySnippet(text)
@@ -218,13 +278,25 @@ export class ShopClient {
     // whose signal aborts while it waits), freeing its place for the requests behind it.
     // The queue is shared by every user, so its backlog is capped: past `maxWaitMs`, a request fails fast instead
     // of growing the queue. Otherwise a flood of searches would push every later search minutes back.
-    private async waitForSlot(signal?: AbortSignal): Promise<void> {
+    // `opened` (the circuit breaker's) takes every waiting request out of the queue once the shop is found down.
+    private async waitForSlot(
+        signal: AbortSignal | undefined,
+        opened: AbortSignal
+    ): Promise<void> {
         signal?.throwIfAborted();
         // estimated wait at the back of the queue: one interval per queued request, plus one if the current
         // interval's start is already taken
         const ahead = this.queue.size + (this.queue.isRateLimited ? 1 : 0);
         if (ahead * this.intervalMs > this.maxWaitMs)
             throw new Error('server busy');
-        await this.queue.add(() => {}, { signal });
+        try {
+            await this.queue.add(() => {}, {
+                signal: signal ? AbortSignal.any([signal, opened]) : opened
+            });
+        } catch (err) {
+            if (opened.aborted && !signal?.aborted)
+                throw new ShopUnavailableError();
+            throw err;
+        }
     }
 }

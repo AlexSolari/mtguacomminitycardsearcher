@@ -1,12 +1,14 @@
 // Against a local server, never the real shops.
 import { afterAll, beforeEach, describe, expect, test } from 'bun:test';
 import { SpanKind, SpanStatusCode } from '@opentelemetry/api';
+import { ShopUnavailableError } from '@/server/circuit-breaker';
 import {
     HttpError,
     InvalidJsonError,
     RequestTimeoutError,
     ShopClient
 } from '@/server/shop-client';
+import { captureLogs } from './capture-logs';
 import { captureSpans } from './capture-spans';
 
 const hits: { path: string; at: number }[] = [];
@@ -17,6 +19,7 @@ const server = Bun.serve({
         hits.push({ path, at: Date.now() });
         if (path === '/slow') await Bun.sleep(1000);
         if (path === '/missing') return new Response('nope', { status: 404 });
+        if (path === '/down') return new Response('down', { status: 503 });
         if (path === '/huge-error')
             return new Response('x'.repeat(10_000), { status: 500 });
         if (path === '/json')
@@ -42,6 +45,7 @@ beforeEach(() => {
 
 const paths = () => hits.map((h) => h.path);
 const spans = captureSpans();
+const logs = captureLogs();
 
 describe('ShopClient', () => {
     test('url() resolves paths and encodes params', () => {
@@ -200,6 +204,86 @@ describe('ShopClient', () => {
         await expect(
             client.fetchHtml('/slow', { signal: controller.signal })
         ).rejects.toHaveProperty('name', 'AbortError');
+    });
+});
+
+describe('ShopClient when the shop goes down', () => {
+    const fails = (p: Promise<unknown>) => p.then(() => null).catch((e) => e);
+
+    test('timeouts in a row pause the shop: requests fail at once, and it is logged once', async () => {
+        const client = new ShopClient(base, {
+            timeoutMs: 50,
+            failuresToOpen: 2
+        });
+        await fails(client.fetchHtml('/slow'));
+        await fails(client.fetchHtml('/slow'));
+        hits.length = 0;
+        const t0 = Date.now();
+        expect(await fails(client.fetchHtml('/a'))).toBeInstanceOf(
+            ShopUnavailableError
+        );
+        expect(Date.now() - t0).toBeLessThan(20);
+        expect(hits).toHaveLength(0);
+        expect(logs).toMatchObject([
+            {
+                level: 'warn',
+                message: 'shop not responding, pausing its requests',
+                host: `localhost:${server.port}`,
+                pause_s: 60
+            }
+        ]);
+    });
+
+    test('requests waiting for a slot fail as soon as it opens, without being sent', async () => {
+        const client = new ShopClient(base, {
+            intervalMs: 100,
+            timeoutMs: 30,
+            failuresToOpen: 1
+        });
+        const t0 = Date.now();
+        const results = await Promise.all(
+            ['/slow', '/a', '/b'].map((p) => fails(client.fetchHtml(p)))
+        );
+        expect(results[0]).toBeInstanceOf(RequestTimeoutError);
+        expect(results[1]).toBeInstanceOf(ShopUnavailableError);
+        expect(results[2]).toBeInstanceOf(ShopUnavailableError);
+        // the first one's timeout, not the queue's two intervals
+        expect(Date.now() - t0).toBeLessThan(90);
+        expect(paths()).toEqual(['/slow']);
+    });
+
+    test('502/503/504 count as down; a 500 or 404 is the request’s own failure', async () => {
+        const client = new ShopClient(base, { failuresToOpen: 2 });
+        for (const p of ['/huge-error', '/missing', '/huge-error', '/missing'])
+            expect(await fails(client.fetchHtml(p))).toBeInstanceOf(HttpError);
+        expect(await client.fetchHtml('/a')).toBe('page /a');
+        await fails(client.fetchHtml('/down'));
+        await fails(client.fetchJson('/down'));
+        expect(await fails(client.fetchHtml('/a'))).toBeInstanceOf(
+            ShopUnavailableError
+        );
+    });
+
+    test('a caller giving up says nothing about the shop', async () => {
+        const client = new ShopClient(base, { failuresToOpen: 1 });
+        const controller = new AbortController();
+        setTimeout(() => controller.abort(), 30);
+        await fails(client.fetchHtml('/slow', { signal: controller.signal }));
+        expect(await client.fetchHtml('/a')).toBe('page /a');
+    });
+
+    test('after the pause, a request goes through, and an answer resumes the rest', async () => {
+        const client = new ShopClient(base, {
+            failuresToOpen: 1,
+            openMs: 50
+        });
+        await fails(client.fetchHtml('/down'));
+        expect(await fails(client.fetchHtml('/a'))).toBeInstanceOf(
+            ShopUnavailableError
+        );
+        await Bun.sleep(60);
+        expect(await client.fetchHtml('/a')).toBe('page /a');
+        expect(await client.fetchHtml('/b')).toBe('page /b');
     });
 });
 

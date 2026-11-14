@@ -62,7 +62,7 @@ TypeScript isn't a dependency: don't use `bunx tsc`, which fetches an unrelated 
   Shared helpers (`decodeEntities`, `parsePrice`, `abs`, `languageCode`) live in `parsers/helpers.ts`.
   Parsers that resolve relative links take a `base` argument (the searcher passes `client.baseUrl`); don't hardcode the shop's URL.
 - **Searchers** (`src/server/searchers/<shop>-card-searcher.ts`) decide which URLs to fetch and call the parsers.
-  They **must** fetch through their own `ShopClient` (created in the constructor with the shop's base URL), never `fetch` directly; it provides the shop's rate limit, timeout and queue cap.
+  They **must** fetch through their own `ShopClient` (created in the constructor with the shop's base URL), never `fetch` directly; it provides the shop's rate limit, timeout, queue cap and circuit breaker (after 3 timeouts, dropped connections or 502/503/504 in a row, the shop's requests fail at once for 60 s; `src/server/circuit-breaker.ts`).
   Build URLs with `client.url(path, params)`. The client refuses URLs on other hosts.
   Scrapers pass every parser result through `warnIfEmpty`: an empty parse is how a shop redesign shows up, so it's logged.
   API searchers don't: an empty API response just means nothing is in stock.

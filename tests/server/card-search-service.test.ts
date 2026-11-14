@@ -4,6 +4,7 @@ import type { CardResult, SearchResult } from '@/search-result';
 import type { ShopId } from '@/shops';
 import type { CardSearcher } from '@/server/card-searcher';
 import { CardSearchService } from '@/server/card-search-service';
+import { ShopUnavailableError } from '@/server/circuit-breaker';
 import { HttpError } from '@/server/shop-client';
 import { captureLogs } from './capture-logs';
 
@@ -95,6 +96,23 @@ describe('CardSearchService', () => {
                 error: { message: 'timeout after 15s' }
             }
         ]);
+    });
+
+    test('a shop found down is reported on the card but not logged again', async () => {
+        const service = new CardSearchService([
+            searcher('carton', async () => {
+                throw new ShopUnavailableError();
+            })
+        ]);
+        const result = await service.search('Sol Ring');
+        expect(result.errors).toEqual([
+            {
+                shop: 'carton',
+                message: 'shop not responding',
+                status: undefined
+            }
+        ]);
+        expect(logs).toEqual([]);
     });
 
     test('a cancelled search rejects instead of reporting errors', async () => {
