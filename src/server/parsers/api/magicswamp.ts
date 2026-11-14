@@ -1,5 +1,5 @@
 import type { CardResult } from '../../../search-result';
-import { abs, languageCode } from '../helpers';
+import { abs, languageCode, toPrice } from '../helpers';
 
 // magicswamp.com.ua/api/listings/grouped/cards?game=mtg&search=… — a marketplace of private sellers. One entry per
 // printing, with every seller's offer for it:
@@ -51,7 +51,6 @@ export function parseMagicswamp(
             (c.sellers ?? [])
                 .filter((o) => o?.listing_id && o.quantity > 0)
                 .map((o) => {
-                    const price = Number(o.price);
                     // "Boltwave — Foundations, Etched": the edition goes after " — ", where isExactMatch cuts.
                     // Plain foil is the `foil` badge; special finishes (etched, halo, surge…) are named.
                     const finish =
@@ -69,10 +68,10 @@ export function parseMagicswamp(
                             : c.card_name,
                         url: abs(base, `/mtg/listing/${o.listing_id}`)!,
                         image: abs(base, c.card_image_url ?? undefined),
-                        // null when unknown or not in hryvnias, never 0 (which would win best price)
+                        // unknown when not in hryvnias
                         price:
-                            (o.currency ?? 'UAH') === 'UAH' && price > 0
-                                ? price
+                            (o.currency ?? 'UAH') === 'UAH'
+                                ? toPrice(o.price)
                                 : null,
                         artSeries: /art series/i.test(c.set_name ?? ''),
                         stock: o.quantity,

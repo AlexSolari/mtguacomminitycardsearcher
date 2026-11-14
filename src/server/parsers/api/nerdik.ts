@@ -1,5 +1,5 @@
 import type { CardResult } from '../../../search-result';
-import { languageCode } from '../helpers';
+import { languageCode, toPrice } from '../helpers';
 
 // hub.nerdik.club/api/singles/search/batch — JSON, one result per looked-up name, in request order; each lists
 // that card's printings, each with its in-stock offers:
@@ -58,16 +58,10 @@ export function parseNerdik(json: NerdikResult | undefined): CardResult[] {
                 name: edition ? `${card.name} — ${edition}` : card.name,
                 url: offer.nerdik_url ?? card.nerdik_url,
                 image: card.image_url,
-                // "183.00" — a decimal string, so not parsePrice (which would read it as 18300)
-                price: parseUah(offer.price_uah),
+                price: toPrice(offer.price_uah), // a decimal string, "183.00"
                 stock: offer.available_quantity,
                 foil,
                 language: languageCode(card.language)
             }));
     });
 }
-
-const parseUah = (s: string | null | undefined) => {
-    const n = s ? Number(s) : NaN;
-    return Number.isFinite(n) ? n : null;
-};

@@ -1,4 +1,4 @@
-import { abs, decodeEntities, languageCode } from '../helpers';
+import { abs, decodeEntities, languageCode, toPrice } from '../helpers';
 import type { CardResult } from '../../../search-result';
 
 // carton.cards is an Inertia.js app: each page's props are JSON in <div id="app" data-page="...">.
@@ -27,7 +27,7 @@ export function parseCarton(html: string, base: string): CardResult[] {
         name: p.name,
         url: abs(base, p.url_path)!,
         image: p.image ?? null,
-        price: typeof p.min_price === 'number' ? p.min_price : null,
+        price: toPrice(p.min_price),
         artSeries: isArtSeriesSet(p.property_set),
         fromPrice: true, // min_price across the product's offers/conditions
         language: languageCode(p.language),
@@ -69,14 +69,12 @@ export function parseCartonProduct(html: string, url: string): CardResult[] {
         const amount = Number(o?.amount);
         if (o?.status !== 'active' || !(amount > 0)) continue;
         const { version, language, condition } = o.property_set ?? {};
-        const price = Number(o.price);
         const result: CardResult = {
             shop: 'carton',
             name: product.name,
             url,
             image: abs(url, product.image ?? undefined),
-            // null when unknown, never 0 (which would win best price)
-            price: price > 0 ? price : null,
+            price: toPrice(o.price),
             artSeries: isArtSeriesSet(product.property_set),
             stock: amount,
             foil:

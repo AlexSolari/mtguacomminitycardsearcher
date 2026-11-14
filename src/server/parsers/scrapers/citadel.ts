@@ -1,5 +1,5 @@
 import type { CardResult } from '../../../search-result';
-import { abs, languageCode } from '../helpers';
+import { abs, languageCode, toPrice } from '../helpers';
 
 // citadel.kyiv.ua/singles?q=… — a Next.js app with no public JSON API. The search page is rendered on the server,
 // and the props it hydrates with arrive as React Server Components data in inline scripts, each a JSON string:
@@ -97,15 +97,13 @@ export function parseCitadel(html: string, base: string): CardResult[] {
             ]
                 .filter(Boolean)
                 .join(', ');
-            const price = Number(it.prices);
             return [
                 {
                     shop: 'citadel' as const,
                     name: edition ? `${it.name} — ${edition}` : it.name,
                     url: abs(base, `/singles/${it.scryfall_id}`)!,
                     image: abs(base, it.faces?.[0]?.images?.normal),
-                    // null when unknown, never 0 (which would win best price)
-                    price: price > 0 ? price : null,
+                    price: toPrice(it.prices),
                     artSeries: /art series/i.test(it.set_name ?? ''),
                     stock,
                     foil: it.isFoil,

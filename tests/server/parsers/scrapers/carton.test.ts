@@ -52,10 +52,17 @@ describe('carton', () => {
         expect(art).toMatchObject({ foil: undefined, artSeries: true });
     });
 
-    test('a missing price is null, not 0', () => {
+    // 0 ₴ would win best price
+    test('a missing or zero price is null, not 0', () => {
         expect(
-            parseCarton(page([{ ...product, min_price: null }]), base)[0]!.price
-        ).toBeNull();
+            parseCarton(
+                page([
+                    { ...product, min_price: null },
+                    { ...product, min_price: 0 }
+                ]),
+                base
+            ).map((r) => r.price)
+        ).toEqual([null, null]);
     });
 });
 

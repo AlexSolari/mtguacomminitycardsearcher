@@ -59,7 +59,7 @@ TypeScript isn't a dependency: don't use `bunx tsc`, which fetches an unrelated 
     - `src/matching.ts`: name matching (`normalize`, `isExactMatch`, `isArtSeries`)
 - **Parsers** are pure: string/JSON in, `CardResult[]` out, no fetching.
   JSON API parsers go in `src/server/parsers/api/<shop>.ts`, HTML scrapers in `src/server/parsers/scrapers/<shop>.ts`.
-  Shared helpers (`decodeEntities`, `parsePrice`, `abs`, `languageCode`) live in `parsers/helpers.ts`.
+  Shared helpers (`decodeEntities`, `toPrice`, `abs`, `languageCode`) live in `parsers/helpers.ts`.
   Parsers that resolve relative links take a `base` argument (the searcher passes `client.baseUrl`); don't hardcode the shop's URL.
 - **Searchers** (`src/server/searchers/<shop>-card-searcher.ts`) decide which URLs to fetch and call the parsers.
   They **must** fetch through their own `ShopClient` (created in the constructor with the shop's base URL), never `fetch` directly; it provides the shop's rate limit, timeout, queue cap and circuit breaker (after 3 timeouts, dropped connections or 502/503/504 in a row, the shop's requests fail at once for 60 s; `src/server/circuit-breaker.ts`).
@@ -106,8 +106,8 @@ TypeScript isn't a dependency: don't use `bunx tsc`, which fetches an unrelated 
 - **Name matching goes through `normalize`:** it lower-cases, strips diacritics and expands `æ`.
   Use `isExactMatch` / `normalize` for every name comparison, never raw string equality.
   "Æther Vial" vs "Aether Vial" and "Lim-Dûl" vs "Lim-Dul" both depend on it.
-- **`parsePrice` returns `null` when there are no digits.** Don't "simplify" it back to `Number(...)`: that turns "—" into 0 ₴, which then wins best price.
-- **Decimal prices:** `"1 234,50"` parses as 123450. No shop shows kopecks today. Handle it per shop if one starts.
+- **Every price goes through `toPrice`:** it gives `null` for anything unknown, including 0. Don't use `Number(...)` alone or a bare `typeof` check: they turn `null` or `""` into 0, or let a listed 0 through, and 0 ₴ wins best price.
+  It reads JSON numbers and decimal strings (`"183.00"`), not formatted text (`"1 234 ₴"`); no shop gives prices that way today.
 - **MTGin batches its searches:** the API key allows 60 requests a minute, shared by every user. `GinCardSearcher` sends concurrent searches as one request (up to 100 cards), one request at a time, at most one a second. Don't turn it back into a request per card.
   Nerdik's and Mana Vault's batch APIs are batched the same way; all three go through `Batcher` (`src/server/batcher.ts`).
 - **Mana Vault's price API allows 60 requests a minute per IP, with no key**, shared by every user ([docs](https://manavaultstore.com/api/docs)).

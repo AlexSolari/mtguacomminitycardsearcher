@@ -1,5 +1,5 @@
 import type { CardResult } from '../../../search-result';
-import { languageCode } from '../helpers';
+import { languageCode, toPrice } from '../helpers';
 
 // One answer of manavaultstore.com's POST /api/v1/prices (`{"answers":[…]}`, one per name, the same as what
 // GET /api/v1/prices?q=… returns) — JSON, one row per printing × finish × condition × language, in stock only,
@@ -54,15 +54,13 @@ export function parseManavault(json: ManavaultAnswer): CardResult[] {
         ]
             .filter(Boolean)
             .join(', ');
-        const price =
-            typeof row.price === 'number' && row.price > 0 ? row.price : null;
         return [
             {
                 shop: 'manavault' as const,
                 name: edition ? `${row.name} — ${edition}` : row.name,
                 url: row.url,
                 image: row.image || null,
-                price,
+                price: toPrice(row.price),
                 fromPrice: row.fromPrice || undefined,
                 stock: Number(row.stock),
                 foil: !!(row.foil || row.etched),

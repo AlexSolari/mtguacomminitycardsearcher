@@ -1,4 +1,4 @@
-import { abs, decodeEntities } from '../helpers';
+import { abs, decodeEntities, toPrice } from '../helpers';
 import type { CardResult } from '../../../search-result';
 
 // kartoteka.in.ua — mostly a board-game shop (same Horoshop platform as Nerdik). The search page declares
@@ -66,7 +66,7 @@ export function parseKartoteka(html: string, base: string): CardResult[] {
                 name: `${title} — ${edition}`,
                 url,
                 image: abs(base, card.image),
-                price: typeof p.price === 'number' ? p.price : null,
+                price: toPrice(p.price),
                 foil: foil || undefined
             }
         ];

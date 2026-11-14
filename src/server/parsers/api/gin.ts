@@ -1,5 +1,5 @@
 import type { CardResult } from '../../../search-result';
-import { abs, languageCode } from '../helpers';
+import { abs, languageCode, toPrice } from '../helpers';
 
 // mtgin.kyiv.ua/api/public/v1/search — the partner API. The answer to a batch of lookups has one entry per lookup, in
 // request order, each with the matching offers (one per printing, finish, condition and seller), cheapest first:
@@ -52,11 +52,7 @@ export function parseGin(
                 name: edition ? `${o.name} — ${edition}` : o.name,
                 url: abs(base, o.url)!,
                 image: abs(base, o.imageUrl ?? undefined),
-                // null when unknown, never 0 (which would win best price)
-                price:
-                    typeof o.priceUah === 'number' && o.priceUah > 0
-                        ? o.priceUah
-                        : null,
+                price: toPrice(o.priceUah),
                 artSeries: /art series/i.test(o.setName ?? ''),
                 stock: o.quantity,
                 foil: o.finish ? o.finish !== 'nonfoil' : undefined,

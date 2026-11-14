@@ -94,6 +94,20 @@ describe('nerdik', () => {
         ]);
     });
 
+    // 0 ₴ would win best price
+    test('a zero or unreadable price is null, not 0', () => {
+        const offer = (price_uah: string) => ({
+            price_uah,
+            available_quantity: 1,
+            nerdik_url: null
+        });
+        expect(
+            parseNerdik({
+                cards: [{ ...card, offers: [offer('0.00'), offer('')] }]
+            }).map((r) => r.price)
+        ).toEqual([null, null]);
+    });
+
     test('an unknown treatment leaves foil unknown', () => {
         const [offer] = parseNerdik({
             cards: [

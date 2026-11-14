@@ -3,21 +3,33 @@ import {
     abs,
     decodeEntities,
     languageCode,
-    parsePrice
+    toPrice
 } from '@/server/parsers/helpers';
 
-describe('parsePrice', () => {
+describe('toPrice', () => {
     test.each([
-        ['1 234 ₴', 1234],
-        ['від 42 грн', 42],
-        ['124', 124]
+        [124, 124],
+        ['183.00', 183],
+        ['99.50', 99.5]
     ])('%p → %p', (input, expected) => {
-        expect(parsePrice(input)).toBe(expected);
+        expect(toPrice(input)).toBe(expected);
     });
 
-    // "—" must not become 0 ₴, which would win best price
-    test.each(['—', 'Немає', '', undefined])('%p → null', (input) => {
-        expect(parsePrice(input)).toBeNull();
+    // none of these may become 0 ₴, which would win best price
+    test.each([
+        0,
+        '0.00',
+        -5,
+        null,
+        undefined,
+        '',
+        '—',
+        NaN,
+        Infinity,
+        true,
+        {}
+    ])('%p → null', (input) => {
+        expect(toPrice(input)).toBeNull();
     });
 });
 

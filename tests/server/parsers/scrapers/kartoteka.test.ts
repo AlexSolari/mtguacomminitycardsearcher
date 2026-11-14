@@ -59,6 +59,19 @@ describe('kartoteka', () => {
         ).toEqual([]);
     });
 
+    // 0 ₴ would win best price
+    test('a missing or zero price is null, not 0', () => {
+        expect(
+            parseKartoteka(
+                page([
+                    { ...single, price: 0 },
+                    { ...single, price: null }
+                ]),
+                base
+            ).map((r) => r.price)
+        ).toEqual([null, null]);
+    });
+
     test('malformed product JSON → []', () => {
         expect(parseKartoteka('var products = [{oops}],\n', base)).toEqual([]);
     });
