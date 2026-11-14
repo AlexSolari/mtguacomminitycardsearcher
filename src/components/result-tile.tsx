@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Crown, ExternalLink, Gavel, Package, SearchX } from 'lucide-react';
 import { clickReporters } from '@/lib/report-click';
 import { cn } from '@/lib/utils';
@@ -13,7 +14,8 @@ import {
 } from '@/components/offer-parts';
 import { ShopBadge } from '@/components/shop-badge';
 
-export function ResultTile({
+// Memoized: a section re-renders on every view switch, and its tiles' props rarely change.
+export const ResultTile = memo(function ResultTile({
     link,
     best,
     card,
@@ -116,7 +118,7 @@ export function ResultTile({
             </div>
         </a>
     );
-}
+});
 
 // Redirects to the card's image; the shop's own image is unknown since its search failed.
 const scryfallImage = (card: string) =>

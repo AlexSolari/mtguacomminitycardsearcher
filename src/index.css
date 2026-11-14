@@ -111,6 +111,17 @@
             animation: none;
         }
     }
+
+    /* Result sections: the browser skips layout and paint for off-screen ones, so a big search (thousands of
+       tiles) doesn't lay them all out on every view switch. `auto` remembers a section's real height once shown.
+       This also clips paint to the box, so the padding (cancelled by the negative margin) leaves room for the
+       tiles' hover shadow. The side padding matches the page's 16px mobile gutter, so it never overflows it. */
+    .result-section {
+        content-visibility: auto;
+        contain-intrinsic-size: auto 600px;
+        margin: 0 -1rem -3rem;
+        padding: 0 1rem 3rem;
+    }
 }
 
 /* registered so the gradient angle can be animated */

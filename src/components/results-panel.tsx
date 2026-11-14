@@ -32,32 +32,35 @@ export function ResultsPanel({
                     <ViewToggle view={view} onChange={onViewChange} />
                 </div>
             </div>
-            {shown.map((entry) =>
-                entry.result ? (
-                    <CardSection
-                        key={entry.card}
-                        result={entry.result}
-                        count={entry.count}
-                        view={view}
+            {/* each section renders both views; this hides the one not chosen (`contents`: no box of its own, so
+                the sections stay items of the page's column) */}
+            <div data-view={view} className='group/results contents'>
+                {shown.map((entry) =>
+                    entry.result ? (
+                        <CardSection
+                            key={entry.card}
+                            result={entry.result}
+                            count={entry.count}
+                        />
+                    ) : (
+                        <CardSectionSkeleton
+                            key={entry.card}
+                            name={entry.card}
+                            count={entry.count}
+                        />
+                    )
+                )}
+                {notFound.length > 0 && (
+                    <NotFoundSection
+                        entries={notFound.map((e) => ({
+                            id: e.card,
+                            card: e.result?.card ?? e.card,
+                            count: e.count,
+                            typed: e.result?.typed
+                        }))}
                     />
-                ) : (
-                    <CardSectionSkeleton
-                        key={entry.card}
-                        name={entry.card}
-                        count={entry.count}
-                    />
-                )
-            )}
-            {notFound.length > 0 && (
-                <NotFoundSection
-                    entries={notFound.map((e) => ({
-                        id: e.card,
-                        card: e.result?.card ?? e.card,
-                        count: e.count,
-                        typed: e.result?.typed
-                    }))}
-                />
-            )}
+                )}
+            </div>
         </>
     );
 }

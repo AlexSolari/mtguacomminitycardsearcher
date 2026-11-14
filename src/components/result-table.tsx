@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Crown, Gavel } from 'lucide-react';
 import { clickReporters } from '@/lib/report-click';
 import { cn } from '@/lib/utils';
@@ -27,6 +28,124 @@ function Thumbnail({ src }: { src: string | null }) {
         </div>
     );
 }
+
+// Memoized: a section re-renders on every view switch, and its rows' props rarely change.
+const ResultRow = memo(function ResultRow({
+    link,
+    best,
+    card,
+    group
+}: {
+    link: CardResult;
+    best: boolean;
+    card: string;
+    group: OfferGroup;
+}) {
+    const discount = discountOf(link);
+    const report = clickReporters({
+        shop: link.shop,
+        card,
+        group,
+        view: 'table',
+        best,
+        price: link.price
+    });
+    const open = () => {
+        report.onClick();
+        window.open(link.url, '_blank', 'noopener,noreferrer');
+    };
+    return (
+        <tr
+            onClick={open}
+            className={cn(
+                'group cursor-pointer border-b transition-colors last:border-0 hover:bg-primary/5',
+                best && 'bg-primary/[0.07]'
+            )}
+        >
+            <td className='py-1.5 pl-3'>
+                <Thumbnail src={link.image} />
+            </td>
+            <td className='px-3 py-1.5'>
+                {/* real link for keyboard / middle-click / copy-link; the row click covers the rest */}
+                <a
+                    href={link.url}
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        report.onClick();
+                    }}
+                    onAuxClick={report.onAuxClick}
+                    className='font-medium leading-snug group-hover:text-primary group-hover:underline'
+                >
+                    {link.name}
+                </a>
+                {link.auction && (
+                    <div className='mt-0.5'>
+                        <AuctionMeta auction={link.auction} />
+                    </div>
+                )}
+            </td>
+            <td className='px-3 py-1.5'>
+                <div className='flex flex-wrap items-center gap-1'>
+                    {best && (
+                        <Badge className='bg-primary-fill text-primary-foreground shadow-none'>
+                            <Crown className='size-3' />
+                            Найкраща
+                        </Badge>
+                    )}
+                    {link.auction && (
+                        <Badge className='bg-muted text-foreground shadow-none'>
+                            <Gavel className='size-3' />
+                            Аукціон
+                        </Badge>
+                    )}
+                    {link.foil && (
+                        <Badge className={cn(FOIL_BADGE, 'shadow-none')}>
+                            FOIL
+                        </Badge>
+                    )}
+                    {discount !== null && (
+                        <Badge className='bg-rose-600 text-white shadow-none'>
+                            −{discount}%
+                        </Badge>
+                    )}
+                    {link.language && (
+                        <Badge
+                            className='border border-border bg-transparent font-mono text-foreground shadow-none'
+                            title='Мова'
+                        >
+                            {link.language}
+                        </Badge>
+                    )}
+                    {link.condition && (
+                        <Badge
+                            className='bg-sky-600/90 text-white shadow-none'
+                            title='Стан'
+                        >
+                            {link.condition}
+                        </Badge>
+                    )}
+                </div>
+            </td>
+            <td className='px-3 py-1.5'>
+                <ShopBadge shop={link.shop} className='whitespace-nowrap' />
+            </td>
+            <td className='whitespace-nowrap px-3 py-1.5 text-right text-xs text-muted-foreground'>
+                {link.stock !== undefined ? (
+                    <span className='text-emerald-700 dark:text-emerald-400'>
+                        {link.stock} шт.
+                    </span>
+                ) : (
+                    '—'
+                )}
+            </td>
+            <td className='py-1.5 pl-3 pr-4'>
+                <PriceBlock link={link} best={best} />
+            </td>
+        </tr>
+    );
+});
 
 // Table view: one compact row per offer; the whole row is a link.
 export function ResultTable({
@@ -58,128 +177,15 @@ export function ResultTable({
                     </tr>
                 </thead>
                 <tbody>
-                    {links.map((link) => {
-                        const best = isBest(link);
-                        const discount = discountOf(link);
-                        const report = clickReporters({
-                            shop: link.shop,
-                            card,
-                            group,
-                            view: 'table',
-                            best,
-                            price: link.price
-                        });
-                        const open = () => {
-                            report.onClick();
-                            window.open(
-                                link.url,
-                                '_blank',
-                                'noopener,noreferrer'
-                            );
-                        };
-                        return (
-                            <tr
-                                key={offerKey(link)}
-                                onClick={open}
-                                className={cn(
-                                    'group cursor-pointer border-b transition-colors last:border-0 hover:bg-primary/5',
-                                    best && 'bg-primary/[0.07]'
-                                )}
-                            >
-                                <td className='py-1.5 pl-3'>
-                                    <Thumbnail src={link.image} />
-                                </td>
-                                <td className='px-3 py-1.5'>
-                                    {/* real link for keyboard / middle-click / copy-link; the row click covers the rest */}
-                                    <a
-                                        href={link.url}
-                                        target='_blank'
-                                        rel='noopener noreferrer'
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            report.onClick();
-                                        }}
-                                        onAuxClick={report.onAuxClick}
-                                        className='font-medium leading-snug group-hover:text-primary group-hover:underline'
-                                    >
-                                        {link.name}
-                                    </a>
-                                    {link.auction && (
-                                        <div className='mt-0.5'>
-                                            <AuctionMeta
-                                                auction={link.auction}
-                                            />
-                                        </div>
-                                    )}
-                                </td>
-                                <td className='px-3 py-1.5'>
-                                    <div className='flex flex-wrap items-center gap-1'>
-                                        {best && (
-                                            <Badge className='bg-primary-fill text-primary-foreground shadow-none'>
-                                                <Crown className='size-3' />
-                                                Найкраща
-                                            </Badge>
-                                        )}
-                                        {link.auction && (
-                                            <Badge className='bg-muted text-foreground shadow-none'>
-                                                <Gavel className='size-3' />
-                                                Аукціон
-                                            </Badge>
-                                        )}
-                                        {link.foil && (
-                                            <Badge
-                                                className={cn(
-                                                    FOIL_BADGE,
-                                                    'shadow-none'
-                                                )}
-                                            >
-                                                FOIL
-                                            </Badge>
-                                        )}
-                                        {discount !== null && (
-                                            <Badge className='bg-rose-600 text-white shadow-none'>
-                                                −{discount}%
-                                            </Badge>
-                                        )}
-                                        {link.language && (
-                                            <Badge
-                                                className='border border-border bg-transparent font-mono text-foreground shadow-none'
-                                                title='Мова'
-                                            >
-                                                {link.language}
-                                            </Badge>
-                                        )}
-                                        {link.condition && (
-                                            <Badge
-                                                className='bg-sky-600/90 text-white shadow-none'
-                                                title='Стан'
-                                            >
-                                                {link.condition}
-                                            </Badge>
-                                        )}
-                                    </div>
-                                </td>
-                                <td className='px-3 py-1.5'>
-                                    <ShopBadge
-                                        shop={link.shop}
-                                        className='whitespace-nowrap'
-                                    />
-                                </td>
-                                <td className='whitespace-nowrap px-3 py-1.5 text-right text-xs text-muted-foreground'>
-                                    {link.stock !== undefined ? (
-                                        <span className='text-emerald-700 dark:text-emerald-400'>
-                                            {link.stock} шт.
-                                        </span>
-                                    ) : (
-                                        '—'
-                                    )}
-                                </td>
-                                <td className='py-1.5 pl-3 pr-4'>
-                                    <PriceBlock link={link} best={best} />
-                                </td>
-                            </tr>
-                        );
-                    })}
+                    {links.map((link) => (
+                        <ResultRow
+                            key={offerKey(link)}
+                            link={link}
+                            best={isBest(link)}
+                            card={card}
+                            group={group}
+                        />
+                    ))}
                 </tbody>
             </table>
         </div>

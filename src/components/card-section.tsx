@@ -8,7 +8,6 @@ import { manualSearchUrl, SHOP_INFO } from '@/shops';
 import { formatPrice } from '@/components/offer-parts';
 import { ResultTable } from '@/components/result-table';
 import { ManualCheckTile, ResultTile } from '@/components/result-tile';
-import type { ResultsView } from '@/components/view-toggle';
 
 const describeError = (e: SearchError) =>
     e.shop
@@ -112,14 +111,14 @@ function GroupDivider({
 
 // Memoized: the page re-renders on every keystroke in the card list, and a big deck can have
 // thousands of tiles on screen. A section only needs to re-render when its result or the view changes.
+// Both views are rendered, and the one not chosen is hidden by CSS (`data-view` on ResultsPanel), so switching
+// views re-renders nothing.
 export const CardSection = memo(function CardSection({
     result,
-    count,
-    view = 'grid'
+    count
 }: {
     result: SearchResult;
     count: number; // copies wanted
-    view?: ResultsView;
 }) {
     const { exact, auctions, art, other, pricing, min } = splitMatches(result);
     const links = result.links;
@@ -179,7 +178,7 @@ export const CardSection = memo(function CardSection({
     }));
 
     return (
-        <section className='flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-2 duration-500'>
+        <section className='result-section flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-2 duration-500'>
             <SectionHeader
                 title={result.card}
                 typed={result.typed}
@@ -243,8 +242,7 @@ export const CardSection = memo(function CardSection({
                                       />
                                   )}
                                   {group.collapse &&
-                                  !group.collapse.open ? null : view ===
-                                    'table' ? (
+                                  !group.collapse.open ? null : (
                                       <div
                                           id={`${idPrefix}-${group.key}`}
                                           className={cn(
@@ -252,31 +250,30 @@ export const CardSection = memo(function CardSection({
                                                   'opacity-70 transition-opacity hover:opacity-100'
                                           )}
                                       >
-                                          <ResultTable
-                                              links={group.links}
-                                              isBest={isBest}
-                                              card={result.card}
-                                              group={group.key}
-                                          />
-                                      </div>
-                                  ) : (
-                                      <div
-                                          id={`${idPrefix}-${group.key}`}
-                                          className={cn(
-                                              grid,
-                                              group.dim &&
-                                                  'opacity-70 transition-opacity hover:opacity-100'
-                                          )}
-                                      >
-                                          {group.links.map((link) => (
-                                              <ResultTile
-                                                  key={offerKey(link)}
-                                                  link={link}
-                                                  best={isBest(link)}
+                                          <div className='group-data-[view=grid]/results:hidden'>
+                                              <ResultTable
+                                                  links={group.links}
+                                                  isBest={isBest}
                                                   card={result.card}
                                                   group={group.key}
                                               />
-                                          ))}
+                                          </div>
+                                          <div
+                                              className={cn(
+                                                  grid,
+                                                  'group-data-[view=table]/results:hidden'
+                                              )}
+                                          >
+                                              {group.links.map((link) => (
+                                                  <ResultTile
+                                                      key={offerKey(link)}
+                                                      link={link}
+                                                      best={isBest(link)}
+                                                      card={result.card}
+                                                      group={group.key}
+                                                  />
+                                              ))}
+                                          </div>
                                       </div>
                                   )}
                               </Fragment>
