@@ -231,6 +231,13 @@ describe('pairAnswers', () => {
         ]);
     });
 
+    // a number would make normalize() throw, failing every name in the batch
+    test("an echo that isn't a string counts as none", () => {
+        expect(
+            pairAnswers('nerdik', ['Daze'], [{ name: 42 }], (a) => a.name)
+        ).toEqual([{ name: 42 }]);
+    });
+
     test('no answers at all fail every name', () => {
         expect(pair(['Daze'], undefined)).toEqual([unanswered]);
     });

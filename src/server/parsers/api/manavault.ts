@@ -40,7 +40,8 @@ export type ManavaultAnswer = {
 
 export function parseManavault(json: ManavaultAnswer): CardResult[] {
     return (json.results ?? []).flatMap((row) => {
-        if (!row.name || !row.url || !(Number(row.stock) > 0)) return [];
+        // a malformed row is skipped, not thrown on: it would take the card's other offers with it
+        if (!row?.name || !row.url || !(Number(row.stock) > 0)) return [];
         // "Sol Ring — New Capenna Commander #379, Etched": the edition goes after " — ", where isExactMatch cuts
         // (the same shape as the other shops' names)
         const edition = [

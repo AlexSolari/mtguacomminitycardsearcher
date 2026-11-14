@@ -150,11 +150,12 @@ export function pairAnswers<A>(
     shop: ShopId,
     names: string[],
     answers: (A | null | undefined)[] | null | undefined,
-    echoOf: (answer: A) => string | undefined
+    echoOf: (answer: A) => unknown
 ): (A | Error)[] {
     const list = (Array.isArray(answers) ? answers : []).map((answer) => ({
         answer,
-        echo: answer == null ? undefined : echoOf(answer)
+        // anything but a string isn't an echo; normalize() would throw on it and fail the whole batch
+        echo: answer == null ? undefined : asString(echoOf(answer))
     }));
     const onePerName = list.length === names.length;
     const fits = (at: (typeof list)[number] | undefined, name: string) =>
@@ -186,3 +187,6 @@ export function pairAnswers<A>(
         });
     return paired;
 }
+
+const asString = (value: unknown) =>
+    typeof value === 'string' ? value : undefined;

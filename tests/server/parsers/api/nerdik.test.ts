@@ -74,6 +74,26 @@ describe('nerdik', () => {
         ]);
     });
 
+    test("a malformed printing or offer is skipped, keeping the card's other offers", () => {
+        const offer = {
+            price_uah: '90.00',
+            available_quantity: 1,
+            nerdik_url: null
+        };
+        const results = parseNerdik({
+            cards: [
+                null,
+                { ...card, offers: undefined },
+                { ...card, name: '', offers: [offer] },
+                { ...card, nerdik_url: null, offers: [offer] }, // no link anywhere
+                { ...card, offers: [null, offer] }
+            ] as never
+        });
+        expect(results.map((r) => [r.name, r.price])).toEqual([
+            ['Sol Ring — Fallout #359', 90]
+        ]);
+    });
+
     test('an unknown treatment leaves foil unknown', () => {
         const [offer] = parseNerdik({
             cards: [

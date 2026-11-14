@@ -31,10 +31,12 @@ type NerdikCard = {
 export type NerdikResult = { name?: string; cards?: NerdikCard[] };
 export type NerdikBatchResponse = { results?: NerdikResult[] };
 
+// A malformed printing or offer (null, no name or link, no offers) is skipped, not thrown on: it would take the
+// card's other offers with it.
 export function parseNerdik(json: NerdikResult | undefined): CardResult[] {
     return (json?.cards ?? []).flatMap((card) => {
         // the shop also sells other TCGs (e.g. Sorcery: Contested Realms)
-        if (card.game !== 'mtg') return [];
+        if (card?.game !== 'mtg' || !card.name) return [];
         // "Sol Ring — Fallout #359", the same shape the old HTML parser built (isExactMatch splits on " — ")
         const edition = [card.set_name, card.number && `#${card.number}`]
             .filter(Boolean)
@@ -45,8 +47,12 @@ export function parseNerdik(json: NerdikResult | undefined): CardResult[] {
                 : /foil|etched/i.test(card.treatment ?? '')
                   ? true
                   : undefined;
-        return card.offers
-            .filter((o) => o.available_quantity > 0)
+        return (card.offers ?? [])
+            .filter(
+                (o) =>
+                    o?.available_quantity > 0 &&
+                    (o.nerdik_url ?? card.nerdik_url)
+            )
             .map((offer) => ({
                 shop: 'nerdik' as const,
                 name: edition ? `${card.name} — ${edition}` : card.name,

@@ -29,6 +29,15 @@ describe('manavault', () => {
         artSeries: false
     };
 
+    test("a malformed row is skipped, keeping the card's other offers", () => {
+        const results = parseManavault({
+            results: [null, { ...row, name: '' }, row] as never
+        });
+        expect(results.map((r) => r.name)).toEqual([
+            'Counterspell — Strixhaven Mystical Archive #15'
+        ]);
+    });
+
     test('passes the row through, with the edition after " — "', () => {
         expect(parseManavault({ match: 'exact', results: [row] })).toEqual([
             {

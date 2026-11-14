@@ -739,7 +739,7 @@ describe('NerdikCardSearcher', () => {
     test('a result the parser chokes on fails only its own card', async () => {
         const { client } = fakeNerdik(() => ({
             results: [
-                { name: 'Daze', cards: [{ name: 'Daze', game: 'mtg' }] }, // no `offers`
+                { name: 'Daze', cards: 'not a list' },
                 { name: 'Opt', cards: [] }
             ]
         }));
