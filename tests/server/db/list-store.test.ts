@@ -195,17 +195,17 @@ describe('ListStore', () => {
 
     test('a failure keeps the cards and counts up; the next success clears it', () => {
         const list = approved(alice);
-        lists.saveFailure(list.id, 'HTTP 503', 1000);
-        lists.saveFailure(list.id, 'HTTP 503', 2000);
+        lists.saveFailure(list.id, 'unavailable', 1000);
+        lists.saveFailure(list.id, 'unavailable', 2000);
         expect(lists.get(list.id)).toMatchObject({
-            lastError: 'HTTP 503',
+            lastError: 'unavailable',
             failures: 2,
             fetchedAt: 300,
             nextFetchAt: 2000
         });
         expect(lists.offers('Sol Ring')).toHaveLength(1);
 
-        lists.saveUnchanged(list.id, 3000, 3000 + DAY);
+        lists.saveCards(list.id, { cards: [solRing] }, 3000, 3000 + DAY);
         expect(lists.get(list.id)).toMatchObject({
             lastError: null,
             failures: 0,

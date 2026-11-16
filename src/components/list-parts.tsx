@@ -1,11 +1,21 @@
 import { Fragment } from 'react';
 import { ExternalLink } from 'lucide-react';
-import type { ListSource, MyList } from '@/account';
+import type { ListRefreshError, ListSource, MyList } from '@/account';
 import { CARDS, plural } from '@/i18n';
 
 export const SOURCE_LABELS: Record<ListSource, string> = {
     mtggoldfish: 'MTGGoldfish',
     manabox: 'ManaBox'
+};
+
+// Why the last refresh failed; the cards from the refresh before stay in search meanwhile.
+const REFRESH_ERRORS: Record<ListRefreshError, string> = {
+    'not-found':
+        'оновлення не вдалося: списку немає за посиланням (його видалили або закрили)',
+    unreadable: 'оновлення не вдалося: не вийшло прочитати список',
+    'too-large':
+        'оновлення не вдалося: список завеликий, розділіть його на кілька',
+    unavailable: 'оновлення не вдалося, спробуємо ще раз пізніше'
 };
 
 const DATE = new Intl.DateTimeFormat('uk', { dateStyle: 'medium' });
@@ -54,7 +64,7 @@ export function ListStatusLine({ list }: { list: MyList }) {
         );
     if (list.lastError)
         parts.push({
-            text: 'останнє оновлення не вдалося',
+            text: REFRESH_ERRORS[list.lastError],
             className: 'text-destructive'
         });
     return (

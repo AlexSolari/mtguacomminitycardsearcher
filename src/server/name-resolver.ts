@@ -43,7 +43,10 @@ const isTransient = (err: unknown) =>
     (err instanceof HttpError && err.status >= 500);
 
 // Scryfall rejects requests without these
-const HEADERS = { 'User-Agent': 'searcher/0.1', Accept: 'application/json' };
+export const SCRYFALL_HEADERS = {
+    'User-Agent': 'searcher/0.1',
+    Accept: 'application/json'
+};
 
 // After a 429, Scryfall limits access for 30 s (its rate-limit docs) and its error says "try again after 60 seconds";
 // sending more meanwhile risks a block. So lookups stop for this long, and names are searched as typed.
@@ -127,7 +130,7 @@ export class ScryfallNameResolver implements NameResolver {
         try {
             found = await this.fetchJson<ScryfallCard>(url, {
                 signal,
-                headers: HEADERS
+                headers: SCRYFALL_HEADERS
             });
         } catch (err) {
             if (signal?.aborted) throw err;
@@ -222,7 +225,7 @@ export class ScryfallNameResolver implements NameResolver {
                     method: 'POST',
                     signal,
                     headers: {
-                        ...HEADERS,
+                        ...SCRYFALL_HEADERS,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
@@ -307,7 +310,7 @@ function pickName(typed: string, card: ScryfallCard): string {
     return faces[0] ?? card.name;
 }
 
-function scryfallClient() {
+export function scryfallClient() {
     return new ShopClient('https://api.scryfall.com', {
         intervalMs: 500,
         timeoutMs: 5_000,

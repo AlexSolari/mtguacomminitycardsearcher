@@ -38,8 +38,15 @@ export type MyList = {
     createdAt: number;
     fetchedAt: number | null; // its last successful refresh
     cardCount: number; // copies, from that refresh
-    lastError: string | null; // why the last refresh failed, when it did
+    lastError: ListRefreshError | null; // why the last refresh failed, when it did
 };
+
+// Why a list's last refresh failed. The cards from the refresh before stay in search meanwhile.
+export type ListRefreshError =
+    | 'not-found' // the source says there's no such list: deleted, or made private
+    | 'unreadable' // the page doesn't have the list where it used to (the source changed its pages)
+    | 'too-large' // more rows than a list may have (MAX_LIST_ROWS)
+    | 'unavailable'; // the source or Scryfall didn't answer; tried again later
 
 // GET /api/lists: the user's lists, newest first, and how many they may have.
 export type MyLists = { lists: MyList[]; max: number };

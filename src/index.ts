@@ -5,7 +5,7 @@ import { CardIndex } from './server/card-index';
 import { CardSearchService } from './server/card-search-service';
 import { InFlightLimiter } from './server/in-flight-limiter';
 import { logger } from './server/logger';
-import { ScryfallNameResolver } from './server/name-resolver';
+import { ScryfallNameResolver, scryfallClient } from './server/name-resolver';
 import { CartonCardSearcher } from './server/searchers/carton-card-searcher';
 import { CitadelCardSearcher } from './server/searchers/citadel-card-searcher';
 import { GinCardSearcher } from './server/searchers/gin-card-searcher';
@@ -30,6 +30,10 @@ import { databasePath, openDatabase } from './server/db/database';
 import { UserStore } from './server/db/user-store';
 import { ListStore } from './server/db/list-store';
 import { listsHandlers } from './server/lists-route';
+import { PriceCache } from './server/db/price-cache';
+import { ListPrices } from './server/lists/list-prices';
+import { ListReader } from './server/lists/list-reader';
+import { ListRefresher } from './server/lists/list-refresher';
 
 // Cards one client may have at one shop at once (see ShopLimits). 6 is what one browser tab had in flight when it
 // sent a card per request, so no shop gets more of a client's requests at once than before.
@@ -55,6 +59,10 @@ logger.info('card name index loaded', {
     source: cardNames.source
 });
 
+// Scryfall's /cards/collection allows 2 requests a second, shared by the name lookups and the lists' prices, so
+// both go through one client and its queue.
+const scryfallCollection = scryfallClient();
+
 // one salt for both routes, so a visitor's searches and clicks share an id
 const visitors = new VisitorIds();
 const search = searchHandler(
@@ -64,7 +72,12 @@ const search = searchHandler(
         // a whole request's list, so it goes out in as few batches as it can
         batched: new InFlightLimiter(MAX_CARDS_PER_REQUEST)
     },
-    new ScryfallNameResolver(undefined, undefined, undefined, cardNames.index),
+    new ScryfallNameResolver(
+        undefined,
+        undefined,
+        scryfallCollection,
+        cardNames.index
+    ),
     visitors
 );
 const click = clickHandler(visitors);
@@ -82,7 +95,21 @@ const auth = authHandlers(
     loginConfig && new TelegramLogin(loginConfig),
     adminIds()
 );
-const lists = listsHandlers(new ListStore(db), users, auth);
+const listStore = new ListStore(db);
+// Reads approved lists when they're due, and right after one is approved.
+const refresher = new ListRefresher(
+    listStore,
+    new ListReader(),
+    new ListPrices(scryfallCollection, new PriceCache(db)),
+    cardNames.index
+);
+// `bun --hot` (bun dev) runs this file again on every change but keeps the old run's timers, so each reload would
+// add a refresher; the last one is stopped first.
+const hot = globalThis as { listRefresher?: ListRefresher };
+hot.listRefresher?.stop();
+hot.listRefresher = refresher;
+refresher.start();
+const lists = listsHandlers(listStore, users, auth, () => void refresher.run());
 
 const server = serve({
     // Bun drops a connection after 10 s without a byte (the default), and a search stays quiet while its slowest

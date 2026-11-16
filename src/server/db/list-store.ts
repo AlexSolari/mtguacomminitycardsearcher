@@ -1,5 +1,5 @@
 import type { Database } from 'bun:sqlite';
-import type { ListStatus } from '../../account';
+import type { ListRefreshError, ListStatus } from '../../account';
 import { normalize } from '../../matching';
 import type { Finish, ListCard, ParsedList } from '../lists/list-card';
 import type { ListLink, ListSource } from '../lists/list-link';
@@ -18,7 +18,7 @@ export type TraderList = {
     editedAt: number | null;
     fetchedAt: number | null;
     nextFetchAt: number | null;
-    lastError: string | null;
+    lastError: ListRefreshError | null;
     failures: number;
     cardCount: number;
 };
@@ -187,16 +187,8 @@ export class ListStore {
         })();
     }
 
-    // A refresh that found the list unchanged since the last one (ManaBox's edit date): only the schedule moves.
-    saveUnchanged(id: number, now: number, nextFetchAt: number) {
-        this.db.run(
-            `UPDATE lists SET fetched_at = ?, next_fetch_at = ?, last_error = NULL, failures = 0 WHERE id = ?`,
-            [now, nextFetchAt, id]
-        );
-    }
-
     // A failed refresh keeps the cards from the last good one; the caller backs off through `nextFetchAt`.
-    saveFailure(id: number, error: string, nextFetchAt: number) {
+    saveFailure(id: number, error: ListRefreshError, nextFetchAt: number) {
         this.db.run(
             `UPDATE lists SET last_error = ?, failures = failures + 1, next_fetch_at = ? WHERE id = ?`,
             [error, nextFetchAt, id]
