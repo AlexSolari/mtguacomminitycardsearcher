@@ -1,6 +1,8 @@
+import type { ListSource } from '../../account';
+
 // The links traders submit for their lists, and where each list is read from.
 
-export type ListSource = 'mtggoldfish' | 'manabox';
+export type { ListSource };
 
 // A list, identified by its source and the source's own id for it.
 export type ListLink = { source: ListSource; ref: string };

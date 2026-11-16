@@ -1,9 +1,10 @@
 import type { Database } from 'bun:sqlite';
+import type { ListStatus } from '../../account';
 import { normalize } from '../../matching';
 import type { Finish, ListCard, ParsedList } from '../lists/list-card';
 import type { ListLink, ListSource } from '../lists/list-link';
 
-export type ListStatus = 'pending' | 'approved' | 'rejected';
+export type { ListStatus };
 
 export type TraderList = {
     id: number;
@@ -23,7 +24,11 @@ export type TraderList = {
 };
 
 // A list as moderators see it: with its owner.
-export type ReviewedList = TraderList & { username: string };
+export type ReviewedList = TraderList & {
+    username: string;
+    displayName: string;
+    banned: boolean;
+};
 
 // A card as the refresh stores it: the list's row, with the price it settled on.
 export type StoredCard = ListCard & {
@@ -106,11 +111,13 @@ export class ListStore {
     // Lists in one state, oldest first: the moderation queue is `withStatus('pending')`.
     withStatus(status: ListStatus): ReviewedList[] {
         return this.db
-            .query<ReviewedList, [string]>(
-                `SELECT ${LIST_COLUMNS}, users.username FROM lists JOIN users ON users.id = lists.user_id
+            .query<Omit<ReviewedList, 'banned'> & { banned: number }, [string]>(
+                `SELECT ${LIST_COLUMNS}, users.username, users.display_name AS displayName, users.banned
+                 FROM lists JOIN users ON users.id = lists.user_id
                  WHERE lists.status = ? ORDER BY lists.created_at, lists.id`
             )
-            .all(status);
+            .all(status)
+            .map((l) => ({ ...l, banned: l.banned === 1 }));
     }
 
     // Approving makes the list due at once, so it's read right away; later refreshes follow the daily schedule.

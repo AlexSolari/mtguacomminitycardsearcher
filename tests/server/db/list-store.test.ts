@@ -127,9 +127,13 @@ describe('ListStore', () => {
                 ...a,
                 status: 'rejected',
                 reviewedAt: 300,
-                username: 'alice'
+                username: 'alice',
+                displayName: 'Alice',
+                banned: false
             }
         ]);
+        users.setBanned(alice.id, true);
+        expect(lists.withStatus('rejected')[0]?.banned).toBe(true);
         expect(lists.review(999, 'approved')).toBe(false);
     });
 

@@ -10,7 +10,6 @@ import { useCardSearch } from '@/hooks/use-card-search';
 import { usePreventFileDropNavigation } from '@/hooks/use-file-drop';
 import { cardListFromQuery, searchQuery } from '@/lib/search-url';
 import { parseCardList, type CardEntry } from './decklist';
-import './index.css';
 
 export function App() {
     // a shared link (?q=…) opens with its card list filled in, and searches it straight away (below)

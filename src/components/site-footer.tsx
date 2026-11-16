@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react';
+import { Store } from 'lucide-react';
 import { GithubIcon, TelegramIcon, type IconProps } from '@/components/icons';
 import { ThemeToggle } from '@/components/theme-toggle';
 
@@ -29,9 +30,17 @@ export function SiteFooter() {
                 MTG UA Community Card Searcher
             </p>
             <nav
-                aria-label='Контакти'
+                aria-label='Посилання'
                 className='col-span-2 row-start-2 flex flex-wrap items-center justify-center gap-x-5 gap-y-2'
             >
+                {/* where traders add their lists (and sign in) */}
+                <a
+                    href='/lists'
+                    className='inline-flex items-center gap-1.5 transition-colors hover:text-primary'
+                >
+                    <Store className='size-4' />
+                    Для продавців
+                </a>
                 {CONTACTS.map(({ label, href, icon: Icon }) => (
                     <a
                         key={href}

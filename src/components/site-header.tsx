@@ -3,8 +3,17 @@ import { ShopBadge } from '@/components/shop-badge';
 import { useGreasefangEasterEgg } from '@/components/greasefang-easter-egg';
 import { SHOP_INFO, type ShopId } from '@/shops';
 
-// `onTitleClick` reopens the card list, so the title doubles as a "back to the search" button.
-export function SiteHeader({ onTitleClick }: { onTitleClick: () => void }) {
+const TITLE_CLASS =
+    'cursor-pointer rounded-lg outline-none transition-opacity hover:opacity-80 focus-visible:ring-[3px] focus-visible:ring-ring/50';
+
+// On the search page `onTitleClick` reopens the card list, so the title doubles as a "back to the search" button;
+// on the other pages the title links to the search.
+export function SiteHeader({ onTitleClick }: { onTitleClick?: () => void }) {
+    const title = (
+        <>
+            MTG UA Community <span className='text-primary'>Card Searcher</span>
+        </>
+    );
     const easterEgg = useGreasefangEasterEgg();
     return (
         <header className='flex flex-col items-center gap-3 text-center'>
@@ -19,16 +28,21 @@ export function SiteHeader({ onTitleClick }: { onTitleClick: () => void }) {
                     className='relative -top-[3px] size-11 rounded-[22%] shadow-[0_0_14px] shadow-primary/25 motion-safe:hover:animate-shake'
                 />
                 <h1 className='font-display text-2xl font-bold leading-tight tracking-wide sm:text-3xl lg:text-4xl'>
-                    <button
-                        type='button'
-                        onClick={onTitleClick}
-                        title='Змінити список карт'
-                        aria-controls='card-list-form'
-                        className='cursor-pointer rounded-lg outline-none transition-opacity hover:opacity-80 focus-visible:ring-[3px] focus-visible:ring-ring/50'
-                    >
-                        MTG UA Community{' '}
-                        <span className='text-primary'>Card Searcher</span>
-                    </button>
+                    {onTitleClick ? (
+                        <button
+                            type='button'
+                            onClick={onTitleClick}
+                            title='Змінити список карт'
+                            aria-controls='card-list-form'
+                            className={TITLE_CLASS}
+                        >
+                            {title}
+                        </button>
+                    ) : (
+                        <a href='/' className={TITLE_CLASS}>
+                            {title}
+                        </a>
+                    )}
                 </h1>
             </div>
             <p className='flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-muted-foreground'>

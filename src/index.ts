@@ -28,6 +28,8 @@ import {
 } from './server/auth/telegram-login';
 import { databasePath, openDatabase } from './server/db/database';
 import { UserStore } from './server/db/user-store';
+import { ListStore } from './server/db/list-store';
+import { listsHandlers } from './server/lists-route';
 
 // Cards one client may have at one shop at once (see ShopLimits). 6 is what one browser tab had in flight when it
 // sent a card per request, so no shop gets more of a client's requests at once than before.
@@ -74,11 +76,13 @@ if (!loginConfig)
     logger.info('telegram sign-in is off', {
         reason: 'TELEGRAM_CLIENT_ID or TELEGRAM_CLIENT_SECRET is not set'
     });
+const users = new UserStore(db);
 const auth = authHandlers(
-    new UserStore(db),
+    users,
     loginConfig && new TelegramLogin(loginConfig),
     adminIds()
 );
+const lists = listsHandlers(new ListStore(db), users, auth);
 
 const server = serve({
     // Bun drops a connection after 10 s without a byte (the default), and a search stays quiet while its slowest
@@ -117,7 +121,22 @@ const server = serve({
         '/api/auth/login': { GET: () => auth.login() },
         '/api/auth/callback': { GET: (req) => auth.callback(req) },
         '/api/auth/me': { GET: (req) => auth.me(req) },
-        '/api/auth/logout': { POST: (req) => auth.logout(req) }
+        '/api/auth/logout': { POST: (req) => auth.logout(req) },
+
+        '/api/lists': {
+            GET: (req) => lists.mine(req),
+            POST: (req) => lists.submit(req)
+        },
+        '/api/lists/:id': {
+            DELETE: (req) => lists.remove(req, req.params.id)
+        },
+        '/api/admin/lists': { GET: (req) => lists.queue(req) },
+        '/api/admin/lists/:id': {
+            POST: (req) => lists.review(req, req.params.id)
+        },
+        '/api/admin/users/:id': {
+            POST: (req) => lists.ban(req, req.params.id)
+        }
     },
 
     // A throw that escapes a route handler; logging it as an error also reports it to Sentry
