@@ -21,6 +21,13 @@ import {
     searchHandler
 } from './server/search-route';
 import { VisitorIds } from './server/visitor-id';
+import { adminIds, authHandlers } from './server/auth/auth-route';
+import {
+    TelegramLogin,
+    telegramLoginConfig
+} from './server/auth/telegram-login';
+import { databasePath, openDatabase } from './server/db/database';
+import { UserStore } from './server/db/user-store';
 
 // Cards one client may have at one shop at once (see ShopLimits). 6 is what one browser tab had in flight when it
 // sent a card per request, so no shop gets more of a client's requests at once than before.
@@ -60,6 +67,19 @@ const search = searchHandler(
 );
 const click = clickHandler(visitors);
 
+// Traders and their lists (see server/db/). Sign-in is off until the Telegram bot's details are set.
+const db = openDatabase(databasePath());
+const loginConfig = telegramLoginConfig();
+if (!loginConfig)
+    logger.info('telegram sign-in is off', {
+        reason: 'TELEGRAM_CLIENT_ID or TELEGRAM_CLIENT_SECRET is not set'
+    });
+const auth = authHandlers(
+    new UserStore(db),
+    loginConfig && new TelegramLogin(loginConfig),
+    adminIds()
+);
+
 const server = serve({
     // Bun drops a connection after 10 s without a byte (the default), and a search stays quiet while its slowest
     // shop works: up to 30 s in the shop's queue plus a 15 s timeout per request, and some searches make a few in
@@ -92,7 +112,12 @@ const server = serve({
         '/api/click': {
             POST: (req, server) =>
                 click(req, clientId(req, server.requestIP(req)?.address))
-        }
+        },
+
+        '/api/auth/login': { GET: () => auth.login() },
+        '/api/auth/callback': { GET: (req) => auth.callback(req) },
+        '/api/auth/me': { GET: (req) => auth.me(req) },
+        '/api/auth/logout': { POST: (req) => auth.logout(req) }
     },
 
     // A throw that escapes a route handler; logging it as an error also reports it to Sentry
