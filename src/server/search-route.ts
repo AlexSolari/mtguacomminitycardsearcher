@@ -93,11 +93,17 @@ export function searchHandler(
             resolved: Promise<ResolvedName>,
             onUpdate: (partial: SearchResult) => void
         ): Promise<SearchResult> => {
-            const { name, fullName } = await resolved;
+            const { name, fullName, foundBy } = await resolved;
             const withTyped = (result: SearchResult) =>
                 name === card ? result : { ...result, typed: card };
+            // separate messages, so how many corrections still cost a Scryfall request can be counted
             if (name !== card)
-                logger.info('name corrected', { typed: card, card: name });
+                logger.info(
+                    foundBy === 'index'
+                        ? 'name corrected locally'
+                        : 'name corrected via scryfall',
+                    { typed: card, card: name }
+                );
             return withTyped(
                 await cardSearch.search(
                     name,

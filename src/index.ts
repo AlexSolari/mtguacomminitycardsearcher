@@ -1,6 +1,7 @@
 import { serve } from 'bun';
 import index from './index.html';
 import { CachedCardSearcher } from './server/cached-card-searcher';
+import { CardIndex } from './server/card-index';
 import { CardSearchService } from './server/card-search-service';
 import { InFlightLimiter } from './server/in-flight-limiter';
 import { logger } from './server/logger';
@@ -38,6 +39,13 @@ const cardSearch = new CardSearchService(
         new CitadelCardSearcher()
     ].map((searcher) => new CachedCardSearcher(searcher))
 );
+// Card names known without asking Scryfall (scripts/update-card-names.ts); the rest are looked up on its API.
+const cardNames = await CardIndex.load();
+logger.info('card name index loaded', {
+    cards: cardNames.cards,
+    source: cardNames.source
+});
+
 // one salt for both routes, so a visitor's searches and clicks share an id
 const visitors = new VisitorIds();
 const search = searchHandler(
@@ -47,7 +55,7 @@ const search = searchHandler(
         // a whole request's list, so it goes out in as few batches as it can
         batched: new InFlightLimiter(MAX_CARDS_PER_REQUEST)
     },
-    new ScryfallNameResolver(),
+    new ScryfallNameResolver(undefined, undefined, undefined, cardNames.index),
     visitors
 );
 const click = clickHandler(visitors);

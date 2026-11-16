@@ -346,12 +346,15 @@ describe('searchHandler', () => {
                 card === 'overlord balemurk'
                     ? {
                           name: 'Overlord of the Balemurk',
-                          fullName: 'Overlord of the Balemurk'
+                          fullName: 'Overlord of the Balemurk',
+                          foundBy: 'index'
                       }
-                    : { name: card, fullName: card }
+                    : card === 'dazee'
+                      ? { name: 'Daze', fullName: 'Daze', foundBy: 'scryfall' }
+                      : { name: card, fullName: card }
         });
         const res = await handle(
-            post({ cards: ['overlord balemurk', 'Daze'] }),
+            post({ cards: ['overlord balemurk', 'dazee', 'Opt'] }),
             'a'
         );
         expect(await finalResults(res)).toEqual([
@@ -359,19 +362,31 @@ describe('searchHandler', () => {
                 ...result('Overlord of the Balemurk'),
                 typed: 'overlord balemurk'
             },
-            result('Daze')
+            { ...result('Daze'), typed: 'dazee' },
+            result('Opt')
         ]);
         expect(cardSearch.searched).toEqual([
             'Overlord of the Balemurk',
-            'Daze'
+            'Daze',
+            'Opt'
         ]);
-        expect(logs).toContainEqual(
-            expect.objectContaining({
-                message: 'name corrected',
+        // a message per source, and none for a name searched as typed
+        expect(
+            logs
+                .filter((l) => l.message.startsWith('name corrected'))
+                .map(({ message, typed, card }) => ({ message, typed, card }))
+        ).toEqual([
+            {
+                message: 'name corrected locally',
                 typed: 'overlord balemurk',
                 card: 'Overlord of the Balemurk'
-            })
-        );
+            },
+            {
+                message: 'name corrected via scryfall',
+                typed: 'dazee',
+                card: 'Daze'
+            }
+        ]);
     });
 
     test("passes the card's full name along for the shops that need it", async () => {

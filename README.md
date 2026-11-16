@@ -72,7 +72,7 @@ Tracing is optional: `bun start` sends spans over OTLP when `OTEL_EXPORTER_OTLP_
 ```
 browser ──POST /api/search {cards:[…]}──▶ Bun server
                                                │  the first 2 cards in a request of their own, then the rest (100 per request)
-                                               │  names resolved by Scryfall: the first 2 one by one, the rest in bulk, at the same time
+                                               │  names resolved from a local copy of Scryfall's card names; the rest by its API (the first 2 one by one, the rest in bulk)
                                                ▼
                                      CardSearchService
                                                │  per client and shop: 6 cards at a time, a whole list for batched APIs
@@ -109,7 +109,8 @@ src/
   server/
     search-route.ts         POST /api/search: input checks, per-client limit, NDJSON streaming
     click-route.ts          POST /api/click: records which offer a user opened
-    name-resolver.ts        Scryfall lookup of each typed name
+    name-resolver.ts        resolves each typed name to the card's name: card-index.ts first, then Scryfall's API
+    card-index.ts           local card name lookup, from card-names.json (scripts/update-card-names.ts)
     shop-client.ts          rate-limited fetch with timeout, one per shop
     card-search-service.ts  searches all shops for one card
     cached-card-searcher.ts result cache

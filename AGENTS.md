@@ -17,6 +17,7 @@ See [README.md](README.md) for what the app does and the request flow.
 | Coverage (fails under 95% lines / 90% functions in any file)        | `bun run test:coverage`                                                             |
 | Refresh the parser fixtures from the real shops                     | `bun scripts/update-fixtures.ts` (~9 requests)                                      |
 | Re-render the link preview image (`src/og-image.png`, needs Chrome) | `bun scripts/render-og-image.ts`                                                    |
+| Refresh the card name index (`src/server/card-names.json`)          | `bun scripts/update-card-names.ts [oracle-cards.json]` (after each set release)     |
 
 **Type-check baseline:** zero errors. `bun dev`, `bun run build`, `bun run test` and `bun run test:coverage` run `bun check` first and stop on any type error.
 TypeScript isn't a dependency: don't use `bunx tsc`, which fetches an unrelated npm package named `tsc`.
@@ -117,6 +118,8 @@ TypeScript isn't a dependency: don't use `bunx tsc`, which fetches an unrelated 
     - A 429 spends the rest of the window (`exhaust()`): the API has counted more than we have, e.g. another client on our IP.
     - A name the API rejects (under 2 letters) gets an `error` in its own answer rather than failing the batch; the searcher fails only that card.
 - **Scryfall (name lookups) allows 2 requests a second on `/cards/named` and `/cards/collection`** ([rate limits](https://scryfall.com/docs/api/rate-limits)), shared by every user.
+    - Most names never reach it: `CardIndex` (`src/server/card-index.ts`) looks them up first in `src/server/card-names.json`, built from Scryfall's oracle-cards bulk file. It answers only when exactly one card fits (exact name, the start of each word, a typo or two, or pieces of two or more words) and leaves the rest to the API: names in another language, ambiguous ones, and cards newer than the file. Refresh the file after each set release.
+    - The index is the resolver's fourth argument; tests about the API leave it out.
     - `ScryfallNameResolver` keeps a client per endpoint, each spacing requests 500 ms apart. Don't lower it: a 429 limits access for 30 s, and ignoring 429s can get the app banned.
     - After a 429 every lookup stops for 60 s (`RATE_LIMIT_PAUSE_MS`) and names are searched as typed.
     - A search's first 2 cards come in a request of their own (`FIRST_REQUEST_CARDS` in `use-card-search.ts`): they are looked up by fuzzy name while the rest go in one collection request, and they are `urgent`, so batched shops send them without waiting for the batch window.

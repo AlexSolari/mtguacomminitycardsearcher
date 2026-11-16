@@ -1,5 +1,6 @@
 import { normalize } from '../matching';
 import { rejectsInput } from './batcher';
+import type { CardIndex } from './card-index';
 import { ShopUnavailableError } from './circuit-breaker';
 import { logger } from './logger';
 import { HttpError, RequestTimeoutError, ShopClient } from './shop-client';
@@ -10,8 +11,13 @@ const MAX_CACHED = 10_000;
 
 // `name` is what shops search for: the typed name when it already is the card or one of its faces, else the front
 // face. `fullName` is Scryfall's name for the whole card ("Bonecrusher Giant // Stomp"), for APIs that match only
-// that (Nerdik's batch search). Both are the typed name when Scryfall can't place it.
-export type ResolvedName = { name: string; fullName: string };
+// that (Nerdik's batch search). Both are the typed name when Scryfall can't place it. `foundBy` says what placed it:
+// the local index or Scryfall's API (or its answer, cached); absent when nothing did.
+export type ResolvedName = {
+    name: string;
+    fullName: string;
+    foundBy?: 'index' | 'scryfall';
+};
 
 // `resolveAll` resolves a whole list, a promise per name in list order; without it, each name is resolved alone.
 export type NameResolver = {
@@ -60,6 +66,8 @@ type Lookup = ScryfallCard | null;
 
 // Turns a typed name into the card's real English name before the shops are searched: "overlord balemurk" →
 // "Overlord of the Balemurk". The shops search by substring, so a missing word finds nothing.
+// The local index (card-names.json) answers most names without a request; Scryfall's API gets the rest: names the
+// index can't place with certainty, in another language, or newer than the index.
 // Falls back to the name as typed whenever Scryfall can't help: unknown, ambiguous, non-English, or failing.
 export class ScryfallNameResolver implements NameResolver {
     private readonly cache = new Map<string, Lookup>();
@@ -70,7 +78,9 @@ export class ScryfallNameResolver implements NameResolver {
         // so each has its own client and queue. A name that would wait more than 5 s is searched as typed.
         private readonly client = scryfallClient(),
         private readonly now = () => Date.now(),
-        private readonly collectionClient = scryfallClient()
+        private readonly collectionClient = scryfallClient(),
+        // none in tests that are about the API
+        private readonly index?: Pick<CardIndex, 'find'>
     ) {}
 
     // Every Scryfall request goes through here, so a 429 stops them all (see RATE_LIMIT_PAUSE_MS).
@@ -98,9 +108,19 @@ export class ScryfallNameResolver implements NameResolver {
     }
 
     async resolve(card: string, signal?: AbortSignal): Promise<ResolvedName> {
+        const local = this.index?.find(card);
+        if (local) return resolveAs(card, local, 'index');
+        return this.lookup(card, signal);
+    }
+
+    // `card` from GET /cards/named, or the cache. The index's answers aren't cached: they cost no request to find again.
+    private async lookup(
+        card: string,
+        signal?: AbortSignal
+    ): Promise<ResolvedName> {
         const key = normalize(card);
         const cached = this.cache.get(key);
-        if (cached !== undefined) return resolveAs(card, cached);
+        if (cached !== undefined) return resolveAs(card, cached, 'scryfall');
 
         const url = this.client.url('/cards/named', { fuzzy: card });
         let found: Lookup;
@@ -124,17 +144,18 @@ export class ScryfallNameResolver implements NameResolver {
             }
         }
         this.remember(key, found);
-        return resolveAs(card, found);
+        return resolveAs(card, found, 'scryfall');
     }
 
-    // A list's names, a request per 75 rather than one per name: most of a list is typed right, and an exact lookup
-    // (POST /cards/collection) takes many names at once. The rest (misspelled, shortened) go through `resolve`.
+    // A list's names. What the index can't place goes to Scryfall a request per 75 rather than one per name, since an
+    // exact lookup (POST /cards/collection) takes many names at once; what that misses goes through `lookup`.
     resolveAll(cards: string[], signal?: AbortSignal): Promise<ResolvedName>[] {
         const keys = cards.map(normalize);
+        const local = cards.map((card) => this.index?.find(card));
         // one lookup per name, as first typed
         const missing = new Map<string, string>();
         keys.forEach((key, i) => {
-            if (!this.cache.has(key) && !missing.has(key))
+            if (!local[i] && !this.cache.has(key) && !missing.has(key))
                 missing.set(key, cards[i]!);
         });
         const exact =
@@ -142,18 +163,21 @@ export class ScryfallNameResolver implements NameResolver {
                 ? this.lookupExact([...missing.values()], signal)
                 : null;
         return cards.map(async (card, i) => {
+            const found = local[i];
+            if (found) return resolveAs(card, found, 'index');
             const key = keys[i]!;
             const cached = this.cache.get(key);
-            if (cached !== undefined) return resolveAs(card, cached);
-            const found = (await exact)?.get(key);
-            if (!found) return this.resolve(card, signal);
-            this.remember(key, found);
-            return resolveAs(card, found);
+            if (cached !== undefined)
+                return resolveAs(card, cached, 'scryfall');
+            const exactly = (await exact)?.get(key);
+            if (!exactly) return this.lookup(card, signal);
+            this.remember(key, exactly);
+            return resolveAs(card, exactly, 'scryfall');
         });
     }
 
     // The cards Scryfall finds by exact name (either face, any case), by the normalized name and face names. A failed
-    // request finds nothing, so its names fall back to `resolve` one by one.
+    // request finds nothing, so its names fall back to `lookup` one by one.
     //   {"object":"list","not_found":[{"name":"overlord balemurk"}],
     //    "data":[{"name":"Fire // Ice","card_faces":[{"name":"Fire"},{"name":"Ice"}], ...}, ...]}
     private async lookupExact(
@@ -262,10 +286,14 @@ export class ScryfallNameResolver implements NameResolver {
     }
 }
 
-// The names to search `typed` under, given what Scryfall found for it (null: nothing, so as typed).
-function resolveAs(typed: string, found: Lookup): ResolvedName {
+// The names to search `typed` under, given what `foundBy` found for it (null: nothing, so as typed).
+function resolveAs(
+    typed: string,
+    found: Lookup,
+    foundBy?: ResolvedName['foundBy']
+): ResolvedName {
     return found
-        ? { name: pickName(typed, found), fullName: found.name }
+        ? { name: pickName(typed, found), fullName: found.name, foundBy }
         : { name: typed, fullName: typed };
 }
 

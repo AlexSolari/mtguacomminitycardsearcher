@@ -3,6 +3,7 @@ import {
     RATE_LIMIT_PAUSE_MS,
     ScryfallNameResolver
 } from '@/server/name-resolver';
+import { CardIndex } from '@/server/card-index';
 import { ShopUnavailableError } from '@/server/circuit-breaker';
 import {
     HttpError,
@@ -33,6 +34,15 @@ function fakeScryfall(answer: (fuzzy: string) => unknown) {
 
 const logs = captureLogs();
 
+const index = new CardIndex([
+    'Overlord of the Balemurk',
+    [
+        'Delver of Secrets // Insectile Aberration',
+        'Delver of Secrets',
+        'Insectile Aberration'
+    ]
+]);
+
 describe('ScryfallNameResolver', () => {
     test('corrects a partial name to the card name', async () => {
         const { client, requests } = fakeScryfall(() => ({
@@ -41,7 +51,8 @@ describe('ScryfallNameResolver', () => {
         const resolver = new ScryfallNameResolver(client);
         expect(await resolver.resolve('overlord balemurk')).toEqual({
             name: 'Overlord of the Balemurk',
-            fullName: 'Overlord of the Balemurk'
+            fullName: 'Overlord of the Balemurk',
+            foundBy: 'scryfall'
         });
         expect(requests[0]!.fuzzy).toBe('overlord balemurk');
         expect(requests[0]!.init?.headers).toMatchObject({
@@ -49,12 +60,51 @@ describe('ScryfallNameResolver', () => {
         });
     });
 
+    test('a name the index knows costs no request', async () => {
+        const { client, requests } = fakeScryfall(() => new HttpError(500));
+        const resolver = new ScryfallNameResolver(
+            client,
+            undefined,
+            client,
+            index
+        );
+        expect(await resolver.resolve('overlord balemurk')).toEqual({
+            name: 'Overlord of the Balemurk',
+            fullName: 'Overlord of the Balemurk',
+            foundBy: 'index'
+        });
+        // the face typed, as with Scryfall's answer
+        expect(await resolver.resolve('insectile aberration')).toEqual({
+            name: 'insectile aberration',
+            fullName: 'Delver of Secrets // Insectile Aberration',
+            foundBy: 'index'
+        });
+        expect(requests).toEqual([]);
+    });
+
+    test('a name the index can’t place is asked of Scryfall', async () => {
+        const { client, requests } = fakeScryfall(() => ({ name: 'Daze' }));
+        const resolver = new ScryfallNameResolver(
+            client,
+            undefined,
+            client,
+            index
+        );
+        expect(await resolver.resolve('dazee')).toEqual({
+            name: 'Daze',
+            fullName: 'Daze',
+            foundBy: 'scryfall'
+        });
+        expect(requests.map((r) => r.fuzzy)).toEqual(['dazee']);
+    });
+
     test('keeps the typed name when it already is the card', async () => {
         const { client } = fakeScryfall(() => ({ name: 'Æther Vial' }));
         const resolver = new ScryfallNameResolver(client);
         expect(await resolver.resolve('aether vial')).toEqual({
             name: 'aether vial',
-            fullName: 'Æther Vial'
+            fullName: 'Æther Vial',
+            foundBy: 'scryfall'
         });
     });
 
@@ -65,11 +115,13 @@ describe('ScryfallNameResolver', () => {
         const resolver = new ScryfallNameResolver(client);
         expect(await resolver.resolve('aether vial')).toEqual({
             name: 'aether vial',
-            fullName: 'Aether Vial'
+            fullName: 'Aether Vial',
+            foundBy: 'scryfall'
         });
         expect(await resolver.resolve('Aether Vial')).toEqual({
             name: 'Aether Vial',
-            fullName: 'Aether Vial'
+            fullName: 'Aether Vial',
+            foundBy: 'scryfall'
         });
         expect(requests).toHaveLength(1);
     });
@@ -87,11 +139,13 @@ describe('ScryfallNameResolver', () => {
         );
         expect(await resolver.resolve('delver of secret')).toEqual({
             name: 'Delver of Secrets',
-            fullName: delver.name
+            fullName: delver.name,
+            foundBy: 'scryfall'
         });
         expect(await resolver.resolve('Insectile Aberration')).toEqual({
             name: 'Insectile Aberration',
-            fullName: delver.name
+            fullName: delver.name,
+            foundBy: 'scryfall'
         });
     });
 
@@ -246,17 +300,76 @@ describe('ScryfallNameResolver.resolveAll', () => {
             ])
         );
         expect(names).toEqual([
-            { name: 'sol ring', fullName: 'Sol Ring' },
-            { name: 'Insectile Aberration', fullName: delver.name },
+            { name: 'sol ring', fullName: 'Sol Ring', foundBy: 'scryfall' },
+            {
+                name: 'Insectile Aberration',
+                fullName: delver.name,
+                foundBy: 'scryfall'
+            },
             {
                 name: 'Overlord of the Balemurk',
-                fullName: 'Overlord of the Balemurk'
+                fullName: 'Overlord of the Balemurk',
+                foundBy: 'scryfall'
             }
         ]);
         expect(calls.collection).toEqual([
             ['sol ring', 'Insectile Aberration', 'overlord balemurk']
         ]);
         expect(calls.fuzzy).toEqual(['overlord balemurk']);
+    });
+
+    test('asks Scryfall only for the names the index can’t place', async () => {
+        const { client, calls } = fakeCollection(() => ({ name: 'Daze' }));
+        const resolver = new ScryfallNameResolver(
+            client,
+            undefined,
+            client,
+            index
+        );
+        const names = await Promise.all(
+            resolver.resolveAll([
+                'overlord balemurk',
+                'sol ring',
+                'Insectile Aberration',
+                'opt',
+                'dazee'
+            ])
+        );
+        expect(names).toEqual([
+            {
+                name: 'Overlord of the Balemurk',
+                fullName: 'Overlord of the Balemurk',
+                foundBy: 'index'
+            },
+            { name: 'sol ring', fullName: 'Sol Ring', foundBy: 'scryfall' },
+            {
+                name: 'Insectile Aberration',
+                fullName: delver.name,
+                foundBy: 'index'
+            },
+            { name: 'opt', fullName: 'Opt', foundBy: 'scryfall' },
+            { name: 'Daze', fullName: 'Daze', foundBy: 'scryfall' }
+        ]);
+        expect(calls.collection).toEqual([['sol ring', 'opt', 'dazee']]);
+        expect(calls.fuzzy).toEqual(['dazee']);
+    });
+
+    test('a list the index knows all of costs no request', async () => {
+        const { client, calls } = fakeCollection();
+        const resolver = new ScryfallNameResolver(
+            client,
+            undefined,
+            client,
+            index
+        );
+        await Promise.all(
+            resolver.resolveAll([
+                'overlord balemurk',
+                'delver secrets',
+                'Insectile Aberration'
+            ])
+        );
+        expect(calls).toEqual({ collection: [], fuzzy: [] });
     });
 
     test('remembers what it found, and asks once per name', async () => {
@@ -273,12 +386,13 @@ describe('ScryfallNameResolver.resolveAll', () => {
             'Opt'
         ]);
         expect(await Promise.all(resolver.resolveAll(['SOL RING']))).toEqual([
-            { name: 'SOL RING', fullName: 'Sol Ring' }
+            { name: 'SOL RING', fullName: 'Sol Ring', foundBy: 'scryfall' }
         ]);
         expect(calls.collection).toEqual([['Sol Ring', 'Daze', 'Opt']]);
         expect(await resolver.resolve('sol ring')).toEqual({
             name: 'sol ring',
-            fullName: 'Sol Ring'
+            fullName: 'Sol Ring',
+            foundBy: 'scryfall'
         });
         expect(calls.fuzzy).toEqual([]);
     });
@@ -300,7 +414,11 @@ describe('ScryfallNameResolver.resolveAll', () => {
         const resolver = new ScryfallNameResolver(client, undefined, client);
         expect(
             (await Promise.all(resolver.resolveAll(['sol ring', 'x', 'y'])))[0]
-        ).toEqual({ name: 'sol ring', fullName: 'Sol Ring' });
+        ).toEqual({
+            name: 'sol ring',
+            fullName: 'Sol Ring',
+            foundBy: 'scryfall'
+        });
         expect(calls.fuzzy).toEqual(['sol ring', 'x', 'y']);
         expect(calls.collection).toHaveLength(2); // a 503 is retried once
         expect(logs[0]).toMatchObject({
@@ -429,7 +547,8 @@ describe('ScryfallNameResolver after a 429', () => {
         now += RATE_LIMIT_PAUSE_MS;
         expect(await resolver.resolve('sol rng')).toEqual({
             name: 'Sol Ring',
-            fullName: 'Sol Ring'
+            fullName: 'Sol Ring',
+            foundBy: 'scryfall'
         });
         expect(requests).toHaveLength(2);
     });
@@ -467,8 +586,8 @@ describe('ScryfallNameResolver for the first cards of a search', () => {
         expect(
             await Promise.all(resolver.resolveAll(['sol ring', 'daze']))
         ).toEqual([
-            { name: 'sol ring', fullName: 'Sol Ring' },
-            { name: 'daze', fullName: 'Daze' }
+            { name: 'sol ring', fullName: 'Sol Ring', foundBy: 'scryfall' },
+            { name: 'daze', fullName: 'Daze', foundBy: 'scryfall' }
         ]);
         expect(named.urls).toHaveLength(2);
         expect(collection.urls).toEqual([]);
