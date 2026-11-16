@@ -7,8 +7,9 @@ import { codeChallenge, randomToken, tokenHash } from './tokens';
 // Sign-in with Telegram and the session it starts:
 //   GET  /api/auth/login     → Telegram's sign-in page
 //   GET  /api/auth/callback  ← Telegram sends the user back here; starts the session, then on to LISTS_PAGE
-//   GET  /api/auth/me        → { user, loginEnabled }
-//   POST /api/auth/logout
+//   GET    /api/auth/me      → { user, loginEnabled }
+//   DELETE /api/auth/me      deletes the account, with its lists
+//   POST   /api/auth/logout
 // The session is a random token in an HttpOnly cookie; the database keeps only its hash. Only signed-in users
 // get a cookie: it's strictly necessary, so it needs no consent banner (anonymous visitors still get none).
 
@@ -157,6 +158,23 @@ export function authHandlers(
         logout(req: Request): Response {
             const token = readCookie(req, SESSION_COOKIE);
             if (token) users.endSession(tokenHash(token));
+            return new Response(null, {
+                status: 204,
+                headers: { 'Set-Cookie': cookie(SESSION_COOKIE, '', '/', 0) }
+            });
+        },
+
+        // Everything stored about the user goes: their sessions, lists and the lists' cards go with them (the
+        // tables' ON DELETE CASCADE). Signing in again starts a new account.
+        deleteAccount(req: Request): Response {
+            const user = currentUser(req);
+            if (!user)
+                return Response.json(
+                    { error: 'Not signed in' },
+                    { status: 401 }
+                );
+            users.remove(user.id);
+            logger.info('account deleted', { user: user.id });
             return new Response(null, {
                 status: 204,
                 headers: { 'Set-Cookie': cookie(SESSION_COOKIE, '', '/', 0) }

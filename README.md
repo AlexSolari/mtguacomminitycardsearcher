@@ -40,6 +40,9 @@ A shop redesign can break its parser. If one shop stops returning results, that'
 - **Not found**: cards that no shop has are listed together.
 - **Blocked shops**: when a shop refuses our server (HTTP 403, as Nerdik and Kartoteka do to some server IPs), the card links to that shop's own search to check by hand.
 - **Light and dark themes**, following the system setting unless you pick one.
+- **Traders' lists**: people who sell cards in Telegram groups sign in with Telegram on `/lists` and add their MTGGoldfish or ManaBox lists.
+  Once a moderator approves a list on `/admin`, its cards show under each card as "Гравці", with the seller's Telegram and Scryfall's USD price as a guide; they never count toward best price or the total.
+  Lists are read again daily. A trader can delete a list, or their whole account, at any time.
 
 ## Running locally
 
@@ -55,6 +58,19 @@ Set `PORT` to use another port, e.g. `PORT=4000 bun dev`.
 
 The MTGin and Nerdik APIs need keys: set `MTGIN_API_KEY` and `NERDIK_API_KEY`, e.g. in a `.env` file (Bun loads it; it's gitignored).
 Without a key, that shop's searches fail with "… is not set" and the other shops still work.
+
+Traders' lists are stored in SQLite at `DB_PATH` (default `data/cardsearcher.db`, gitignored), created on first start.
+Signing in needs a Telegram bot with Login Widget set up in @BotFather, with `<site URL>/api/auth/callback` as a redirect URI:
+
+| Variable                                       | What                                                                                             |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `TELEGRAM_CLIENT_ID`, `TELEGRAM_CLIENT_SECRET` | the bot's client ID and secret; without them sign-in is off and the rest of the site works       |
+| `ADMIN_TELEGRAM_IDS`                           | comma-separated numeric Telegram ids of the moderators                                           |
+| `PUBLIC_URL`                                   | the site's address for the redirect; defaults to Railway's domain, else `http://localhost:$PORT` |
+| `DB_PATH`                                      | the database file                                                                                |
+
+Telegram may not accept a `localhost` redirect; a tunnel (VS Code's port forwarding, for one) gives an `https` address to use as `PUBLIC_URL`.
+`bun dev` reads approved lists in the local database from MTGGoldfish and ManaBox, so keep experiments to a few lists.
 
 ### Production
 
@@ -92,15 +108,17 @@ browser ──POST /api/search {cards:[…]}──▶ Bun server
 - **Streaming:** `/api/search` answers in NDJSON, a line per card each time one of its shops finishes, so a slow shop (Kartoteka) doesn't hold back the others; the card shows which shops are still searching.
 - **Filtering:** the server keeps only listings whose name contains the searched card. Shop search is fuzzy, so "Sol Ring" also matches "Soldier of the Grey Host".
 - **Grouping:** the browser groups the results.
+- **Traders' lists:** a job in the server reads each approved list right after approval and then daily (one request every 5 s per source), prices rows from Scryfall in USD, and stores them in SQLite. Search reads them from there alongside the shops, uncached.
 
 ## Project layout
 
 ```
 src/
-  index.ts                  Bun server: /api/search, /api/click, serves the frontend
+  index.ts                  Bun server: /api/search, /api/click, sign-in and lists, serves the frontend
   instrumentation.ts        OpenTelemetry / Sentry setup, preloaded by `bun start`
   shops.ts                  shop list (used by server and browser)
   search-result.ts          API result types (used by server and browser)
+  account.ts                sign-in and lists API types (used by server and browser)
   matching.ts               card name matching (used by server and browser)
   decklist.ts, deckfile.ts  card list / deck file parsing, with counts (browser)
   results.ts                grouping offers per card, best price, the cheapest total (browser)
@@ -117,12 +135,17 @@ src/
     batcher.ts              many cards per request for the batched APIs (MTGin, Nerdik, Mana Vault)
     window-budget.ts        Mana Vault's 60-requests-a-minute budget
     logger.ts, tracing.ts   structured logs, spans
-    searchers/              one per shop: which URLs to fetch
+    searchers/              one per shop: which URLs to fetch; trader-list-searcher.ts reads traders' lists
     parsers/                one per shop: turns a response into CardResult[]
       api/                  JSON APIs (MTGin, Nerdik, PayToWin, Magic Swamp, Mana Vault)
       scrapers/             HTML search pages (Carton, Citadel, Kartoteka)
-  App.tsx                   page layout and state
-  components/               UI (card-section.tsx renders a card's results, search-summary.tsx the totals)
+    auth/                   Telegram sign-in (OpenID Connect) and sessions
+    db/                     SQLite: users, sessions, lists, their cards, cached prices
+    lists/                  traders' lists: links, parsers (MTGGoldfish, ManaBox), daily refresh, Scryfall prices
+    lists-route.ts          /api/lists and /api/admin: a trader's lists, moderation
+  App.tsx                   the search page; frontend.tsx picks the page by path
+  components/               UI (card-section.tsx renders a card's results, search-summary.tsx the totals,
+                            lists-page.tsx and admin-page.tsx the traders' and moderators' pages)
   hooks/                    search, deck import, drag-and-drop, theme
   lib/                      shareable search URLs, click reporting
 ```

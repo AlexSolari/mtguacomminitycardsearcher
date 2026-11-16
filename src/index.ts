@@ -152,7 +152,10 @@ const server = serve({
 
         '/api/auth/login': { GET: () => auth.login() },
         '/api/auth/callback': { GET: (req) => auth.callback(req) },
-        '/api/auth/me': { GET: (req) => auth.me(req) },
+        '/api/auth/me': {
+            GET: (req) => auth.me(req),
+            DELETE: (req) => auth.deleteAccount(req)
+        },
         '/api/auth/logout': { POST: (req) => auth.logout(req) },
 
         '/api/lists': {

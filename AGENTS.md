@@ -28,7 +28,8 @@ TypeScript isn't a dependency: don't use `bunx tsc`, which fetches an unrelated 
   A parser change that alters output fails its snapshot. If the change is intended, review the diff and run `bun test --update-snapshots`.
   When a shop redesigns, refresh the fixtures, fix the parser, then update the snapshots.
   Prettier ignores `tests/fixtures/` and `__snapshots__/`, so formatting never rewrites them.
-- **Fixtures hold no personal data:** `update-fixtures.ts` keeps only the fields the parsers read (via `pick`), dropping sellers, bidders, descriptions and cart reservations (PayToWin, MTGin, Magic Swamp, CartOn's product pages, Citadel, Mana Vault). Keep it that way for any new source.
+- **Fixtures hold no personal data:** `update-fixtures.ts` keeps only the fields the parsers read (via `pick`), dropping sellers, bidders, descriptions and cart reservations (PayToWin, MTGin, Magic Swamp, CartOn's product pages, Citadel, Mana Vault). Traders' lists keep only the list: MTGGoldfish's deck field, and ManaBox's island cut down to the fields `parseManabox` reads. Keep it that way for any new source.
+- **Database tests** open `openDatabase(':memory:')`, a fresh migrated database per test; its migration logs a line, so tests that assert on logs clear them after opening it.
   Nerdik's and MTGin's fixtures need `NERDIK_API_KEY` / `MTGIN_API_KEY` in `.env`; without a key that fixture is left as it is.
 - **New code:** add tests for it at the mirrored path in `tests/`. For a new shop, add its page to `update-fixtures.ts` and a test file next to the parser's mirrored path (`tests/server/parsers/{api,scrapers}/<shop>.test.ts`, using `parser-fixtures.ts`).
 - **Server:** for an end-to-end check, start it on a spare port (`PORT=3917 bun src/index.ts`) and `curl -X POST localhost:3917/api/search -d '{"cards":["Sol Ring"]}'`.
@@ -54,9 +55,10 @@ TypeScript isn't a dependency: don't use `bunx tsc`, which fetches an unrelated 
 
 ## Architecture rules
 
-- **Three modules are shared with the browser** and must not import anything server-only:
-    - `src/shops.ts`: the shop registry (`ShopId`, `SHOP_INFO`, `manualSearchUrl`)
+- **Four modules are shared with the browser** and must not import anything server-only:
+    - `src/shops.ts`: the shop registry (`ShopId`, `SHOP_INFO`, `SHOP_IDS`, `manualSearchUrl`)
     - `src/search-result.ts`: the API types (`CardResult`, `SearchResult`, `SearchError`), types only
+    - `src/account.ts`: the account and lists API types (`AuthState`, `MyList`, `ModeratedList`, error codes), types only
     - `src/matching.ts`: name matching (`normalize`, `isExactMatch`, `isArtSeries`)
 - **Parsers** are pure: string/JSON in, `CardResult[]` out, no fetching.
   JSON API parsers go in `src/server/parsers/api/<shop>.ts`, HTML scrapers in `src/server/parsers/scrapers/<shop>.ts`.
@@ -70,14 +72,14 @@ TypeScript isn't a dependency: don't use `bunx tsc`, which fetches an unrelated 
   Pass `search()`'s `signal` to every client call (`{ signal }`), so abandoned searches leave the shop's queue.
   An optional follow-up request that falls back on failure goes through `warnFallback` in its `catch`, never a silent catch.
   Prefer a page or API that lists every offer at once (Mana Vault's `/api/v1/prices`). Where a shop has none and its search shows only a printing's cheapest price (CartOn), fetch each printing's page through `expandCheapest`, which caps them at `MAX_PRODUCT_PAGES` per search; don't fetch product pages around it.
-- **Wiring:** searchers are registered in `src/index.ts`, each wrapped in `CachedCardSearcher`.
+- **Wiring:** searchers are registered in `src/index.ts`, each shop's wrapped in `CachedCardSearcher`. `TraderListSearcher` is the exception (see Traders' lists).
   The `/api/search` handler lives in `src/server/search-route.ts` (input checks, per-client limits at each shop (`ShopLimits`), NDJSON streaming: a `SearchUpdate` line per card each time a shop finishes), so it's tested without starting a server.
   `/api/click` (`src/server/click-route.ts`) records which offer a user opened (the frontend sends it with `reportClick` in `src/lib/report-click.ts`) as an `offer click` span.
 - **Per-client limits:** both routes answer 429 with `Retry-After` past a client's limit: cards searched over time (`SEARCH_BUCKETS`) and cards still pending (`MAX_PENDING_CARDS`) for search, clicks over time (`CLICK_BUCKETS`) for click. All go through `RateLimiter` (`src/server/rate-limiter.ts`).
   A client is its IP, or its /64 for IPv6 (`clientKey`), since one customer holds the whole /64.
   `logger.error` reports at most `SENTRY_EVENTS_PER_MINUTE` Sentry events per message; the rest are only logged.
-- **One instance only:** the shop rate limits, the result cache, the per-client limiters and MTGin's batching all live in process memory.
-  A second replica would double the request rate to every shop and split MTGin's and Mana Vault's 60-a-minute budgets. Don't scale horizontally without moving those to shared state first.
+- **One instance only:** the shop rate limits, the result cache, the per-client limiters and MTGin's batching all live in process memory, and the traders' database is a SQLite file on the instance's volume.
+  A second replica would double the request rate to every shop, split MTGin's and Mana Vault's 60-a-minute budgets, and have a database of its own. Don't scale horizontally without moving those to shared state first.
 - **Logging:** server code logs through `logger` in `src/server/logger.ts`, never `console.*`.
     - the message is a fixed string, and everything that varies goes in fields: `logger.warn('parser found nothing', { shop, url })`
     - pass errors as a field (`error: err`); the logger serializes them
@@ -85,15 +87,32 @@ TypeScript isn't a dependency: don't use `bunx tsc`, which fetches an unrelated 
     - `logger.error` also reports to Sentry when it's configured (see Tracing)
     - tests call `captureLogs()` from `tests/server/capture-logs.ts` and assert on the records, not on `console`
     - never log client IPs. To count unique visitors, use `VisitorIds` (`src/server/visitor-id.ts`): a daily-salted hash that's never stored. Don't add a cookie or a localStorage id; that would need a consent banner
+    - the one cookie is the traders' sign-in session (`session`, plus `tg_login` while signing in): set only when someone signs in, so it's strictly necessary and needs no banner. Anonymous visitors still get none
+    - never log traders' Telegram ids, usernames or names, nor put them in spans: log `user`, the database id
 - **Prices:**
     - `price` is in UAH, or `null` when unknown; never `0` for "unknown"
     - set `fromPrice` when the price is the cheapest of several offers
     - auctions set `auction`, and their price never counts toward best price or totals
     - the summary total uses exact matches only, times the list quantity, within stock (`cheapestCopies` in `src/results.ts`)
+    - traders' offers have `price: null` and carry Scryfall's USD price in `usdPrice` (`approxPrice` when it isn't for that exact printing); they're their own group (`splitMatches().traders`) and never count toward best price or totals
 
 - **Tracing:** `bun start` preloads `src/instrumentation.ts`, which starts OpenTelemetry only when `OTEL_EXPORTER_OTLP_ENDPOINT` (Railway) or `SENTRY_DSN` is set; otherwise the spans in the code (`tracer` in `src/server/tracing.ts`) are no-ops, so dev and tests are unaffected.
   Tests assert on spans with `tests/server/capture-spans.ts`.
 - **Secrets:** MTGin and Nerdik need `MTGIN_API_KEY` and `NERDIK_API_KEY` (Bun loads `.env`). Without one, that shop fails every search with an error rather than silently finding nothing.
+  Traders' sign-in needs `TELEGRAM_CLIENT_ID` and `TELEGRAM_CLIENT_SECRET` (see Traders' lists); without them it's off and the rest of the site works.
+
+### Traders' lists
+
+Traders sign in with Telegram, add their MTGGoldfish or ManaBox lists on `/lists`, and moderators approve them on `/admin`. Approved lists' cards show in search under "Гравці".
+
+- **Storage:** `bun:sqlite` at `DB_PATH` (default `data/cardsearcher.db`, gitignored; on Railway, a file on a volume). `src/server/db/database.ts` holds the schema as numbered migrations (`MIGRATIONS`, tracked in `user_version`): add a new one, never edit a shipped one. Tables are STRICT, with foreign keys on, so deleting a user deletes their sessions, lists and cards.
+- **Sign-in** (`src/server/auth/`): Telegram's OpenID Connect, code flow with PKCE, done by the server. The ID token is verified against Telegram's JWKS. Sessions are a random token in an HttpOnly cookie; the database keeps its sha256 only. Accounts without a username are turned away: buyers couldn't contact them.
+  Moderators are the Telegram ids in `ADMIN_TELEGRAM_IDS` (comma-separated). The redirect URL is `PUBLIC_URL` (else `https://$RAILWAY_PUBLIC_DOMAIN`, else `http://localhost:$PORT`) plus `/api/auth/callback`, and must be registered in @BotFather → Login Widget exactly.
+- **Routes:** `/api/auth/*` (`auth-route.ts`: sign-in, `me`, logout, account deletion) and `/api/lists`, `/api/admin/*` (`lists-route.ts`: a trader's lists, up to `MAX_LISTS_PER_USER`; moderation and bans). Writes take JSON only, which with the SameSite=Lax cookie keeps other sites from sending them.
+- **Reading lists** (`src/server/lists/`): `list-link.ts` parses the links traders paste; the parsers in `lists/parsers/` follow the shop parsers' rules (pure, markup in the comment, snapshot-tested). MTGGoldfish's deck pages are behind a Cloudflare challenge, so lists are read from its proxy printer (`/proxies/new?id=`), which isn't.
+  `ListRefresher` runs in the server process: it reads approved lists right after approval and 24 h after each good read, one at a time, through `ListReader`'s `ShopClient`s (one request per 5 s per source). A failure keeps the old cards, stores a `ListRefreshError` the owner sees, and retries after 1, 2, 4… hours, then daily.
+  `ListPrices` prices rows without one from Scryfall's `/cards/collection` (USD for the row's finish), cached a day in `card_prices`, through the name resolver's collection client so both stay within Scryfall's limit.
+- **Search:** `TraderListSearcher` reads the database: no `ShopClient` and no `CachedCardSearcher`, so a list shows as soon as it's read. Its offers' `url` is the trader's Telegram; `seller` carries the list.
 
 ### Adding a shop
 
@@ -127,6 +146,8 @@ TypeScript isn't a dependency: don't use `bunx tsc`, which fetches an unrelated 
     - After a 429 every lookup stops for 60 s (`RATE_LIMIT_PAUSE_MS`) and names are searched as typed.
     - A search's first 2 cards come in a request of their own (`FIRST_REQUEST_CARDS` in `use-card-search.ts`): they are looked up by fuzzy name while the rest go in one collection request, and they are `urgent`, so batched shops send them without waiting for the batch window.
     - Tests must give the resolver fakes for both clients (its first and third arguments), or it calls the real API.
+    - The collection client is created in `src/index.ts` (`scryfallClient()`) and shared with the traders' list prices (`ListPrices`), which pause between their own requests so lookups don't queue behind them. Don't give either its own client: two queues would double the rate.
+    - `/cards/collection` finds a double-faced or split card by one face's name, never by the whole "A // B" (`{"name":"Fire // Ice"}` comes back in `not_found`). Ask by the front face.
 - **Nerdik's batch API matches only a card's full name:** "Bonecrusher Giant // Stomp" finds it, "Bonecrusher Giant" finds nothing.
   The name resolver gives shops the front face, so searchers also get `fullName` (Scryfall's name for the whole card) as the third argument of `search()`; `NerdikCardSearcher` searches by it.
   `CachedCardSearcher` keys on both names.
@@ -134,6 +155,9 @@ TypeScript isn't a dependency: don't use `bunx tsc`, which fetches an unrelated 
   A bare `bun …` uses the global install, which may be older. Behaviour and coverage numbers can differ between them; when in doubt, go through a script.
 - **`Bun.serve`'s `idleTimeout` (in `src/index.ts`) must outlast the slowest shop.** The default 10 s dropped streams while Kartoteka was still searching.
 - **The result cache is 10 minutes.** When testing parser changes against a running server, restart it, or you'll see cached results.
+- **`bun --hot` (`bun dev`) re-runs `src/index.ts` on every change but keeps the old run's timers**, and the server has no `import.meta.hot` to dispose them. Anything started on an interval must stop its predecessor itself, as the list refresher does through `globalThis.listRefresher`.
+- **`bun dev` reads the approved lists in your local database for real**, at start and then daily. Seed a scratch `DB_PATH` for experiments rather than approving many lists locally.
+- **On Windows, a backgrounded `bun dev` can report exiting while its `bun --hot` child keeps the port.** After a smoke test, stop whatever listens on the port and check it's free.
 - **Frontend performance relies on stable `SearchResult` objects:**
     - `CardSection` is `memo`ized
     - `splitMatches` caches per result object in a `WeakMap`

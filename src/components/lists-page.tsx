@@ -1,5 +1,12 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Loader2, LogOut, Plus, ShieldCheck, Trash2 } from 'lucide-react';
+import {
+    Loader2,
+    LogOut,
+    Plus,
+    ShieldCheck,
+    Trash2,
+    UserX
+} from 'lucide-react';
 import type {
     CurrentUser,
     LoginFailure,
@@ -20,6 +27,7 @@ import { useAccount } from '@/hooks/use-account';
 import { LISTS, LISTS_GENITIVE, plural } from '@/i18n';
 import {
     ApiError,
+    deleteAccount,
     deleteList,
     fetchMyLists,
     logout,
@@ -93,6 +101,59 @@ function SignIn({ enabled }: { enabled: boolean }) {
             ) : (
                 <Notice>Вхід тимчасово недоступний.</Notice>
             )}
+            <PrivacyNote />
+        </section>
+    );
+}
+
+// What signing in stores, and how to remove it. The session cookie is the only cookie, and only signed-in
+// traders get it.
+function PrivacyNote({ signedIn = false }: { signedIn?: boolean }) {
+    return (
+        <p className='text-xs leading-relaxed text-muted-foreground'>
+            Що ми зберігаємо: ваш Telegram id, ім’я та @username (їх бачать
+            покупці поруч із вашими картами), посилання на ваші списки й карти з
+            них. Cookie ставимо лише для входу. Видалити все можна будь-коли
+            {signedIn ? ' кнопкою нижче' : ' після входу'}.
+        </p>
+    );
+}
+
+// Deletes the account with its lists, after asking: there's no undo.
+function DeleteAccount() {
+    const [deleting, setDeleting] = useState(false);
+    const [failed, setFailed] = useState(false);
+    const remove = async () => {
+        if (
+            !confirm(
+                'Видалити акаунт? Усі ваші списки зникнуть із пошуку, а дані про вас буде стерто. Це не можна скасувати.'
+            )
+        )
+            return;
+        setDeleting(true);
+        setFailed(false);
+        try {
+            await deleteAccount();
+            location.reload();
+        } catch {
+            setFailed(true);
+            setDeleting(false);
+        }
+    };
+    return (
+        <section className='grid gap-2 border-t pt-4'>
+            <PrivacyNote signedIn />
+            <Button
+                variant='ghost'
+                size='sm'
+                onClick={remove}
+                disabled={deleting}
+                className='justify-self-start text-destructive hover:text-destructive'
+            >
+                <UserX />
+                Видалити акаунт
+            </Button>
+            {failed && <Notice tone='error'>{SERVER_ERROR}</Notice>}
         </section>
     );
 }
@@ -248,6 +309,8 @@ function TraderLists({ user }: { user: CurrentUser }) {
                     </p>
                 )
             )}
+
+            <DeleteAccount />
         </>
     );
 }

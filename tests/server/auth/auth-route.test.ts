@@ -14,6 +14,7 @@ import type {
 } from '@/server/auth/telegram-login';
 import { codeChallenge, tokenHash } from '@/server/auth/tokens';
 import { openDatabase } from '@/server/db/database';
+import { ListStore } from '@/server/db/list-store';
 import { UserStore } from '@/server/db/user-store';
 import { captureLogs } from '../capture-logs';
 
@@ -266,6 +267,37 @@ describe('auth routes', () => {
         expect((await me(auth, session)).user).toBeNull();
         expect(auth.logout(withCookies('/api/auth/logout', {})).status).toBe(
             204
+        );
+    });
+
+    test('deleting the account removes the user, their sessions and lists, and signs them out', async () => {
+        const db = openDatabase(':memory:');
+        users = new UserStore(db);
+        const lists = new ListStore(db);
+        const { auth } = handlers();
+        const session = cookieValue(await signIn(auth), SESSION_COOKIE)!;
+        const user = auth.currentUser(
+            withCookies('/', { [SESSION_COOKIE]: session })
+        )!;
+        lists.submit(user.id, { source: 'manabox', ref: 'abc' });
+        logs.length = 0;
+
+        const res = auth.deleteAccount(
+            withCookies('/api/auth/me', { [SESSION_COOKIE]: session })
+        );
+        expect(res.status).toBe(204);
+        expect(setCookies(res)).toEqual([
+            `${SESSION_COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax`
+        ]);
+        expect(users.get(user.id)).toBeNull();
+        expect(lists.ofUser(user.id)).toEqual([]);
+        expect(db.query('SELECT * FROM sessions').all()).toEqual([]);
+        expect(logs.map((l) => [l.message, l.user])).toEqual([
+            ['account deleted', user.id]
+        ]);
+
+        expect(auth.deleteAccount(withCookies('/api/auth/me', {})).status).toBe(
+            401
         );
     });
 

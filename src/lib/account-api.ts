@@ -44,6 +44,9 @@ async function api<T>(
 
 export const fetchAuth = () => api<AuthState>('/api/auth/me');
 export const logout = () => api<void>('/api/auth/logout', { method: 'POST' });
+// Deletes the account with its lists, and signs out.
+export const deleteAccount = () =>
+    api<void>('/api/auth/me', { method: 'DELETE' });
 
 export const fetchMyLists = () => api<MyLists>('/api/lists');
 // Throws ApiError with a SubmitListError `code` when the link is refused.
