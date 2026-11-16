@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { Hourglass, ImageOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { TelegramIcon } from '@/components/icons';
 import { useNearViewport } from '@/hooks/use-near-viewport';
 import { BIDS, plural } from '@/i18n';
 import type { AuctionInfo, CardResult } from '@/search-result';
@@ -123,6 +124,7 @@ export function PriceBlock({
     link: CardResult;
     best: boolean;
 }) {
+    if (link.seller) return <TraderPrice link={link} />;
     return (
         <span className='flex flex-col items-end leading-tight'>
             {link.oldPrice !== undefined && (
@@ -150,6 +152,71 @@ export function PriceBlock({
         </span>
     );
 }
+
+export const formatUsd = (usd: number) =>
+    `$${usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+// A trader's offer: Scryfall's price for the card in USD, as a guide; the trader names their own price.
+// "≈" when it's for the card or its set rather than this exact printing.
+function TraderPrice({ link }: { link: CardResult }) {
+    return (
+        <span
+            className='whitespace-nowrap text-sm font-semibold tabular-nums text-foreground'
+            title='Ціна Scryfall у доларах, для орієнтиру. Свою ціну назве продавець.'
+        >
+            {link.usdPrice === undefined ? (
+                '—'
+            ) : (
+                <>
+                    {link.approxPrice && (
+                        <span className='mr-0.5 font-normal text-muted-foreground'>
+                            ≈
+                        </span>
+                    )}
+                    {formatUsd(link.usdPrice)}
+                </>
+            )}
+        </span>
+    );
+}
+
+// Who sells a trader's offer, in place of the shop badge: their Telegram username.
+export function SellerBadge({
+    link,
+    className
+}: {
+    link: CardResult;
+    className?: string;
+}) {
+    return (
+        <span
+            className={cn(
+                'inline-flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground',
+                className
+            )}
+            title={link.seller!.name}
+        >
+            <TelegramIcon className='size-3.5 shrink-0 text-sky-600 dark:text-sky-400' />
+            <span className='truncate'>@{link.seller!.username}</span>
+        </span>
+    );
+}
+
+// What a trader's list says of the printing, and how fresh the list is: "RVR · retro · оновлено 17 лист."
+export function SellerDetails({ link }: { link: CardResult }) {
+    const { printing, updatedAt } = link.seller!;
+    return (
+        <span className='text-xs text-muted-foreground'>
+            {printing && <>{printing} · </>}
+            оновлено {LIST_DATE.format(updatedAt)}
+        </span>
+    );
+}
+
+const LIST_DATE = new Intl.DateTimeFormat('uk', {
+    day: 'numeric',
+    month: 'short'
+});
 
 export const FOIL_BADGE =
     'bg-[linear-gradient(110deg,#f0abfc,#93c5fd_35%,#86efac_60%,#fde68a)] tracking-wider text-slate-900';

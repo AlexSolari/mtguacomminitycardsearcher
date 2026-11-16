@@ -6,7 +6,7 @@ export type CardResult = {
     name: string;
     url: string;
     image: string | null;
-    price: number | null; // UAH
+    price: number | null; // UAH; null for traders' offers, which are priced in USD (usdPrice)
     artSeries?: boolean; // set by parsers that know the set/layout (CartOn, MTGin); otherwise inferred from the name
     auction?: AuctionInfo; // auction lot rather than a fixed-price offer (PayToWin) — `price` is the current/starting bid
 
@@ -17,6 +17,21 @@ export type CardResult = {
     foil?: boolean;
     language?: string; // upper-case code: EN, RU, JA…
     condition?: string; // short grade: NM, M, LP…
+
+    // A trader's offer (shop 'traders'): a card in their list, with `url` their Telegram. Its price is Scryfall's in
+    // USD, not the trader's asking price, so it stays out of best price and the totals.
+    seller?: Seller;
+    usdPrice?: number;
+    approxPrice?: boolean; // the price is for the card or its set, not necessarily this printing
+};
+
+export type Seller = {
+    name: string; // as on Telegram
+    username: string; // Telegram, without the @
+    list: string; // the list on MTGGoldfish or ManaBox
+    listTitle: string | null;
+    updatedAt: number; // when the list was last read, ms since the epoch
+    printing: string | null; // what the list says of the printing: "RVR · retro", "C21 · #263"
 };
 
 export type AuctionInfo = {
@@ -43,7 +58,8 @@ export type SearchResult = {
 };
 
 // Where an offer was shown: one of a card's result groups, or 'manual' for a blocked shop's manual-check tile.
-export type OfferGroup = 'exact' | 'auctions' | 'other' | 'art' | 'manual';
+export type OfferGroup =
+    'exact' | 'auctions' | 'traders' | 'other' | 'art' | 'manual';
 
 // POST /api/click's body: an offer the user opened, so the dashboard shows which shops and offers people go to.
 export type OfferClick = {
@@ -52,7 +68,7 @@ export type OfferClick = {
     group: OfferGroup;
     view: 'grid' | 'table';
     best: boolean; // had the best-price badge
-    price: number | null; // UAH, as shown; null for a manual check
+    price: number | null; // UAH, as shown; null for a manual check or a trader's offer
 };
 
 // One line of /api/search's NDJSON response: the result so far for `cards[index]`. A card gets a line each time

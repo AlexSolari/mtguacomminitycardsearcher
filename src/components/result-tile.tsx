@@ -10,7 +10,9 @@ import {
     CardImage,
     discountOf,
     FOIL_BADGE,
-    PriceBlock
+    PriceBlock,
+    SellerBadge,
+    SellerDetails
 } from '@/components/offer-parts';
 import { ShopBadge } from '@/components/shop-badge';
 
@@ -103,6 +105,7 @@ export const ResultTile = memo(function ResultTile({
                     {link.name}
                 </span>
                 {link.auction && <AuctionMeta auction={link.auction} />}
+                {link.seller && <SellerDetails link={link} />}
                 {link.stock !== undefined && (
                     <div className='flex flex-wrap items-center gap-1.5 text-xs'>
                         <span className='inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-emerald-700 dark:text-emerald-400'>
@@ -112,7 +115,11 @@ export const ResultTile = memo(function ResultTile({
                     </div>
                 )}
                 <div className='mt-auto flex items-end justify-between gap-2'>
-                    <ShopBadge shop={link.shop} />
+                    {link.seller ? (
+                        <SellerBadge link={link} />
+                    ) : (
+                        <ShopBadge shop={link.shop} />
+                    )}
                     <PriceBlock link={link} best={best} />
                 </div>
             </div>

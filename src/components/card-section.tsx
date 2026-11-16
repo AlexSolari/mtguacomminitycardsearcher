@@ -3,7 +3,12 @@ import { AlertTriangle, ChevronRight, Loader2, SearchX } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { OFFERS, plural } from '@/i18n';
 import { offerKey, splitMatches } from '@/results';
-import type { CardResult, SearchError, SearchResult } from '@/search-result';
+import type {
+    CardResult,
+    OfferGroup,
+    SearchError,
+    SearchResult
+} from '@/search-result';
 import { manualSearchUrl, SHOP_INFO } from '@/shops';
 import { formatPrice } from '@/components/offer-parts';
 import { ResultTable } from '@/components/result-table';
@@ -120,7 +125,8 @@ export const CardSection = memo(function CardSection({
     result: SearchResult;
     count: number; // copies wanted
 }) {
-    const { exact, auctions, art, other, pricing, min } = splitMatches(result);
+    const { exact, auctions, traders, art, other, pricing, min } =
+        splitMatches(result);
     const links = result.links;
     const isBest = (link: CardResult) =>
         links.length > 1 &&
@@ -144,16 +150,29 @@ export const CardSection = memo(function CardSection({
         const url = manualSearchUrl(err, result.card);
         return url && err.shop ? [{ shop: err.shop, url }] : [];
     });
-    const groups = [
-        { key: 'exact' as const, label: null, links: exact, secondary: false },
+    const specs: {
+        key: OfferGroup;
+        label: string | null;
+        note?: string; // a line under the divider
+        links: CardResult[];
+        secondary: boolean;
+    }[] = [
+        { key: 'exact', label: null, links: exact, secondary: false },
         {
-            key: 'auctions' as const,
+            key: 'auctions',
             label: 'Аукціони',
             links: auctions,
             secondary: false
         },
         {
-            key: 'other' as const,
+            key: 'traders',
+            label: 'Гравці',
+            note: 'Карти зі списків гравців. Ціни зі Scryfall у доларах, для орієнтиру: про ціну й угоду домовляйтеся з продавцем у Telegram. Сайт не є стороною угоди.',
+            links: traders,
+            secondary: false
+        },
+        {
+            key: 'other',
             label: hasExact
                 ? 'Інші збіги'
                 : 'Точних збігів немає · схожі назви',
@@ -161,12 +180,13 @@ export const CardSection = memo(function CardSection({
             secondary: hasExact
         },
         {
-            key: 'art' as const,
+            key: 'art',
             label: 'Art Series',
             links: art,
             secondary: hasExact || other.length > 0
         }
-    ].map((group) => ({
+    ];
+    const groups = specs.map((group) => ({
         ...group,
         dim: group.secondary,
         collapse: group.secondary
@@ -246,10 +266,16 @@ export const CardSection = memo(function CardSection({
                                       <div
                                           id={`${idPrefix}-${group.key}`}
                                           className={cn(
+                                              'flex flex-col gap-3',
                                               group.dim &&
                                                   'opacity-70 transition-opacity hover:opacity-100'
                                           )}
                                       >
+                                          {group.note && (
+                                              <p className='text-xs text-muted-foreground'>
+                                                  {group.note}
+                                              </p>
+                                          )}
                                           <div className='group-data-[view=grid]/results:hidden'>
                                               <ResultTable
                                                   links={group.links}

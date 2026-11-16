@@ -1,7 +1,7 @@
 import logo from '@/favicon.svg';
 import { ShopBadge } from '@/components/shop-badge';
 import { useGreasefangEasterEgg } from '@/components/greasefang-easter-egg';
-import { SHOP_INFO, type ShopId } from '@/shops';
+import { SHOP_IDS } from '@/shops';
 
 const TITLE_CLASS =
     'cursor-pointer rounded-lg outline-none transition-opacity hover:opacity-80 focus-visible:ring-[3px] focus-visible:ring-ring/50';
@@ -47,7 +47,7 @@ export function SiteHeader({ onTitleClick }: { onTitleClick?: () => void }) {
             </div>
             <p className='flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-muted-foreground'>
                 Порівнюємо ціни в магазинах
-                {(Object.keys(SHOP_INFO) as ShopId[]).map((shop) => (
+                {SHOP_IDS.map((shop) => (
                     <ShopBadge
                         key={shop}
                         shop={shop}

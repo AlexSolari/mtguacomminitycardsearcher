@@ -8,6 +8,7 @@ import { logger } from './server/logger';
 import { ScryfallNameResolver, scryfallClient } from './server/name-resolver';
 import { CartonCardSearcher } from './server/searchers/carton-card-searcher';
 import { CitadelCardSearcher } from './server/searchers/citadel-card-searcher';
+import { TraderListSearcher } from './server/searchers/trader-list-searcher';
 import { GinCardSearcher } from './server/searchers/gin-card-searcher';
 import { KartotekaCardSearcher } from './server/searchers/kartoteka-card-searcher';
 import { MagicswampCardSearcher } from './server/searchers/magicswamp-card-searcher';
@@ -39,9 +40,14 @@ import { ListRefresher } from './server/lists/list-refresher';
 // sent a card per request, so no shop gets more of a client's requests at once than before.
 const CARDS_PER_SHOP = 6;
 
-// Each searcher creates its own ShopClient, so each shop has its own rate limit and request queue.
-const cardSearch = new CardSearchService(
-    [
+// Traders, their sessions and lists (see server/db/).
+const db = openDatabase(databasePath());
+const listStore = new ListStore(db);
+
+// Each shop searcher creates its own ShopClient, so each shop has its own rate limit and request queue. Traders'
+// lists come from the database, fresh on every search: no client, no cache.
+const cardSearch = new CardSearchService([
+    ...[
         new GinCardSearcher(),
         new CartonCardSearcher(),
         new ManavaultCardSearcher(),
@@ -50,8 +56,9 @@ const cardSearch = new CardSearchService(
         new PaytowinCardSearcher(),
         new MagicswampCardSearcher(),
         new CitadelCardSearcher()
-    ].map((searcher) => new CachedCardSearcher(searcher))
-);
+    ].map((searcher) => new CachedCardSearcher(searcher)),
+    new TraderListSearcher(listStore)
+]);
 // Card names known without asking Scryfall (scripts/update-card-names.ts); the rest are looked up on its API.
 const cardNames = await CardIndex.load();
 logger.info('card name index loaded', {
@@ -82,8 +89,7 @@ const search = searchHandler(
 );
 const click = clickHandler(visitors);
 
-// Traders and their lists (see server/db/). Sign-in is off until the Telegram bot's details are set.
-const db = openDatabase(databasePath());
+// Sign-in is off until the Telegram bot's details are set.
 const loginConfig = telegramLoginConfig();
 if (!loginConfig)
     logger.info('telegram sign-in is off', {
@@ -95,7 +101,6 @@ const auth = authHandlers(
     loginConfig && new TelegramLogin(loginConfig),
     adminIds()
 );
-const listStore = new ListStore(db);
 // Reads approved lists when they're due, and right after one is approved.
 const refresher = new ListRefresher(
     listStore,

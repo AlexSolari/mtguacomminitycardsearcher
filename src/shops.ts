@@ -9,7 +9,13 @@ export type ShopId =
     | 'kartoteka'
     | 'paytowin'
     | 'magicswamp'
-    | 'citadel';
+    | 'citadel'
+    | 'traders'; // traders' own lists (server/searchers/trader-list-searcher.ts), not a shop
+
+// lucide's "users" icon, grey so it reads in both themes (an <img> can't take the text colour)
+const TRADERS_ICON = `data:image/svg+xml,${encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#8b8b95" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'
+)}`;
 
 export const SHOP_INFO: Record<
     ShopId,
@@ -61,8 +67,18 @@ export const SHOP_INFO: Record<
         label: 'Citadel',
         homepage: 'https://citadel.kyiv.ua',
         icon: 'https://citadel.kyiv.ua/citadelTower3.svg'
+    },
+    traders: {
+        label: 'Гравці',
+        homepage: '/lists',
+        icon: TRADERS_ICON
     }
 };
+
+// The shops proper, without the traders' lists: what the header names as the shops compared.
+export const SHOP_IDS = (Object.keys(SHOP_INFO) as ShopId[]).filter(
+    (shop) => shop !== 'traders'
+);
 
 // Horoshop shops (Nerdik, Kartoteka) answer 403 to some server IPs, e.g. Railway's, but still work in the
 // user's browser. So for a blocked search, link the shop's own search page for the user to check by hand.

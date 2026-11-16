@@ -3,12 +3,16 @@ import { isArtSeries, isExactMatch } from './matching';
 import type { CardResult, SearchResult } from './search-result';
 
 // React key for an offer. The URL alone isn't unique: Nerdik lists one printing's offers at different
-// prices, and CartOn's offers of different conditions or languages, all sharing the printing's URL.
+// prices, and CartOn's offers of different conditions or languages, all sharing the printing's URL. A trader's
+// offers all share their Telegram link; the list and printing tell them apart.
 export const offerKey = (l: CardResult) =>
-    `${l.url}|${l.price}|${l.foil}|${l.language}|${l.condition}`;
+    `${l.url}|${l.price}|${l.foil}|${l.language}|${l.condition}` +
+    (l.seller ? `|${l.seller.list}|${l.name}|${l.seller.printing}` : '');
 
 const byPrice = (a: CardResult, b: CardResult) =>
     (a.price ?? Infinity) - (b.price ?? Infinity);
+const byUsdPrice = (a: CardResult, b: CardResult) =>
+    (a.usdPrice ?? Infinity) - (b.usdPrice ?? Infinity);
 const minPrice = (links: CardResult[]) =>
     links.reduce<number | null>(
         (min, l) =>
@@ -16,15 +20,16 @@ const minPrice = (links: CardResult[]) =>
         null
     );
 
-// Groups, each sorted by price: exact matches → auctions → other (fuzzy) matches → Art Series.
+// Groups, each sorted by price: exact matches → auctions → traders → other (fuzzy) matches → Art Series.
 // A card's "best price" / "from" use the first non-empty of exact → other → art, so neither "School Daze"
 // (for "Daze") nor a 16 ₴ Art Series card (for "Sol Ring") wins "Best price". Auction bids aren't fixed
-// prices, so auctions never count toward pricing.
+// prices, so auctions never count toward pricing; nor do traders' offers, priced from Scryfall in USD.
 // A result object never changes (a streamed card gets a new object per update), so the split is computed once per result object and shared by
 // CardSection and SearchSummary.
 export type Split = {
     exact: CardResult[];
     auctions: CardResult[];
+    traders: CardResult[]; // by USD price
     art: CardResult[];
     other: CardResult[];
     pricing: Set<CardResult>;
@@ -37,20 +42,24 @@ export function splitMatches(r: SearchResult): Split {
 
     const exact: CardResult[] = [];
     const auctions: CardResult[] = [];
+    const traders: CardResult[] = [];
     const art: CardResult[] = [];
     const other: CardResult[] = [];
     for (const l of r.links) {
-        if (l.auction) auctions.push(l);
+        if (l.shop === 'traders') traders.push(l);
+        else if (l.auction) auctions.push(l);
         else if (isArtSeries(l)) art.push(l);
         else if (isExactMatch(l.name, r.card)) exact.push(l);
         else other.push(l);
     }
     for (const group of [exact, auctions, art, other]) group.sort(byPrice);
+    traders.sort(byUsdPrice);
     const pricing = exact.length > 0 ? exact : other.length > 0 ? other : art;
 
     split = {
         exact,
         auctions,
+        traders,
         art,
         other,
         pricing: new Set(pricing),
