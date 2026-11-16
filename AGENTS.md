@@ -15,7 +15,7 @@ See [README.md](README.md) for what the app does and the request flow.
 | Static frontend bundle                                              | `bun run build -- --outdir=<dir>` (defaults to `dist/`, which it **deletes first**) |
 | Tests                                                               | `bun test` (offline, ~6 s)                                                          |
 | Coverage (fails under 95% lines / 90% functions in any file)        | `bun run test:coverage`                                                             |
-| Refresh the parser fixtures from the real shops                     | `bun scripts/update-fixtures.ts` (~9 requests)                                      |
+| Refresh the parser fixtures from the real shops                     | `bun scripts/update-fixtures.ts` (~11 requests)                                     |
 | Re-render the link preview image (`src/og-image.png`, needs Chrome) | `bun scripts/render-og-image.ts`                                                    |
 | Refresh the card name index (`src/server/card-names.json`)          | `bun scripts/update-card-names.ts [oracle-cards.json]` (after each set release)     |
 
