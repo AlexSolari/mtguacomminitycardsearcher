@@ -17,7 +17,7 @@ describe('lists routes', () => {
     let alice: User;
     let bob: User;
     let mod: User;
-    let approved: number[];
+    let due: number[];
     let routes: ReturnType<typeof listsHandlers>;
     beforeEach(() => {
         const db = openDatabase(':memory:');
@@ -31,7 +31,7 @@ describe('lists routes', () => {
         alice = login(1, 'alice');
         bob = login(2, 'bob');
         mod = login(3, 'mod');
-        approved = [];
+        due = [];
         // the signed-in user is whoever the test says (x-user), unless they're banned
         routes = listsHandlers(
             lists,
@@ -43,7 +43,7 @@ describe('lists routes', () => {
                 },
                 isAdmin: (user) => user.telegramId === mod.telegramId
             },
-            (id) => approved.push(id),
+            (ids) => due.push(...ids),
             () => 1000
         );
         logs.length = 0; // the migration's log line
@@ -108,11 +108,13 @@ describe('lists routes', () => {
             createdAt: 1000,
             fetchedAt: null,
             cardCount: 0,
-            lastError: null
+            lastError: null,
+            usdRate: null
         });
         expect(await mine(alice)).toEqual({
             lists: [list],
-            max: MAX_LISTS_PER_USER
+            max: MAX_LISTS_PER_USER,
+            usdRate: null
         });
         expect((await mine(bob)).lists).toEqual([]);
         expect(logs.map((l) => [l.message, l.user, l.source])).toEqual([
@@ -167,6 +169,60 @@ describe('lists routes', () => {
         expect((await send(JSON.stringify({ link: GOLDFISH }))).status).toBe(
             201
         );
+    });
+
+    test('a trader sets a default exchange rate, and one per list over it', async () => {
+        const setRate = (usdRate: unknown, user: User | null = alice) =>
+            routes.setRate(
+                request('/api/lists/rate', user, { body: { usdRate } })
+            );
+        const setListRate = (
+            id: number | string,
+            usdRate: unknown,
+            user: User = alice
+        ) =>
+            routes.setListRate(
+                request(`/api/lists/${id}`, user, {
+                    method: 'PATCH',
+                    body: { usdRate }
+                }),
+                String(id)
+            );
+        const list = (await (await submit(alice, GOLDFISH)).json()) as MyList;
+        logs.length = 0;
+
+        expect((await setRate(42.456)).status).toBe(204);
+        expect((await mine(alice)).usdRate).toBe(42.46);
+        const res = await setListRate(list.id, 44);
+        expect(res.status).toBe(200);
+        expect(await res.json()).toEqual({ ...list, usdRate: 44 });
+        expect((await mine(alice)).lists[0]?.usdRate).toBe(44);
+        expect(
+            ((await (await setListRate(list.id, null)).json()) as MyList)
+                .usdRate
+        ).toBeNull();
+        expect((await setRate(null)).status).toBe(204);
+        expect((await mine(alice)).usdRate).toBeNull();
+        expect(logs.map((l) => [l.message, l.list, l.rate])).toEqual([
+            ['exchange rate set', undefined, 42.46],
+            ['exchange rate set', list.id, 44],
+            ['exchange rate set', list.id, null],
+            ['exchange rate set', undefined, null]
+        ]);
+
+        for (const bad of [0, 0.5, 1001, '42', true, undefined, {}]) {
+            const r = await setRate(bad);
+            expect(r.status).toBe(400);
+            expect(await r.json()).toEqual({ error: 'invalid-rate' });
+            expect((await setListRate(list.id, bad)).status).toBe(400);
+        }
+        expect((await setRate(1)).status).toBe(204);
+        expect((await setRate(1000)).status).toBe(204);
+        // someone else's list, or none
+        expect((await setListRate(list.id, 40, bob)).status).toBe(404);
+        expect((await setListRate(999, 40)).status).toBe(404);
+        expect((await setListRate('x', 40)).status).toBe(404);
+        expect((await setRate(40, null)).status).toBe(401);
     });
 
     test('a trader deletes their own lists only', async () => {
@@ -243,7 +299,7 @@ describe('lists routes', () => {
         logs.length = 0;
         expect((await review(a.id, 'approved')).status).toBe(204);
         expect((await review(b.id, 'rejected')).status).toBe(204);
-        expect(approved).toEqual([a.id]);
+        expect(due).toEqual([a.id]);
         expect(lists.get(a.id)).toMatchObject({
             status: 'approved',
             nextFetchAt: 1000
@@ -268,7 +324,54 @@ describe('lists routes', () => {
             (await routes.queue(request('/api/admin/lists?status=all', mod)))
                 .status
         ).toBe(400);
-        expect(approved).toEqual([]);
+        expect(due).toEqual([]);
+    });
+
+    test('a moderator has approved lists read again now: the ticked ones, or all', async () => {
+        const refresh = (body: unknown, user: User | null = mod) =>
+            routes.refresh(request('/api/admin/refresh', user, { body }));
+        const a = (await (await submit(alice, GOLDFISH)).json()) as MyList;
+        const b = (await (await submit(bob, MANABOX)).json()) as MyList;
+        await review(a.id, 'approved');
+        await review(b.id, 'approved');
+        lists.saveCards(a.id, { cards: [] }, 1000, 5000);
+        lists.saveCards(b.id, { cards: [] }, 1000, 5000);
+        due.length = 0;
+        logs.length = 0;
+
+        let res = await refresh({ ids: [b.id] });
+        expect(res.status).toBe(200);
+        expect(await res.json()).toEqual({ refreshed: [b.id] });
+        expect(due).toEqual([b.id]);
+        expect(lists.get(b.id)?.nextFetchAt).toBe(1000);
+        // b is queued already, so "all" only adds a
+        res = await refresh({ all: true });
+        expect(await res.json()).toEqual({ refreshed: [a.id] });
+        expect(due).toEqual([b.id, a.id]);
+        // nothing new to queue: the refresher isn't woken
+        res = await refresh({ all: true });
+        expect(await res.json()).toEqual({ refreshed: [] });
+        expect(due).toEqual([b.id, a.id]);
+        expect(
+            logs.map((l) => [l.message, l.lists, l.all, l.moderator])
+        ).toEqual([
+            ['lists refresh requested', 1, false, mod.id],
+            ['lists refresh requested', 1, true, mod.id],
+            ['lists refresh requested', 0, true, mod.id]
+        ]);
+
+        for (const body of [
+            {},
+            { all: 'yes' },
+            { ids: [] },
+            { ids: 'all' },
+            { ids: ['1'] },
+            { ids: [0] },
+            { ids: [1.5] }
+        ])
+            expect((await refresh(body)).status).toBe(400);
+        expect((await refresh({ all: true }, alice)).status).toBe(403);
+        expect((await refresh({ all: true }, null)).status).toBe(401);
     });
 
     test('a ban signs the trader out and shows in the queue; it can be lifted', async () => {

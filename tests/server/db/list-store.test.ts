@@ -78,7 +78,8 @@ describe('ListStore', () => {
             nextFetchAt: null,
             lastError: null,
             failures: 0,
-            cardCount: 0
+            cardCount: 0,
+            usdRate: null
         });
         expect(lists.due(Number.MAX_SAFE_INTEGER)).toEqual([]);
     });
@@ -170,6 +171,48 @@ describe('ListStore', () => {
         expect(lists.due(1000).map((l) => l.id)).toEqual([b.id]);
     });
 
+    test('refreshNow: approved lists not already due become due now; it returns them', () => {
+        const a = approved(alice); // next read at 300 + DAY
+        const b = approved(bob, manabox);
+        const c = approved(alice, { source: 'mtggoldfish', ref: '7' });
+        const pending = lists.submit(
+            bob.id,
+            { source: 'manabox', ref: 'p' },
+            0
+        )!;
+        expect(lists.refreshNow([b.id, pending.id, 999], 1000)).toEqual([b.id]);
+        expect(lists.get(b.id)?.nextFetchAt).toBe(1000);
+        expect(lists.get(pending.id)?.nextFetchAt).toBeNull();
+        expect(lists.due(1000).map((l) => l.id)).toEqual([b.id]);
+        // b is already due, so only the others move
+        expect(lists.refreshNow('all', 1000)).toEqual([a.id, c.id]);
+        expect(lists.refreshNow('all', 1000)).toEqual([]);
+        expect(lists.refreshNow([], 1000)).toEqual([]);
+    });
+
+    test("exchange rates: an offer takes its list's rate, else its owner's; only the owner sets a list's", () => {
+        const a = approved(alice);
+        const b = approved(bob, manabox);
+        const rates = () =>
+            Object.fromEntries(
+                lists.offers('Sol Ring').map((o) => [o.listId, o.usdRate])
+            );
+        expect(rates()).toEqual({ [a.id]: null, [b.id]: null });
+        users.setUsdRate(alice.id, 42);
+        expect(users.usdRate(alice.id)).toBe(42);
+        expect(rates()).toEqual({ [a.id]: 42, [b.id]: null });
+        expect(lists.setUsdRate(a.id, alice.id, 44.5)).toBe(true);
+        expect(lists.setUsdRate(b.id, alice.id, 40)).toBe(false);
+        expect(rates()).toEqual({ [a.id]: 44.5, [b.id]: null });
+        expect(lists.get(a.id)?.usdRate).toBe(44.5);
+        lists.setUsdRate(a.id, alice.id, null);
+        expect(rates()).toEqual({ [a.id]: 42, [b.id]: null });
+        users.setUsdRate(alice.id, null);
+        expect(users.usdRate(alice.id)).toBeNull();
+        expect(users.usdRate(999)).toBeNull();
+        expect(() => users.setUsdRate(alice.id, 0)).toThrow(/CHECK/);
+    });
+
     test('saveCards replaces the cards and records the refresh', () => {
         const list = approved(alice, manabox, [solRing, bonecrusher]);
         lists.saveCards(
@@ -238,7 +281,8 @@ describe('ListStore', () => {
             variant: null,
             image: 'https://cards.scryfall.io/normal/front/0/0/sol-ring.jpg',
             usd: 1.5,
-            approxPrice: false
+            approxPrice: false,
+            usdRate: null
         });
         expect(
             lists.offers('sol ring').map((o) => [o.username, o.usd])

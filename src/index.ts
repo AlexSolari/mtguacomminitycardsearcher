@@ -162,13 +162,16 @@ const server = serve({
             GET: (req) => lists.mine(req),
             POST: (req) => lists.submit(req)
         },
+        '/api/lists/rate': { POST: (req) => lists.setRate(req) },
         '/api/lists/:id': {
-            DELETE: (req) => lists.remove(req, req.params.id)
+            DELETE: (req) => lists.remove(req, req.params.id),
+            PATCH: (req) => lists.setListRate(req, req.params.id)
         },
         '/api/admin/lists': { GET: (req) => lists.queue(req) },
         '/api/admin/lists/:id': {
             POST: (req) => lists.review(req, req.params.id)
         },
+        '/api/admin/refresh': { POST: (req) => lists.refresh(req) },
         '/api/admin/users/:id': {
             POST: (req) => lists.ban(req, req.params.id)
         }

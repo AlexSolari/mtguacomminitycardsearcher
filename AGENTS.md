@@ -95,6 +95,7 @@ TypeScript isn't a dependency: don't use `bunx tsc`, which fetches an unrelated 
     - auctions set `auction`, and their price never counts toward best price or totals
     - the summary total uses exact matches only, times the list quantity, within stock (`cheapestCopies` in `src/results.ts`)
     - traders' offers have `price: null` and carry Scryfall's USD price in `usdPrice` (`approxPrice` when it isn't for that exact printing); they're their own group (`splitMatches().traders`) and never count toward best price or totals
+    - a trader can set an exchange rate (UAH per USD) for all their lists and override it per list; the offer then carries `usdRate`, and `sellerUah` in `src/results.ts` gives the UAH price shown. It's still a guide: `price` stays `null`, and the group stays out of best price and totals, sorted by `usdPrice`
 
 - **Tracing:** `bun start` preloads `src/instrumentation.ts`, which starts OpenTelemetry only when `OTEL_EXPORTER_OTLP_ENDPOINT` (Railway) or `SENTRY_DSN` is set; otherwise the spans in the code (`tracer` in `src/server/tracing.ts`) are no-ops, so dev and tests are unaffected.
   Tests assert on spans with `tests/server/capture-spans.ts`.

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Ban, Check, Undo2, X } from 'lucide-react';
+import { Ban, Check, RefreshCw, Undo2, X } from 'lucide-react';
 import type { ListStatus, ModeratedList } from '@/account';
 import { formatDate, ListName, ListStatusLine } from '@/components/list-parts';
 import {
@@ -10,8 +10,14 @@ import {
 } from '@/components/page-layout';
 import { Button } from '@/components/ui/button';
 import { useAccount } from '@/hooks/use-account';
+import { LISTS, plural } from '@/i18n';
 import { cn } from '@/lib/utils';
-import { fetchQueue, reviewList, setBanned } from '@/lib/account-api';
+import {
+    fetchQueue,
+    refreshLists,
+    reviewList,
+    setBanned
+} from '@/lib/account-api';
 
 const TABS: { status: ListStatus; label: string }[] = [
     { status: 'pending', label: 'На перевірці' },
@@ -20,7 +26,7 @@ const TABS: { status: ListStatus; label: string }[] = [
 ];
 
 // /admin: moderators (ADMIN_TELEGRAM_IDS) approve or reject submitted lists, and ban traders. Approving reads the
-// list at once.
+// list at once; approved lists can be read again on demand, all of them or the ones ticked.
 export function AdminPage() {
     const auth = useAccount();
     return (
@@ -49,12 +55,16 @@ function Moderation() {
     const [status, setStatus] = useState<ListStatus>('pending');
     const [lists, setLists] = useState<ModeratedList[] | null>();
     const [error, setError] = useState<string | null>(null);
+    const [done, setDone] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
     const [reloads, setReloads] = useState(0);
+    // approved lists ticked for a refresh
+    const [selected, setSelected] = useState<ReadonlySet<number>>(new Set());
 
     useEffect(() => {
         let live = true;
         setLists(undefined);
+        setSelected(new Set());
         fetchQueue(status)
             .then((l) => live && setLists(l))
             .catch(() => {
@@ -67,12 +77,13 @@ function Moderation() {
         };
     }, [status, reloads]);
 
-    // Runs a moderation action, then reloads the tab.
-    const act = async (action: () => Promise<void>) => {
+    // Runs a moderation action, then reloads the tab. An action may say what it did.
+    const act = async (action: () => Promise<string | void>) => {
         setBusy(true);
         setError(null);
+        setDone(null);
         try {
-            await action();
+            setDone((await action()) ?? null);
             setReloads((n) => n + 1);
         } catch {
             setError(SERVER_ERROR);
@@ -99,6 +110,31 @@ function Moderation() {
             </div>
 
             {error && <Notice tone='error'>{error}</Notice>}
+            {done && <Notice tone='ok'>{done}</Notice>}
+
+            {status === 'approved' && lists && lists.length > 0 && (
+                <div className='flex flex-wrap gap-2'>
+                    <Button
+                        size='sm'
+                        variant='outline'
+                        disabled={busy || selected.size === 0}
+                        onClick={() => act(() => refresh([...selected]))}
+                    >
+                        <RefreshCw />
+                        Оновити вибрані
+                        {selected.size > 0 && ` (${selected.size})`}
+                    </Button>
+                    <Button
+                        size='sm'
+                        variant='outline'
+                        disabled={busy}
+                        onClick={() => act(() => refresh('all'))}
+                    >
+                        <RefreshCw />
+                        Оновити всі
+                    </Button>
+                </div>
+            )}
 
             {lists === undefined ? (
                 <Loading />
@@ -112,10 +148,25 @@ function Moderation() {
                                 key={list.id}
                                 className='grid gap-3 rounded-lg border bg-card px-4 py-3'
                             >
-                                <div className='grid min-w-0 gap-0.5'>
-                                    <ListName list={list} />
-                                    <ListStatusLine list={list} />
-                                    <Owner list={list} />
+                                <div className='flex min-w-0 items-start gap-3'>
+                                    {list.status === 'approved' && (
+                                        <input
+                                            type='checkbox'
+                                            aria-label='Вибрати для оновлення'
+                                            checked={selected.has(list.id)}
+                                            onChange={() =>
+                                                setSelected((s) =>
+                                                    toggle(s, list.id)
+                                                )
+                                            }
+                                            className='mt-1 size-4 shrink-0 accent-primary'
+                                        />
+                                    )}
+                                    <div className='grid min-w-0 gap-0.5'>
+                                        <ListName list={list} />
+                                        <ListStatusLine list={list} />
+                                        <Owner list={list} />
+                                    </div>
                                 </div>
                                 <div className='flex flex-wrap gap-2'>
                                     {list.status !== 'approved' && (
@@ -171,6 +222,20 @@ function Moderation() {
         </>
     );
 }
+
+// The lists are read in the background, one every few seconds per source, so the tab shows the new reads only later.
+async function refresh(ids: number[] | 'all') {
+    const { refreshed } = await refreshLists(ids);
+    return refreshed.length === 0
+        ? 'Ці списки вже чекають на оновлення.'
+        : `Поставлено в чергу на оновлення: ${plural(refreshed.length, LISTS)}. Нові дані з’являться тут за кілька хвилин.`;
+}
+
+const toggle = (set: ReadonlySet<number>, id: number) => {
+    const next = new Set(set);
+    if (!next.delete(id)) next.add(id);
+    return next;
+};
 
 function Owner({ list }: { list: ModeratedList }) {
     const { owner } = list;

@@ -36,7 +36,8 @@ export function traderOffer(o: ListOffer): CardResult {
         ...(o.finish !== 'nonfoil' && { foil: true }),
         ...(o.usd !== null && {
             usdPrice: o.usd,
-            ...(o.approxPrice && { approxPrice: true })
+            ...(o.approxPrice && { approxPrice: true }),
+            ...(o.usdRate !== null && { usdRate: o.usdRate })
         }),
         seller: {
             name: o.displayName,

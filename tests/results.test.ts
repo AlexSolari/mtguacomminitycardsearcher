@@ -1,5 +1,11 @@
 import { describe, expect, test } from 'bun:test';
-import { cheapestCopies, isNotFound, offerKey, splitMatches } from '@/results';
+import {
+    cheapestCopies,
+    isNotFound,
+    offerKey,
+    sellerUah,
+    splitMatches
+} from '@/results';
 import type { CardResult, SearchResult } from '@/search-result';
 
 const offer = (
@@ -133,6 +139,14 @@ describe('cheapestCopies', () => {
             copies: 2
         });
     });
+});
+
+test("sellerUah: a trader's USD price at their rate, to the hryvnia", () => {
+    const trader = (extra: Partial<CardResult>) =>
+        offer('Daze', null, { shop: 'traders', ...extra });
+    expect(sellerUah(trader({ usdPrice: 2.89, usdRate: 43.5 }))).toBe(126);
+    expect(sellerUah(trader({ usdPrice: 2.89 }))).toBeNull();
+    expect(sellerUah(trader({ usdRate: 43.5 }))).toBeNull();
 });
 
 test('offerKey tells apart offers that share a URL', () => {

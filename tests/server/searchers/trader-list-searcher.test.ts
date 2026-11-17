@@ -12,10 +12,11 @@ const IMAGE = 'https://cards.scryfall.io/normal/front/sol-ring.jpg';
 
 describe('TraderListSearcher', () => {
     let lists: ListStore;
+    let users: UserStore;
     let searcher: TraderListSearcher;
     beforeEach(() => {
         const db = openDatabase(':memory:');
-        const users = new UserStore(db);
+        users = new UserStore(db);
         lists = new ListStore(db);
         searcher = new TraderListSearcher(lists);
         const alice = users.login(
@@ -126,6 +127,16 @@ describe('TraderListSearcher', () => {
                     printing: 'CMM · etched'
                 }
             }
+        ]);
+    });
+
+    test("with the trader's exchange rate, priced offers carry it; unpriced ones don't", async () => {
+        users.setUsdRate(1, 42);
+        const offers = await searcher.search('Sol Ring');
+        expect(offers.map((o) => [o.usdPrice, o.usdRate])).toEqual([
+            [1.5, 42],
+            [4, 42],
+            [undefined, undefined]
         ]);
     });
 

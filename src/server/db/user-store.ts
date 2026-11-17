@@ -66,6 +66,21 @@ export class UserStore {
     }
 
     // A ban also ends their sessions; their lists stay out of search while it lasts (see ListStore.offers).
+    // The seller's exchange rate, UAH per USD, for their lists that have none of their own; null when unset.
+    usdRate(id: number): number | null {
+        return (
+            this.db
+                .query<{ usdRate: number | null }, [number]>(
+                    'SELECT usd_rate AS usdRate FROM users WHERE id = ?'
+                )
+                .get(id)?.usdRate ?? null
+        );
+    }
+
+    setUsdRate(id: number, rate: number | null) {
+        this.db.run('UPDATE users SET usd_rate = ? WHERE id = ?', [rate, id]);
+    }
+
     setBanned(id: number, banned: boolean): boolean {
         return this.db.transaction(() => {
             const changed =

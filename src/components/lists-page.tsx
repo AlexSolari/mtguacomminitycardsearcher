@@ -23,6 +23,7 @@ import {
 } from '@/components/page-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { RateField } from '@/components/rate-field';
 import { useAccount } from '@/hooks/use-account';
 import { LISTS, LISTS_GENITIVE, plural } from '@/i18n';
 import {
@@ -31,6 +32,8 @@ import {
     deleteList,
     fetchMyLists,
     logout,
+    setDefaultRate,
+    setListRate,
     submitList
 } from '@/lib/account-api';
 
@@ -208,6 +211,33 @@ function TraderLists({ user }: { user: CurrentUser }) {
         }
     }
 
+    // A failed save leaves the field as typed, to try again; the error shows above.
+    async function saveDefaultRate(usdRate: number | null) {
+        setError(null);
+        try {
+            await setDefaultRate(usdRate);
+            setData((d) => d && { ...d, usdRate });
+        } catch (err) {
+            fail(err);
+        }
+    }
+
+    async function saveListRate(id: number, usdRate: number | null) {
+        setError(null);
+        try {
+            const list = await setListRate(id, usdRate);
+            setData(
+                (d) =>
+                    d && {
+                        ...d,
+                        lists: d.lists.map((l) => (l.id === id ? list : l))
+                    }
+            );
+        } catch (err) {
+            fail(err);
+        }
+    }
+
     async function remove(id: number) {
         if (
             !data ||
@@ -278,6 +308,24 @@ function TraderLists({ user }: { user: CurrentUser }) {
                 )}
             </section>
 
+            {data && (
+                <section className='grid gap-2 rounded-lg border bg-card px-4 py-3'>
+                    <h2 className='font-semibold'>Курс долара</h2>
+                    <p className='text-sm leading-relaxed text-muted-foreground'>
+                        Ціни у ваших списках беремо зі Scryfall у доларах.
+                        Вкажіть свій курс, і покупці бачитимуть їх у гривнях.
+                        Без курсу ціни показуються в доларах. Для окремого
+                        списку можна задати інший курс.
+                    </p>
+                    <RateField
+                        value={data.usdRate}
+                        onSave={saveDefaultRate}
+                        placeholder='не вказано'
+                        label='Курс долара для всіх списків'
+                    />
+                </section>
+            )}
+
             {data === undefined ? (
                 <Loading />
             ) : data && data.lists.length > 0 ? (
@@ -287,9 +335,34 @@ function TraderLists({ user }: { user: CurrentUser }) {
                             key={list.id}
                             className='flex items-center gap-3 rounded-lg border bg-card px-4 py-3'
                         >
-                            <div className='grid min-w-0 flex-1 gap-0.5'>
-                                <ListName list={list} />
-                                <ListStatusLine list={list} />
+                            <div className='grid min-w-0 flex-1 gap-1.5'>
+                                <div className='grid gap-0.5'>
+                                    <ListName list={list} />
+                                    <ListStatusLine list={list} />
+                                </div>
+                                <div className='flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground'>
+                                    <span>Курс цього списку:</span>
+                                    <RateField
+                                        compact
+                                        value={list.usdRate}
+                                        onSave={(rate) =>
+                                            saveListRate(list.id, rate)
+                                        }
+                                        placeholder={
+                                            data.usdRate === null
+                                                ? 'не вказано'
+                                                : data.usdRate.toLocaleString(
+                                                      'uk-UA'
+                                                  )
+                                        }
+                                        hint={
+                                            data.usdRate === null
+                                                ? undefined
+                                                : 'як загальний'
+                                        }
+                                        label='Курс долара для цього списку'
+                                    />
+                                </div>
                             </div>
                             <Button
                                 variant='ghost'

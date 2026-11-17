@@ -9,6 +9,12 @@ export const offerKey = (l: CardResult) =>
     `${l.url}|${l.price}|${l.foil}|${l.language}|${l.condition}` +
     (l.seller ? `|${l.seller.list}|${l.name}|${l.seller.printing}` : '');
 
+// A trader's price in UAH: Scryfall's USD price at their rate, to the hryvnia; null without either.
+export const sellerUah = (l: CardResult): number | null =>
+    l.usdPrice !== undefined && l.usdRate !== undefined
+        ? Math.round(l.usdPrice * l.usdRate)
+        : null;
+
 const byPrice = (a: CardResult, b: CardResult) =>
     (a.price ?? Infinity) - (b.price ?? Infinity);
 const byUsdPrice = (a: CardResult, b: CardResult) =>

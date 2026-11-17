@@ -1,6 +1,7 @@
 import type {
     AuthState,
     ListStatus,
+    ListsRefreshed,
     ModeratedList,
     MyList,
     MyLists
@@ -54,10 +55,20 @@ export const submitList = (link: string) =>
     api<MyList>('/api/lists', { body: { link } });
 export const deleteList = (id: number) =>
     api<void>(`/api/lists/${id}`, { method: 'DELETE' });
+// exchange rates, UAH per USD; null clears one
+export const setDefaultRate = (usdRate: number | null) =>
+    api<void>('/api/lists/rate', { body: { usdRate } });
+export const setListRate = (id: number, usdRate: number | null) =>
+    api<MyList>(`/api/lists/${id}`, { method: 'PATCH', body: { usdRate } });
 
 export const fetchQueue = (status: ListStatus) =>
     api<ModeratedList[]>(`/api/admin/lists?status=${status}`);
 export const reviewList = (id: number, status: 'approved' | 'rejected') =>
     api<void>(`/api/admin/lists/${id}`, { body: { status } });
+// `ids` of approved lists, or every approved list
+export const refreshLists = (ids: number[] | 'all') =>
+    api<ListsRefreshed>('/api/admin/refresh', {
+        body: ids === 'all' ? { all: true } : { ids }
+    });
 export const setBanned = (userId: number, banned: boolean) =>
     api<void>(`/api/admin/users/${userId}`, { body: { banned } });

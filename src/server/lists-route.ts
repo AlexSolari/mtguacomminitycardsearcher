@@ -3,6 +3,7 @@ import type {
     ModeratedList,
     MyList,
     MyLists,
+    RateError,
     SubmitListError
 } from '../account';
 import type { ListStore, ReviewedList, TraderList } from './db/list-store';
@@ -14,8 +15,11 @@ import { logger } from './logger';
 //   GET    /api/lists                    → MyLists
 //   POST   /api/lists {link}             → 201 MyList | 400/403/409 {error: SubmitListError}
 //   DELETE /api/lists/:id                → 204
+//   PATCH  /api/lists/:id {usdRate}      → MyList: the list's own exchange rate (null: the owner's default)
+//   POST   /api/lists/rate {usdRate}     → 204: the owner's default exchange rate (null: prices stay in USD)
 //   GET    /api/admin/lists?status=…     → ModeratedList[] (pending by default)
-//   POST   /api/admin/lists/:id {status} → 204; approving reads the list at once (`onApproved`)
+//   POST   /api/admin/lists/:id {status} → 204; approving reads the list at once (`onDue`)
+//   POST   /api/admin/refresh {ids}|{all: true} → {refreshed: number[]}: approved lists read again now (`onDue`)
 //   POST   /api/admin/users/:id {banned} → 204
 // Everything needs a session; the admin routes need a moderator's. Writes take JSON only: with the session cookie
 // SameSite=Lax, another site can't send them with it, and a cross-site JSON POST would need a CORS preflight.
@@ -48,6 +52,22 @@ async function readJson(req: Request): Promise<Record<string, unknown> | null> {
     }
 }
 
+// An exchange rate as sent: UAH per USD, to the kopiyka, or null for none. The bounds catch typos (4.3, 4300);
+// the hryvnia has been between 8 and 45 to the dollar since 2014.
+export const MIN_USD_RATE = 1;
+export const MAX_USD_RATE = 1000;
+function usdRate(value: unknown): number | null | undefined {
+    if (value === null) return null;
+    if (
+        typeof value !== 'number' ||
+        !Number.isFinite(value) ||
+        value < MIN_USD_RATE ||
+        value > MAX_USD_RATE
+    )
+        return undefined;
+    return Math.round(value * 100) / 100;
+}
+
 // A route's `:id`, when it's one a row could have.
 const rowId = (id: string) => {
     const n = Number(id);
@@ -63,7 +83,8 @@ const myList = (l: TraderList): MyList => ({
     createdAt: l.createdAt,
     fetchedAt: l.fetchedAt,
     cardCount: l.cardCount,
-    lastError: l.lastError
+    lastError: l.lastError,
+    usdRate: l.usdRate
 });
 
 const moderatedList = (l: ReviewedList): ModeratedList => ({
@@ -84,7 +105,8 @@ export function listsHandlers(
         currentUser: (req: Request) => User | null;
         isAdmin: (user: User) => boolean;
     },
-    onApproved: (listId: number) => void = () => {},
+    // lists that just became due (approved, or refreshed by a moderator); the refresher reads them at once
+    onDue: (listIds: number[]) => void = () => {},
     now = () => Date.now()
 ) {
     // Runs `handle` for the signed-in user (a moderator, with `admin`), or answers 401/403.
@@ -108,7 +130,8 @@ export function listsHandlers(
         mine: signedIn((user) => {
             const body: MyLists = {
                 lists: lists.ofUser(user.id).map(myList),
-                max: MAX_LISTS_PER_USER
+                max: MAX_LISTS_PER_USER,
+                usdRate: users.usdRate(user.id)
             };
             return Response.json(body, { headers: noStore });
         }),
@@ -141,6 +164,30 @@ export function listsHandlers(
             return noContent();
         }),
 
+        setRate: signedIn(async (user, req) => {
+            const rate = usdRate((await readJson(req))?.usdRate);
+            if (rate === undefined)
+                return error('invalid-rate' satisfies RateError, 400);
+            users.setUsdRate(user.id, rate);
+            logger.info('exchange rate set', { user: user.id, rate });
+            return noContent();
+        }),
+
+        setListRate: signedIn(async (user, req, id: string) => {
+            const listId = rowId(id);
+            const rate = usdRate((await readJson(req))?.usdRate);
+            if (rate === undefined)
+                return error('invalid-rate' satisfies RateError, 400);
+            if (!listId || !lists.setUsdRate(listId, user.id, rate))
+                return error('Not found', 404);
+            logger.info('exchange rate set', {
+                user: user.id,
+                list: listId,
+                rate
+            });
+            return Response.json(myList(lists.get(listId)!));
+        }),
+
         queue: signedIn((_user, req) => {
             const status =
                 new URL(req.url).searchParams.get('status') ?? 'pending';
@@ -164,8 +211,30 @@ export function listsHandlers(
                 status,
                 moderator: user.id
             });
-            if (status === 'approved') onApproved(listId);
+            if (status === 'approved') onDue([listId]);
             return noContent();
+        }, true),
+
+        refresh: signedIn(async (user, req) => {
+            const body = await readJson(req);
+            const ids = body?.ids;
+            const which =
+                body?.all === true
+                    ? 'all'
+                    : Array.isArray(ids) &&
+                        ids.length > 0 &&
+                        ids.every((id) => rowId(String(id)) === id)
+                      ? (ids as number[])
+                      : null;
+            if (!which) return error('Bad request', 400);
+            const refreshed = lists.refreshNow(which, now());
+            logger.info('lists refresh requested', {
+                lists: refreshed.length,
+                all: which === 'all',
+                moderator: user.id
+            });
+            if (refreshed.length > 0) onDue(refreshed);
+            return Response.json({ refreshed });
         }, true),
 
         ban: signedIn(async (user, req, id: string) => {

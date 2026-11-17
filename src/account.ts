@@ -39,6 +39,7 @@ export type MyList = {
     fetchedAt: number | null; // its last successful refresh
     cardCount: number; // copies, from that refresh
     lastError: ListRefreshError | null; // why the last refresh failed, when it did
+    usdRate: number | null; // UAH per USD for this list's prices; null: the owner's default (MyLists.usdRate)
 };
 
 // Why a list's last refresh failed. The cards from the refresh before stay in search meanwhile.
@@ -49,13 +50,20 @@ export type ListRefreshError =
     | 'unavailable'; // the source or Scryfall didn't answer; tried again later
 
 // GET /api/lists: the user's lists, newest first, and how many they may have.
-export type MyLists = { lists: MyList[]; max: number };
+// `usdRate`: the owner's default exchange rate, UAH per USD; null shows their prices in USD.
+export type MyLists = { lists: MyList[]; max: number; usdRate: number | null };
+
+// Why POST /api/lists/rate or PATCH /api/lists/:id refused a rate: not a number between 1 and 1000 (or null).
+export type RateError = 'invalid-rate';
 
 // Why POST /api/lists refused a link.
 export type SubmitListError =
     | 'invalid-link' // not an MTGGoldfish, ManaBox or Moxfield list
     | 'taken' // this list was added before, by this user or another
     | 'too-many'; // the user has `max` lists already
+
+// POST /api/admin/refresh: the approved lists queued to be read again now (lists already queued aren't repeated).
+export type ListsRefreshed = { refreshed: number[] };
 
 // A list in the moderation queue, with its owner (GET /api/admin/lists?status=…).
 export type ModeratedList = MyList & {

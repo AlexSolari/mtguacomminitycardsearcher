@@ -19,10 +19,12 @@ export type CardResult = {
     condition?: string; // short grade: NM, M, LP…
 
     // A trader's offer (shop 'traders'): a card in their list, with `url` their Telegram. Its price is Scryfall's in
-    // USD, not the trader's asking price, so it stays out of best price and the totals.
+    // USD, shown in UAH at the trader's own rate when they set one (sellerUah in results.ts). It's a guide, not
+    // their asking price, so it stays out of best price and the totals either way.
     seller?: Seller;
     usdPrice?: number;
     approxPrice?: boolean; // the price is for the card or its set, not necessarily this printing
+    usdRate?: number; // the trader's UAH per USD, for this list
 };
 
 export type Seller = {

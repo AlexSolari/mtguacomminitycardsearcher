@@ -98,6 +98,12 @@ export const MIGRATIONS = [
     ALTER TABLE lists_new RENAME TO lists;
     CREATE INDEX lists_user ON lists (user_id);
     CREATE INDEX lists_due ON lists (next_fetch_at) WHERE status = 'approved';
+    `,
+    // Sellers' exchange rates, UAH per USD: their offers show Scryfall's USD price converted at it. A list's own rate
+    // overrides its owner's; null is none.
+    `
+    ALTER TABLE users ADD COLUMN usd_rate REAL CHECK (usd_rate IS NULL OR usd_rate > 0);
+    ALTER TABLE lists ADD COLUMN usd_rate REAL CHECK (usd_rate IS NULL OR usd_rate > 0);
     `
 ];
 

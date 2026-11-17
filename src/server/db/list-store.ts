@@ -21,6 +21,7 @@ export type TraderList = {
     lastError: ListRefreshError | null;
     failures: number;
     cardCount: number;
+    usdRate: number | null; // UAH per USD for this list, over its owner's (UserStore.usdRate)
 };
 
 // A list as moderators see it: with its owner.
@@ -53,13 +54,14 @@ export type ListOffer = {
     image: string | null;
     usd: number | null;
     approxPrice: boolean;
+    usdRate: number | null; // the list's rate, else its owner's
 };
 
 const LIST_COLUMNS = `
     lists.id, lists.user_id AS userId, lists.source, lists.ref, lists.title, lists.status,
     lists.created_at AS createdAt, lists.reviewed_at AS reviewedAt, lists.edited_at AS editedAt,
     lists.fetched_at AS fetchedAt, lists.next_fetch_at AS nextFetchAt, lists.last_error AS lastError,
-    lists.failures, lists.card_count AS cardCount`;
+    lists.failures, lists.card_count AS cardCount, lists.usd_rate AS usdRate`;
 
 // Traders' lists and the cards read from them. Only approved lists of users who aren't banned reach search or the
 // refresh job; pending and rejected ones are never fetched.
@@ -108,6 +110,16 @@ export class ListStore {
         );
     }
 
+    // The owner's rate for one list (null: back to their own default). Only the owner can set it.
+    setUsdRate(id: number, userId: number, rate: number | null): boolean {
+        return (
+            this.db.run(
+                'UPDATE lists SET usd_rate = ? WHERE id = ? AND user_id = ?',
+                [rate, id, userId]
+            ).changes > 0
+        );
+    }
+
     // Lists in one state, oldest first: the moderation queue is `withStatus('pending')`.
     withStatus(status: ListStatus): ReviewedList[] {
         return this.db
@@ -129,6 +141,23 @@ export class ListStore {
                 [status, now, status === 'approved' ? now : null, id]
             ).changes > 0
         );
+    }
+
+    // A moderator's "refresh now": makes approved lists (`ids`, or all of them) due at once, and returns the ones it
+    // moved. Lists already due are left out, so a second click while they're being read doesn't read them twice.
+    refreshNow(ids: number[] | 'all', now = Date.now()): number[] {
+        if (ids !== 'all' && ids.length === 0) return [];
+        const only =
+            ids === 'all' ? '' : `AND id IN (${ids.map(() => '?').join(', ')})`;
+        return this.db
+            .query<{ id: number }, number[]>(
+                `UPDATE lists SET next_fetch_at = ?
+                 WHERE status = 'approved' AND next_fetch_at > ? ${only}
+                 RETURNING id`
+            )
+            .all(now, now, ...(ids === 'all' ? [] : ids))
+            .map((r) => r.id)
+            .sort((a, b) => a - b);
     }
 
     // Approved lists whose refresh is due, most overdue first. Banned users' lists wait until the ban is lifted.
@@ -206,7 +235,8 @@ export class ListStore {
                 `SELECT lists.id AS listId, lists.source, lists.ref, lists.title, lists.fetched_at AS fetchedAt,
                         users.username, users.display_name AS displayName,
                         c.name, c.quantity, c.finish, c.set_code AS "set", c.collector_number AS collectorNumber,
-                        c.variant, c.image, c.usd, c.approx_price AS approxPrice
+                        c.variant, c.image, c.usd, c.approx_price AS approxPrice,
+                        COALESCE(lists.usd_rate, users.usd_rate) AS usdRate
                  FROM list_cards c
                      JOIN lists ON lists.id = c.list_id
                      JOIN users ON users.id = lists.user_id
