@@ -1,0 +1,99 @@
+import { toPrice } from '../../parsers/helpers';
+import {
+    mergeRows,
+    type Finish,
+    type ListCard,
+    type ParsedList
+} from '../list-card';
+
+// api2.moxfield.com/v2/decks/all/<publicId>: a deck as JSON, the API behind moxfield.com/decks/<publicId>.
+// Every board (mainboard, sideboard, commanders, companions…) is a top-level object of rows by entry id:
+//
+//   {"name":"Sell list","lastUpdatedAtUtc":"2026-09-14T22:39:01.717Z",
+//    "mainboard":{"LGNXZ":{"quantity":1,"finish":"foil","card":{"name":"Kroxa, Titan of Death's Hunger",
+//      "scryfall_id":"cee0459b-9aac-4d2f-abe4-4d5fedde7eb8","set":"thb","cn":"221",
+//      "prices":{"usd":2.5,"usd_foil":3.25}}}, …},
+//    "sideboard":{…}, "maybeboard":{…}, "tokens":[…], …}
+//
+// `finish` is "nonFoil" or "foil" ("etched" is a guess at the third), and `prices` are Scryfall's, per finish.
+// The maybeboard holds cards the owner is only considering, so it's left out. A body that isn't a deck (a
+// redesign, or not JSON at all) is null.
+const SKIPPED_BOARDS = new Set(['maybeboard']);
+
+const FINISHES: Record<string, Finish> = {
+    nonfoil: 'nonfoil',
+    foil: 'foil',
+    etched: 'etched'
+};
+const PRICE_KEYS: Record<Finish, string> = {
+    nonfoil: 'usd',
+    foil: 'usd_foil',
+    etched: 'usd_etched'
+};
+const SCRYFALL_ID =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+// to the cent, as the other sources' prices
+const usd = (value: unknown) => {
+    const price = toPrice(value);
+    return price === null
+        ? undefined
+        : Math.round(price * 100) / 100 || undefined;
+};
+
+const isObject = (v: unknown): v is Record<string, any> =>
+    !!v && typeof v === 'object' && !Array.isArray(v);
+
+// A board is an object of rows, each with a `card`; other top-level objects (the owner, settings) aren't.
+const isBoard = (v: unknown) =>
+    isObject(v) && Object.values(v).some((row) => isObject(row?.card));
+
+function toCard(row: any): ListCard | null {
+    const card = row?.card;
+    const name = typeof card?.name === 'string' ? card.name.trim() : '';
+    const quantity = row?.quantity;
+    if (!name || !Number.isInteger(quantity) || quantity < 1) return null;
+    const finish =
+        FINISHES[String(row.finish).toLowerCase()] ??
+        (row.isFoil === true ? 'foil' : 'nonfoil');
+    const id: unknown = card.scryfall_id;
+    const scryfallId =
+        typeof id === 'string' && SCRYFALL_ID.test(id) ? id : undefined;
+    const price = usd(card.prices?.[PRICE_KEYS[finish]]);
+    return {
+        name,
+        quantity,
+        finish,
+        ...(typeof card.set === 'string' && { set: card.set.toLowerCase() }),
+        ...(typeof card.cn === 'string' && { collectorNumber: card.cn }),
+        // Scryfall's image path is the id's first two characters, then the id
+        ...(scryfallId && {
+            scryfallId,
+            image: `https://cards.scryfall.io/normal/front/${scryfallId[0]}/${scryfallId[1]}/${scryfallId}.jpg`
+        }),
+        ...(price !== undefined && { usd: price })
+    };
+}
+
+export function parseMoxfield(text: string): ParsedList | null {
+    let deck: unknown;
+    try {
+        deck = JSON.parse(text);
+    } catch {
+        return null;
+    }
+    if (!isObject(deck) || !isObject(deck.mainboard)) return null;
+    const cards = Object.entries(deck)
+        .filter(([key, board]) => !SKIPPED_BOARDS.has(key) && isBoard(board))
+        // a malformed row is skipped, not the whole list
+        .flatMap(([, board]) =>
+            Object.values(board).flatMap((row) => toCard(row) ?? [])
+        );
+    const editedAt = Date.parse(deck.lastUpdatedAtUtc);
+    return {
+        ...(typeof deck.name === 'string' &&
+            deck.name.trim() && { title: deck.name.trim() }),
+        ...(Number.isFinite(editedAt) && { editedAt }),
+        cards: mergeRows(cards)
+    };
+}

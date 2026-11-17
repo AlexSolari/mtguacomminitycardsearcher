@@ -40,7 +40,7 @@ A shop redesign can break its parser. If one shop stops returning results, that'
 - **Not found**: cards that no shop has are listed together.
 - **Blocked shops**: when a shop refuses our server (HTTP 403, as Nerdik and Kartoteka do to some server IPs), the card links to that shop's own search to check by hand.
 - **Light and dark themes**, following the system setting unless you pick one.
-- **Traders' lists**: people who sell cards in Telegram groups sign in with Telegram on `/lists` and add their MTGGoldfish or ManaBox lists.
+- **Traders' lists**: people who sell cards in Telegram groups sign in with Telegram on `/lists` and add their MTGGoldfish, ManaBox or Moxfield lists.
   Once a moderator approves a list on `/admin`, its cards show under each card as "Гравці", with the seller's Telegram and Scryfall's USD price as a guide; they never count toward best price or the total.
   Lists are read again daily. A trader can delete a list, or their whole account, at any time.
 
@@ -70,7 +70,7 @@ Signing in needs a Telegram bot with Login Widget set up in @BotFather, with `<s
 | `DB_PATH`                                      | the database file                                                                                |
 
 Telegram may not accept a `localhost` redirect; a tunnel (VS Code's port forwarding, for one) gives an `https` address to use as `PUBLIC_URL`.
-`bun dev` reads approved lists in the local database from MTGGoldfish and ManaBox, so keep experiments to a few lists.
+`bun dev` reads approved lists in the local database from MTGGoldfish, ManaBox and Moxfield, so keep experiments to a few lists.
 
 ### Production
 
@@ -141,7 +141,7 @@ src/
       scrapers/             HTML search pages (Carton, Citadel, Kartoteka)
     auth/                   Telegram sign-in (OpenID Connect) and sessions
     db/                     SQLite: users, sessions, lists, their cards, cached prices
-    lists/                  traders' lists: links, parsers (MTGGoldfish, ManaBox), daily refresh, Scryfall prices
+    lists/                  traders' lists: links, parsers (MTGGoldfish, ManaBox, Moxfield), daily refresh, Scryfall prices
     lists-route.ts          /api/lists and /api/admin: a trader's lists, moderation
   App.tsx                   the search page; frontend.tsx picks the page by path
   components/               UI (card-section.tsx renders a card's results, search-summary.tsx the totals,

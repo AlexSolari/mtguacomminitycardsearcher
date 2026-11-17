@@ -45,11 +45,11 @@ const LOGIN_FAILURES: Record<LoginFailure, string> = {
 
 const SUBMIT_ERRORS: Record<Exclude<SubmitListError, 'too-many'>, string> = {
     'invalid-link':
-        'Це не посилання на список MTGGoldfish або ManaBox. Скопіюйте адресу сторінки зі списком.',
+        'Це не посилання на список MTGGoldfish, ManaBox або Moxfield. Скопіюйте адресу сторінки зі списком.',
     taken: 'Цей список уже додано.'
 };
 
-// /lists, "Мої списки": traders sign in with Telegram and add their MTGGoldfish or ManaBox lists, which show in
+// /lists, "Мої списки": traders sign in with Telegram and add their MTGGoldfish, ManaBox or Moxfield lists, which show in
 // search once a moderator approves them. The sign-in comes back here, with ?login=<reason> when it failed.
 export function ListsPage() {
     const auth = useAccount();
@@ -87,9 +87,9 @@ function SignIn({ enabled }: { enabled: boolean }) {
         <section className='grid gap-4'>
             <p className='leading-relaxed'>
                 Продаєте карти в Telegram-групах? Додайте свій список із{' '}
-                <b>MTGGoldfish</b> або <b>ManaBox</b>: після перевірки
-                модератором карти з нього з’являться в результатах пошуку разом
-                із вашим Telegram, щоб покупці могли вам написати.
+                <b>MTGGoldfish</b>, <b>ManaBox</b> або <b>Moxfield</b>: після
+                перевірки модератором карти з нього з’являться в результатах
+                пошуку разом із вашим Telegram, щоб покупці могли вам написати.
             </p>
             {enabled ? (
                 <Button asChild size='lg' className='justify-self-start'>
@@ -231,10 +231,11 @@ function TraderLists({ user }: { user: CurrentUser }) {
 
             <section className='grid gap-3'>
                 <p className='leading-relaxed text-muted-foreground'>
-                    Додайте посилання на свій список на MTGGoldfish або ManaBox.
-                    Після перевірки модератором карти з нього з’являться в
-                    пошуку з вашим @{user.username}. Списки оновлюються раз на
-                    добу, тож достатньо тримати їх актуальними там.
+                    Додайте посилання на свій список на MTGGoldfish, ManaBox або
+                    Moxfield. Після перевірки модератором карти з нього
+                    з’являться в пошуку з вашим @{user.username}. Списки
+                    оновлюються раз на добу, тож достатньо тримати їх
+                    актуальними там.
                 </p>
                 <form
                     onSubmit={add}

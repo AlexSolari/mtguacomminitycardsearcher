@@ -29,6 +29,18 @@ describe('parseListLink', () => {
     });
 
     test.each([
+        'https://moxfield.com/decks/oEWXWHM5eEGMmopExLWRCA',
+        'https://www.moxfield.com/decks/oEWXWHM5eEGMmopExLWRCA/',
+        'https://moxfield.com/decks/oEWXWHM5eEGMmopExLWRCA/primer',
+        'https://moxfield.com/decks/oEWXWHM5eEGMmopExLWRCA?tab=stats#x'
+    ])('Moxfield deck: %s', (link) => {
+        expect(parseListLink(link)).toEqual({
+            source: 'moxfield',
+            ref: 'oEWXWHM5eEGMmopExLWRCA'
+        });
+    });
+
+    test.each([
         '',
         'Sol Ring',
         'mtggoldfish.com/deck/6906342', // no scheme: not a link we can read
@@ -43,7 +55,12 @@ describe('parseListLink', () => {
         'https://manabox.app/decks/',
         'https://manabox.app/decks/a/b',
         'https://manabox.app/guides/decks/faq',
-        'https://moxfield.com/decks/abc'
+        'https://moxfield.com/decks/abc',
+        'https://moxfield.com/decks/public',
+        'https://moxfield.com/decks/personal',
+        'https://moxfield.com/decks/oEWXWHM5eEGMmopExLWRCA/a/b',
+        'https://moxfield.com/users/someone',
+        'https://api2.moxfield.com/v2/decks/all/oEWXWHM5eEGMmopExLWRCA'
     ])('not a list: %p', (link) => {
         expect(parseListLink(link)).toBeNull();
     });
@@ -69,14 +86,29 @@ describe('LIST_SOURCES', () => {
         );
     });
 
-    // every source's page must be on its client's host, which ShopClient enforces
+    test("Moxfield is read from its API, with the stopgap User-Agent, and linked to the deck's page", () => {
+        const moxfield = LIST_SOURCES.moxfield;
+        expect(moxfield.page('abc_D-1')).toEqual({
+            path: '/v2/decks/all/abc_D-1'
+        });
+        expect(moxfield.link('abc_D-1')).toBe(
+            'https://moxfield.com/decks/abc_D-1'
+        );
+        expect(moxfield.headers).toEqual({
+            'User-Agent': 'PostmanRuntime/7.31.1'
+        });
+    });
+
+    // every source's page must be on its client's host, which ShopClient enforces; the link is on the same site
+    // (Moxfield's API is a subdomain of the site people open)
     test('pages and links are on the source host', () => {
         for (const source of Object.values(LIST_SOURCES)) {
             const host = new URL(source.base).hostname;
             expect(new URL(source.page('1').path, source.base).hostname).toBe(
                 host
             );
-            expect(new URL(source.link('1')).hostname).toBe(host);
+            const site = new URL(source.link('1')).hostname;
+            expect(host === site || host.endsWith(`.${site}`)).toBe(true);
         }
     });
 });

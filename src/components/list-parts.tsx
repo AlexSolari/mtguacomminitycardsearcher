@@ -5,7 +5,8 @@ import { CARDS, plural } from '@/i18n';
 
 export const SOURCE_LABELS: Record<ListSource, string> = {
     mtggoldfish: 'MTGGoldfish',
-    manabox: 'ManaBox'
+    manabox: 'ManaBox',
+    moxfield: 'Moxfield'
 };
 
 // Why the last refresh failed; the cards from the refresh before stay in search meanwhile.

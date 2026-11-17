@@ -73,6 +73,31 @@ export const MIGRATIONS = [
         image TEXT,
         fetched_at INTEGER NOT NULL
     ) STRICT;
+    `,
+    // Moxfield lists. SQLite can't change a CHECK in place, so the table is rebuilt, same columns in the same order.
+    `
+    CREATE TABLE lists_new (
+        id INTEGER PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+        source TEXT NOT NULL CHECK (source IN ('mtggoldfish', 'manabox', 'moxfield')),
+        ref TEXT NOT NULL,
+        title TEXT,
+        status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+        created_at INTEGER NOT NULL,
+        reviewed_at INTEGER,
+        edited_at INTEGER,
+        fetched_at INTEGER,
+        next_fetch_at INTEGER,
+        last_error TEXT,
+        failures INTEGER NOT NULL DEFAULT 0,
+        card_count INTEGER NOT NULL DEFAULT 0,
+        UNIQUE (source, ref)
+    ) STRICT;
+    INSERT INTO lists_new SELECT * FROM lists;
+    DROP TABLE lists;
+    ALTER TABLE lists_new RENAME TO lists;
+    CREATE INDEX lists_user ON lists (user_id);
+    CREATE INDEX lists_due ON lists (next_fetch_at) WHERE status = 'approved';
     `
 ];
 
@@ -85,12 +110,27 @@ export function migrate(db: Database, migrations = MIGRATIONS) {
         throw new Error(
             `Database schema is version ${version}, newer than this build's ${migrations.length}`
         );
-    for (let v = version; v < migrations.length; v++) {
-        db.transaction(() => {
-            db.run(migrations[v]!);
-            db.run(`PRAGMA user_version = ${v + 1}`);
-        })();
-        logger.info('database migrated', { version: v + 1 });
+    // A migration that rebuilds a table drops the old one, and with foreign keys on that drop would delete every row
+    // referring to it (ON DELETE CASCADE). So they run with foreign keys off, as SQLite's own procedure for
+    // rebuilding a table says, and are checked before they commit. The pragma can't change inside a transaction.
+    const { foreign_keys: foreignKeys } = db
+        .query<{ foreign_keys: number }, []>('PRAGMA foreign_keys')
+        .get()!;
+    db.run('PRAGMA foreign_keys = OFF');
+    try {
+        for (let v = version; v < migrations.length; v++) {
+            db.transaction(() => {
+                db.run(migrations[v]!);
+                if (db.query('PRAGMA foreign_key_check').get())
+                    throw new Error(
+                        `Migration ${v + 1} left rows pointing at nothing`
+                    );
+                db.run(`PRAGMA user_version = ${v + 1}`);
+            })();
+            logger.info('database migrated', { version: v + 1 });
+        }
+    } finally {
+        db.run(`PRAGMA foreign_keys = ${foreignKeys ? 'ON' : 'OFF'}`);
     }
 }
 

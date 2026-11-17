@@ -4,6 +4,7 @@ import { HttpError, ShopClient } from '../shop-client';
 import type { ParsedList } from './list-card';
 import { LIST_SOURCES, type ListLink, type ListSource } from './list-link';
 import { parseManabox } from './parsers/manabox';
+import { parseMoxfield } from './parsers/moxfield';
 import { parseMtggoldfish } from './parsers/mtggoldfish';
 
 // Rows a list may have. A trader's whole collection can run to thousands; past this, the owner is asked to split it.
@@ -13,9 +14,11 @@ export const MAX_LIST_ROWS = 2000;
 // A list is read once a day, so its source gets one request every few seconds at most, however many lists are due.
 const SOURCE_INTERVAL_MS = 5_000;
 
-const PARSERS: Record<ListSource, (html: string) => ParsedList | null> = {
+// Each parser takes the page's body: HTML for MTGGoldfish and ManaBox, JSON for Moxfield.
+const PARSERS: Record<ListSource, (body: string) => ParsedList | null> = {
     mtggoldfish: parseMtggoldfish,
-    manabox: parseManabox
+    manabox: parseManabox,
+    moxfield: parseMoxfield
 };
 
 // A refresh that failed, with the reason the owner sees (MyList.lastError).
@@ -34,17 +37,19 @@ export class ListReader {
     constructor(
         private readonly clients: Record<ListSource, ShopClient> = {
             mtggoldfish: sourceClient('mtggoldfish'),
-            manabox: sourceClient('manabox')
+            manabox: sourceClient('manabox'),
+            moxfield: sourceClient('moxfield')
         }
     ) {}
 
     async read(link: ListLink, signal?: AbortSignal): Promise<ParsedList> {
         const client = this.clients[link.source];
-        const { path, params } = LIST_SOURCES[link.source].page(link.ref);
+        const { page, headers } = LIST_SOURCES[link.source];
+        const { path, params } = page(link.ref);
         const url = client.url(path, params);
         let html: string;
         try {
-            html = await client.fetchHtml(url, { signal });
+            html = await client.fetchHtml(url, { signal, headers });
         } catch (err) {
             throw new ListRefreshFailure(
                 err instanceof HttpError && err.status === 404

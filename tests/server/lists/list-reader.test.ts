@@ -11,16 +11,18 @@ import { html } from '../parsers/parser-fixtures';
 
 const logs = captureLogs();
 
-// Clients that answer every page with `answer` (or throw it), recording the URLs asked for.
+// Clients that answer every page with `answer` (or throw it), recording the URLs asked for and the headers sent.
 function reader(answer: () => Promise<string> | string) {
     const urls: string[] = [];
+    const headers: unknown[] = [];
     const client = (base: string) => {
         const real = new ShopClient(base);
         return {
             baseUrl: base,
             url: real.url.bind(real),
-            fetchHtml: async (url: string) => {
+            fetchHtml: async (url: string, init?: RequestInit) => {
                 urls.push(url);
+                headers.push(init?.headers);
                 return answer();
             }
         } as unknown as ShopClient;
@@ -28,9 +30,11 @@ function reader(answer: () => Promise<string> | string) {
     return {
         reader: new ListReader({
             mtggoldfish: client('https://www.mtggoldfish.com'),
-            manabox: client('https://manabox.app')
+            manabox: client('https://manabox.app'),
+            moxfield: client('https://api2.moxfield.com')
         }),
-        urls
+        urls,
+        headers
     };
 }
 
@@ -49,13 +53,14 @@ const goldfishPage = (lines: string[]) =>
     `<textarea name="deck" id="deck">${lines.join('\n')}</textarea>`;
 
 describe('ListReader', () => {
-    test("reads MTGGoldfish lists from the proxy printer, and ManaBox's from the deck page", async () => {
+    test("reads MTGGoldfish lists from the proxy printer, ManaBox's from the deck page, Moxfield's from its API", async () => {
         const pages: Record<ListSource, string> = {
             mtggoldfish: await html('mtggoldfish-proxies.html'),
-            manabox: await html('manabox-deck.html')
+            manabox: await html('manabox-deck.html'),
+            moxfield: await html('moxfield-deck.json')
         };
         let source: ListSource = 'mtggoldfish';
-        const { reader: r, urls } = reader(() => pages[source]);
+        const { reader: r, urls, headers } = reader(() => pages[source]);
         const goldfish = await r.read({
             source: 'mtggoldfish',
             ref: '6906342'
@@ -65,9 +70,20 @@ describe('ListReader', () => {
         const manabox = await r.read({ source: 'manabox', ref: 'abc' });
         expect(manabox.title).toBeString();
         expect(manabox.cards[0]?.usd).toBeNumber();
+        source = 'moxfield';
+        const moxfield = await r.read({ source: 'moxfield', ref: 'abc' });
+        expect(moxfield.title).toBeString();
+        expect(moxfield.cards[0]?.scryfallId).toBeString();
         expect(urls).toEqual([
             'https://www.mtggoldfish.com/proxies/new?id=6906342',
-            'https://manabox.app/decks/abc'
+            'https://manabox.app/decks/abc',
+            'https://api2.moxfield.com/v2/decks/all/abc'
+        ]);
+        // only Moxfield's read carries a User-Agent of its own (the stopgap in list-link.ts)
+        expect(headers).toEqual([
+            undefined,
+            undefined,
+            { 'User-Agent': 'PostmanRuntime/7.31.1' }
         ]);
     });
 

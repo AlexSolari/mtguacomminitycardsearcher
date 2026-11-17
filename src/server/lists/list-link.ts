@@ -9,10 +9,13 @@ export type ListLink = { source: ListSource; ref: string };
 
 const GOLDFISH_DECK = /^\/deck\/(?:(?:arena_)?download\/)?(\d{1,12})\/?$/;
 const MANABOX_DECK = /^\/decks\/([\w-]{1,64})\/?$/;
+// Moxfield's public ids are 22 characters; the length keeps out its own pages under /decks/ (public, personal…).
+const MOXFIELD_DECK = /^\/decks\/([\w-]{16,64})(?:\/[a-z]+)?\/?$/;
 
 // A pasted link, in the shapes the tools share it:
 //   https://www.mtggoldfish.com/deck/6906342#paper   (also /deck/download/…, /deck/arena_download/…, /proxies/new?id=…)
 //   https://manabox.app/decks/Qsjv6XwMQ_SynKoo3V-epw
+//   https://moxfield.com/decks/oEWXWHM5eEGMmopExLWRCA (also its tabs: …/primer, …/history)
 // Anything else is null: other sites, and MTGGoldfish's archetype pages, which are nobody's own list.
 export function parseListLink(input: string): ListLink | null {
     let url: URL;
@@ -39,6 +42,10 @@ export function parseListLink(input: string): ListLink | null {
         const id = url.pathname.match(MANABOX_DECK)?.[1];
         return id ? { source: 'manabox', ref: id } : null;
     }
+    if (host === 'moxfield.com') {
+        const id = url.pathname.match(MOXFIELD_DECK)?.[1];
+        return id ? { source: 'moxfield', ref: id } : null;
+    }
     return null;
 }
 
@@ -54,6 +61,7 @@ export const LIST_SOURCES: Record<
             params?: Record<string, string>;
         };
         link: (ref: string) => string; // the list as people open it, for the owner and the offers
+        headers?: Record<string, string>; // sent with every read
     }
 > = {
     mtggoldfish: {
@@ -67,5 +75,16 @@ export const LIST_SOURCES: Record<
         base: 'https://manabox.app',
         page: (ref) => ({ path: `/decks/${ref}` }),
         link: (ref) => `https://manabox.app/decks/${ref}`
+    },
+    // STOPGAP, against the rule in AGENTS.md (Scraping etiquette): Moxfield's firewall answers clients it hasn't
+    // approved with a 403, and lets Postman through, so we send Postman's User-Agent. The owner chose this to try
+    // Moxfield out while asking Moxfield for API access; once it's granted, send the User-Agent Moxfield gives us.
+    // If Moxfield closes the gap, every Moxfield list fails its refresh as 'unavailable'.
+    moxfield: {
+        label: 'Moxfield',
+        base: 'https://api2.moxfield.com',
+        page: (ref) => ({ path: `/v2/decks/all/${ref}` }),
+        link: (ref) => `https://moxfield.com/decks/${ref}`,
+        headers: { 'User-Agent': 'PostmanRuntime/7.31.1' }
     }
 };

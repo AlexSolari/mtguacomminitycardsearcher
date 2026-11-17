@@ -1,7 +1,7 @@
 // Re-downloads the shop pages the parser tests run against (tests/fixtures/).
 // Run it when a shop changes its markup: `bun scripts/update-fixtures.ts`, then `bun test` shows what broke,
 // and `bun test --update-snapshots` accepts the new output once the parsers are fixed.
-// About 10 requests, through ShopClient so they're spaced like the app's. Nerdik and MTGin need their API keys
+// About 11 requests, through ShopClient so they're spaced like the app's. Nerdik and MTGin need their API keys
 // (NERDIK_API_KEY, MTGIN_API_KEY in .env); without one, that shop's fixture is left as it is.
 import { mkdir } from 'node:fs/promises';
 import { LIST_SOURCES } from '../src/server/lists/list-link';
@@ -334,4 +334,56 @@ await save(
         .replace(/"/g, '&quot;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')}" ssr client="load"></astro-island>\n`
+);
+
+// A public Moxfield deck, from the API the app reads (with the same stopgap User-Agent, see list-link.ts). Only the
+// deck's name, edit date and boards are kept, and of each row the fields parseMoxfield reads: no owner, authors,
+// description or anything else from the rest of the answer.
+const MOXFIELD_CARD_FIELDS = ['name', 'set', 'cn', 'scryfall_id'];
+const moxfieldSource = LIST_SOURCES.moxfield;
+const moxfield = new ShopClient(moxfieldSource.base);
+const moxDeck = await moxfield.fetchJson<any>(
+    moxfield.url(moxfieldSource.page('oEWXWHM5eEGMmopExLWRCA').path),
+    { headers: moxfieldSource.headers }
+);
+if (!moxDeck?.mainboard) throw new Error('Moxfield: no mainboard in the deck');
+const moxBoards = Object.fromEntries(
+    Object.entries(moxDeck)
+        .filter(
+            ([, b]) =>
+                b &&
+                typeof b === 'object' &&
+                !Array.isArray(b) &&
+                Object.values(b).some((r: any) => r?.card)
+        )
+        .map(([key, board]) => [
+            key,
+            Object.fromEntries(
+                Object.entries(board as object).map(
+                    ([id, r]: [string, any]) => [
+                        id,
+                        {
+                            ...pick(r, ['quantity', 'finish']),
+                            card: {
+                                ...pick(r.card, MOXFIELD_CARD_FIELDS),
+                                prices: pick(r.card.prices ?? {}, [
+                                    'usd',
+                                    'usd_foil',
+                                    'usd_etched'
+                                ])
+                            }
+                        }
+                    ]
+                )
+            )
+        ])
+);
+await save(
+    'moxfield-deck.json',
+    json({
+        name: moxDeck.name,
+        lastUpdatedAtUtc: moxDeck.lastUpdatedAtUtc,
+        mainboard: {},
+        ...moxBoards
+    })
 );

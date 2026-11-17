@@ -100,6 +100,89 @@ describe('migrate', () => {
         expect(tables(db)).toEqual([]);
     });
 
+    test('migration 2 rebuilds lists for Moxfield, keeping every list and its cards', () => {
+        const db = new Database(':memory:', { strict: true });
+        db.run('PRAGMA foreign_keys = ON');
+        migrate(db, MIGRATIONS.slice(0, 1));
+        db.run(
+            `INSERT INTO users (telegram_id, username, display_name, created_at, last_login_at)
+             VALUES (1, 'trader', 'Trader', 0, 0)`
+        );
+        db.run(
+            `INSERT INTO lists (user_id, source, ref, status, created_at, next_fetch_at)
+             VALUES (1, 'manabox', 'abc', 'approved', 5, 10)`
+        );
+        db.run(
+            `INSERT INTO list_cards (list_id, name, name_key, quantity, finish)
+             VALUES (1, 'Sol Ring', 'sol ring', 2, 'nonfoil')`
+        );
+        expect(() =>
+            db.run(
+                `INSERT INTO lists (user_id, source, ref, created_at) VALUES (1, 'moxfield', 'x', 0)`
+            )
+        ).toThrow(/CHECK/);
+
+        migrate(db);
+        expect(version(db)).toBe(MIGRATIONS.length);
+        expect(
+            db
+                .query(
+                    'SELECT id, source, ref, status, next_fetch_at FROM lists'
+                )
+                .all()
+        ).toEqual([
+            {
+                id: 1,
+                source: 'manabox',
+                ref: 'abc',
+                status: 'approved',
+                next_fetch_at: 10
+            }
+        ]);
+        expect(db.query('SELECT list_id, name FROM list_cards').all()).toEqual([
+            { list_id: 1, name: 'Sol Ring' }
+        ]);
+        db.run(
+            `INSERT INTO lists (user_id, source, ref, created_at) VALUES (1, 'moxfield', 'x', 0)`
+        );
+        expect(() =>
+            db.run(
+                `INSERT INTO lists (user_id, source, ref, created_at) VALUES (1, 'archidekt', 'y', 0)`
+            )
+        ).toThrow(/CHECK/);
+        expect(
+            db
+                .query<{ name: string }, []>(
+                    "SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'lists' AND sql IS NOT NULL ORDER BY name"
+                )
+                .all()
+                .map((i) => i.name)
+        ).toEqual(['lists_due', 'lists_user']);
+        // foreign keys are back on, and still cascade to the rebuilt table's cards
+        expect(
+            db.query<{ foreign_keys: number }, []>('PRAGMA foreign_keys').get()
+        ).toEqual({ foreign_keys: 1 });
+        db.run('DELETE FROM users');
+        expect(db.query('SELECT * FROM list_cards').all()).toEqual([]);
+    });
+
+    test('a migration that leaves rows pointing at nothing is rolled back, foreign keys back as they were', () => {
+        const db = new Database(':memory:');
+        db.run('PRAGMA foreign_keys = ON');
+        expect(() =>
+            migrate(db, [
+                `CREATE TABLE p (id INTEGER PRIMARY KEY);
+                 CREATE TABLE c (p INTEGER REFERENCES p (id));
+                 INSERT INTO c VALUES (7);`
+            ])
+        ).toThrow('Migration 1 left rows pointing at nothing');
+        expect(version(db)).toBe(0);
+        expect(tables(db)).toEqual([]);
+        expect(
+            db.query<{ foreign_keys: number }, []>('PRAGMA foreign_keys').get()
+        ).toEqual({ foreign_keys: 1 });
+    });
+
     test('a database newer than the code is refused', () => {
         const db = new Database(':memory:');
         migrate(db, steps);

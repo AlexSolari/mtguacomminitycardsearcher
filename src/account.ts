@@ -23,7 +23,7 @@ export type LoginFailure =
     | 'banned';
 
 // Where a list is kept.
-export type ListSource = 'mtggoldfish' | 'manabox';
+export type ListSource = 'mtggoldfish' | 'manabox' | 'moxfield';
 
 // Every list waits for a moderator; only approved ones are read and shown in search.
 export type ListStatus = 'pending' | 'approved' | 'rejected';
@@ -53,7 +53,7 @@ export type MyLists = { lists: MyList[]; max: number };
 
 // Why POST /api/lists refused a link.
 export type SubmitListError =
-    | 'invalid-link' // not an MTGGoldfish or ManaBox list
+    | 'invalid-link' // not an MTGGoldfish, ManaBox or Moxfield list
     | 'taken' // this list was added before, by this user or another
     | 'too-many'; // the user has `max` lists already
 
