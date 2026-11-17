@@ -30,7 +30,7 @@ export type CardResult = {
 export type Seller = {
     name: string; // as on Telegram
     username: string; // Telegram, without the @
-    list: string; // the list on MTGGoldfish or ManaBox
+    list: string; // the list on MTGGoldfish, ManaBox or Moxfield
     listTitle: string | null;
     updatedAt: number; // when the list was last read, ms since the epoch
     printing: string | null; // what the list says of the printing: "RVR · retro", "C21 · #263"

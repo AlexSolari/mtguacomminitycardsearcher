@@ -16,7 +16,7 @@ export const MIN_GAP_MS = 12 * 60 * 60_000;
 // After a failure the list is tried again after an hour, then 2, 4, 8, 16, and from then on daily; a retry that
 // would fall in the day waits for the list's slot instead.
 const FIRST_RETRY_MS = 60 * 60_000;
-// Due lists fetched from the database at a time.
+// Due lists fetched from the database at a time; each query leaves out the ones the pass has read.
 const BATCH = 10;
 
 export const retryDelay = (failures: number) =>
