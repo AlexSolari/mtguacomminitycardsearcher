@@ -121,16 +121,21 @@ export class ListStore {
         );
     }
 
-    // Lists in one state, oldest first: the moderation queue is `withStatus('pending')`.
-    withStatus(status: ListStatus): ReviewedList[] {
+    // Lists in one state, oldest first: the moderation queue is `withStatus('pending')`. Without a state, every
+    // list, newest first (what a moderator's search looks through).
+    withStatus(status?: ListStatus): ReviewedList[] {
         return this.db
-            .query<Omit<ReviewedList, 'banned'> & { banned: number }, [string]>(
+            .query<Omit<ReviewedList, 'banned'> & { banned: number }, string[]>(
                 `SELECT ${LIST_COLUMNS}, users.username, users.display_name AS displayName, users.banned,
                         users.usd_rate AS ownerUsdRate
                  FROM lists JOIN users ON users.id = lists.user_id
-                 WHERE lists.status = ? ORDER BY lists.created_at, lists.id`
+                 ${
+                     status
+                         ? 'WHERE lists.status = ? ORDER BY lists.created_at, lists.id'
+                         : 'ORDER BY lists.created_at DESC, lists.id DESC'
+                 }`
             )
-            .all(status)
+            .all(...(status ? [status] : []))
             .map((l) => ({ ...l, banned: l.banned === 1 }));
     }
 

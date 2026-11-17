@@ -65,6 +65,19 @@ export type SubmitListError =
 // POST /api/admin/refresh: the approved lists queued to be read again now (lists already queued aren't repeated).
 export type ListsRefreshed = { refreshed: number[] };
 
+// A seller as moderators see them (GET /api/admin/sellers?q=…): every signed-up trader, with lists or without.
+export type ModeratedSeller = {
+    id: number;
+    username: string;
+    displayName: string;
+    banned: boolean;
+    admin: boolean; // a moderator: can't be banned
+    usdRate: number | null; // their default exchange rate
+    createdAt: number;
+    lastLoginAt: number;
+    lists: Record<ListStatus, number>; // how many of their lists are in each state
+};
+
 // A list in the moderation queue, with its owner (GET /api/admin/lists?status=…).
 export type ModeratedList = MyList & {
     reviewedAt: number | null;

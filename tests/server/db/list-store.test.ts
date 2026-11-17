@@ -139,6 +139,16 @@ describe('ListStore', () => {
         expect(lists.review(999, 'approved')).toBe(false);
     });
 
+    test('withStatus() without a state: every list, newest first', () => {
+        const a = lists.submit(alice.id, goldfish, 100)!;
+        const b = lists.submit(bob.id, manabox, 200)!;
+        lists.review(a.id, 'rejected', 300);
+        expect(lists.withStatus().map((l) => [l.id, l.status])).toEqual([
+            [b.id, 'pending'],
+            [a.id, 'rejected']
+        ]);
+    });
+
     test('approval makes the list due at once; rejection takes it off the schedule', () => {
         const list = lists.submit(alice.id, goldfish, 100)!;
         expect(lists.review(list.id, 'approved', 200)).toBe(true);

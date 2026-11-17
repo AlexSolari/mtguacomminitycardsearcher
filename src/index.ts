@@ -172,6 +172,7 @@ const server = serve({
             POST: (req) => lists.review(req, req.params.id)
         },
         '/api/admin/refresh': { POST: (req) => lists.refresh(req) },
+        '/api/admin/sellers': { GET: (req) => lists.sellers(req) },
         '/api/admin/users/:id': {
             POST: (req) => lists.ban(req, req.params.id)
         }

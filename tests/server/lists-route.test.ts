@@ -1,9 +1,18 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
-import type { ModeratedList, MyList, MyLists } from '@/account';
+import type {
+    ModeratedList,
+    ModeratedSeller,
+    MyList,
+    MyLists
+} from '@/account';
 import { openDatabase } from '@/server/db/database';
 import { ListStore } from '@/server/db/list-store';
 import { UserStore, type User } from '@/server/db/user-store';
-import { listsHandlers, MAX_LISTS_PER_USER } from '@/server/lists-route';
+import {
+    listsHandlers,
+    MAX_LISTS_PER_USER,
+    MAX_SEARCH_RESULTS
+} from '@/server/lists-route';
 import { captureLogs } from './capture-logs';
 
 const logs = captureLogs();
@@ -327,6 +336,138 @@ describe('lists routes', () => {
             ['list reviewed', b.id, 'rejected']
         ]);
         expect(logs[0]?.moderator).toBe(mod.id);
+    });
+
+    test('a moderator searches lists in any state by seller, name, title or link', async () => {
+        const search = async (q: string, user = mod) => {
+            const res = await routes.queue(
+                request(`/api/admin/lists?${new URLSearchParams({ q })}`, user)
+            );
+            expect(res.status).toBe(200);
+            return ((await res.json()) as ModeratedList[]).map((l) => l.id);
+        };
+        const olena = users.login(
+            { telegramId: 9, username: 'olena_cards', displayName: 'Олена' },
+            0
+        );
+        const a = (await (await submit(alice, GOLDFISH)).json()) as MyList;
+        const b = (await (await submit(bob, MANABOX)).json()) as MyList;
+        const c = (await (
+            await submit(
+                olena,
+                'https://moxfield.com/decks/q8YrkjxqgUSG0GQ3m9aQMQ'
+            )
+        ).json()) as MyList;
+        await review(a.id, 'approved');
+        await review(b.id, 'rejected');
+        lists.saveCards(a.id, { title: 'Modern Burn', cards: [] }, 1000, 2000);
+
+        // seller: @username, a piece of it, or the Telegram name, any case (Cyrillic too)
+        expect(await search('@bob')).toEqual([b.id]);
+        // "@" is the start of a username: what "Показати списки" sends
+        expect(await search('@ali')).toEqual([a.id]);
+        expect(await search('@lice')).toEqual([]);
+        expect(await search('lice')).toEqual([a.id]);
+        expect(await search('ALI')).toEqual([a.id]);
+        expect(await search('олена')).toEqual([c.id]);
+        // the list's title
+        expect(await search('burn')).toEqual([a.id]);
+        // its link, pasted however the source spells it, or a piece of it
+        expect(
+            await search('https://www.mtggoldfish.com/deck/download/6906342')
+        ).toEqual([a.id]);
+        expect(
+            await search(
+                'https://moxfield.com/decks/q8YrkjxqgUSG0GQ3m9aQMQ/primer'
+            )
+        ).toEqual([c.id]);
+        expect(await search('manabox.app')).toEqual([b.id]);
+        // newest first, whatever the state
+        expect(await search('.')).toEqual([c.id, b.id, a.id]);
+        expect(await search('nobody')).toEqual([]);
+        // a blank search is the queue
+        expect(await search('  ')).toEqual([c.id]);
+        expect(
+            (await routes.queue(request('/api/admin/lists?q=x', alice))).status
+        ).toBe(403);
+    });
+
+    test('moderators list the sellers, and search them by @username or name', async () => {
+        const sellers = async (q = '', user = mod) => {
+            const res = await routes.sellers(
+                request(
+                    `/api/admin/sellers?${new URLSearchParams({ q })}`,
+                    user
+                )
+            );
+            expect(res.status).toBe(200);
+            return (await res.json()) as ModeratedSeller[];
+        };
+        const olena = users.login(
+            { telegramId: 9, username: 'olena_cards', displayName: 'Олена' },
+            5
+        );
+        const list = (await (await submit(alice, GOLDFISH)).json()) as MyList;
+        await review(list.id, 'approved');
+        await submit(alice, MANABOX);
+        users.setUsdRate(alice.id, 42);
+        users.setBanned(bob.id, true);
+
+        const all = await sellers();
+        // most recently signed in first; ties newest account first
+        expect(all.map((s) => s.username)).toEqual([
+            'olena_cards',
+            'mod',
+            'bob',
+            'alice'
+        ]);
+        expect(all.find((s) => s.username === 'alice')).toEqual({
+            id: alice.id,
+            username: 'alice',
+            displayName: 'ALICE',
+            banned: false,
+            admin: false,
+            usdRate: 42,
+            createdAt: 0,
+            lastLoginAt: 0,
+            lists: { pending: 1, approved: 1, rejected: 0 }
+        });
+        expect(all.find((s) => s.username === 'bob')?.banned).toBe(true);
+        expect(all.find((s) => s.username === 'mod')?.admin).toBe(true);
+
+        const names = async (q: string) =>
+            (await sellers(q)).map((s) => s.username);
+        expect(await names('@al')).toEqual(['alice']);
+        expect(await names('@lice')).toEqual([]);
+        expect(await names('ОЛЕНА')).toEqual(['olena_cards']);
+        expect(await names('o')).toEqual(['olena_cards', 'mod', 'bob']);
+        expect(olena.id).toBeGreaterThan(0);
+        expect(
+            (await routes.sellers(request('/api/admin/sellers', alice))).status
+        ).toBe(403);
+    });
+
+    test(`a search shows at most ${MAX_SEARCH_RESULTS} lists, or sellers`, async () => {
+        for (let i = 0; i < MAX_SEARCH_RESULTS; i++)
+            users.login(
+                { telegramId: 100 + i, username: `s${i}`, displayName: 'S' },
+                0
+            );
+        const res = await routes.sellers(request('/api/admin/sellers', mod));
+        expect(await res.json()).toHaveLength(MAX_SEARCH_RESULTS);
+    });
+
+    test(`a search shows at most ${MAX_SEARCH_RESULTS} lists`, async () => {
+        for (let i = 0; i < MAX_SEARCH_RESULTS + 1; i++)
+            lists.submit(
+                alice.id,
+                { source: 'mtggoldfish', ref: String(i + 1) },
+                i
+            );
+        const res = await routes.queue(
+            request('/api/admin/lists?q=mtggoldfish', mod)
+        );
+        expect(await res.json()).toHaveLength(MAX_SEARCH_RESULTS);
     });
 
     test('a review needs a known list and status', async () => {

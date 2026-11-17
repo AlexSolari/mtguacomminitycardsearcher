@@ -80,6 +80,42 @@ describe('UserStore', () => {
         expect(users.setBanned(42, true)).toBe(false);
     });
 
+    test('sellers: every user with their lists counted by state, most recently signed in first', () => {
+        const a = users.login(profile, 100);
+        const b = users.login(
+            { telegramId: 2, username: 'other', displayName: 'Other' },
+            200
+        );
+        users.setUsdRate(a.id, 41);
+        const list = (ref: string, status: string) =>
+            db.run(
+                `INSERT INTO lists (user_id, source, ref, status, created_at) VALUES (?, 'manabox', ?, ?, 0)`,
+                [a.id, ref, status]
+            );
+        list('1', 'approved');
+        list('2', 'approved');
+        list('3', 'pending');
+        list('4', 'rejected');
+        users.setBanned(b.id, true);
+        expect(users.sellers()).toEqual([
+            {
+                ...users.get(b.id)!,
+                usdRate: null,
+                pending: 0,
+                approved: 0,
+                rejected: 0
+            },
+            {
+                ...users.get(a.id)!,
+                usdRate: 41,
+                pending: 1,
+                approved: 2,
+                rejected: 1
+            }
+        ]);
+        expect(users.sellers()[0]?.banned).toBe(true);
+    });
+
     test('remove deletes the user with their sessions and lists', () => {
         const user = users.login(profile, 0);
         users.startSession('hash', user.id, 9000);

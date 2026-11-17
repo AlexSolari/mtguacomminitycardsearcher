@@ -3,18 +3,24 @@ import {
     Loader2,
     LogOut,
     Plus,
+    Search,
     ShieldCheck,
     Trash2,
     UserX
 } from 'lucide-react';
 import type {
     CurrentUser,
+    MyList,
     LoginFailure,
     MyLists,
     SubmitListError
 } from '@/account';
 import { TelegramIcon } from '@/components/icons';
-import { ListName, ListStatusLine } from '@/components/list-parts';
+import {
+    ListName,
+    ListStatusLine,
+    SOURCE_LABELS
+} from '@/components/list-parts';
 import {
     Loading,
     Notice,
@@ -161,8 +167,22 @@ function DeleteAccount() {
     );
 }
 
+// The search over a trader's own lists shows from this many lists on.
+const SEARCH_FROM = 5;
+
+// A piece of the list's title, source or link, any case.
+function listMatcher(filter: string) {
+    const needle = filter.trim().toLocaleLowerCase('uk');
+    return (l: MyList) =>
+        !needle ||
+        [l.title ?? '', SOURCE_LABELS[l.source], l.url].some((f) =>
+            f.toLocaleLowerCase('uk').includes(needle)
+        );
+}
+
 function TraderLists({ user }: { user: CurrentUser }) {
     const [data, setData] = useState<MyLists | null>();
+    const [filter, setFilter] = useState('');
     const [link, setLink] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -255,6 +275,7 @@ function TraderLists({ user }: { user: CurrentUser }) {
     }
 
     const full = data ? data.lists.length >= data.max : false;
+    const shown = data?.lists.filter(listMatcher(filter)) ?? [];
     return (
         <>
             <AccountBar user={user} />
@@ -326,11 +347,27 @@ function TraderLists({ user }: { user: CurrentUser }) {
                 </section>
             )}
 
+            {data && data.lists.length >= SEARCH_FROM && (
+                <div className='relative'>
+                    <Search className='pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground' />
+                    <Input
+                        type='search'
+                        value={filter}
+                        onChange={(e) => setFilter(e.target.value)}
+                        placeholder='Пошук серед ваших списків: назва, сайт або посилання'
+                        aria-label='Пошук серед ваших списків'
+                        className='h-10 pl-9'
+                    />
+                </div>
+            )}
+
             {data === undefined ? (
                 <Loading />
+            ) : data && data.lists.length > 0 && shown.length === 0 ? (
+                <p className='text-muted-foreground'>Нічого не знайдено.</p>
             ) : data && data.lists.length > 0 ? (
                 <ul className='grid gap-2'>
-                    {data.lists.map((list) => (
+                    {shown.map((list) => (
                         <li
                             key={list.id}
                             className='flex items-center gap-3 rounded-lg border bg-card px-4 py-3'

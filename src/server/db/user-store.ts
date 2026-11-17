@@ -11,6 +11,14 @@ export type User = {
     banned: boolean;
 };
 
+// A user with their exchange rate and how many lists they have in each state (UserStore.sellers).
+export type SellerRow = User & {
+    usdRate: number | null;
+    pending: number;
+    approved: number;
+    rejected: number;
+};
+
 // What Telegram's sign-in tells us about a user.
 export type TelegramProfile = {
     telegramId: number;
@@ -48,6 +56,23 @@ export class UserStore {
                 )
                 .get({ ...profile, now })
         )!;
+    }
+
+    // Every user with how many lists they have in each state, most recently signed in first: the moderators'
+    // "Продавці" tab.
+    sellers(): SellerRow[] {
+        return this.db
+            .query<Omit<SellerRow, 'banned'> & { banned: number }, []>(
+                `SELECT ${USER_COLUMNS}, users.usd_rate AS usdRate,
+                        COUNT(CASE WHEN lists.status = 'pending' THEN 1 END) AS pending,
+                        COUNT(CASE WHEN lists.status = 'approved' THEN 1 END) AS approved,
+                        COUNT(CASE WHEN lists.status = 'rejected' THEN 1 END) AS rejected
+                 FROM users LEFT JOIN lists ON lists.user_id = users.id
+                 GROUP BY users.id
+                 ORDER BY users.last_login_at DESC, users.id DESC`
+            )
+            .all()
+            .map((row) => ({ ...row, banned: row.banned === 1 }));
     }
 
     get(id: number): User | null {

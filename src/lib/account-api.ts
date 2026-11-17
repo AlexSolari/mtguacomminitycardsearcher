@@ -3,6 +3,7 @@ import type {
     ListStatus,
     ListsRefreshed,
     ModeratedList,
+    ModeratedSeller,
     MyList,
     MyLists
 } from '@/account';
@@ -63,6 +64,16 @@ export const setListRate = (id: number, usdRate: number | null) =>
 
 export const fetchQueue = (status: ListStatus) =>
     api<ModeratedList[]>(`/api/admin/lists?status=${status}`);
+// every seller, or those matching by name or @username
+export const fetchSellers = (query: string) =>
+    api<ModeratedSeller[]>(
+        `/api/admin/sellers?${new URLSearchParams({ q: query })}`
+    );
+// lists in any state, by seller, title or link
+export const searchLists = (query: string) =>
+    api<ModeratedList[]>(
+        `/api/admin/lists?${new URLSearchParams({ q: query })}`
+    );
 export const reviewList = (id: number, status: 'approved' | 'rejected') =>
     api<void>(`/api/admin/lists/${id}`, { body: { status } });
 // `ids` of approved lists, or every approved list

@@ -1,13 +1,14 @@
 import type {
     ListStatus,
     ModeratedList,
+    ModeratedSeller,
     MyList,
     MyLists,
     RateError,
     SubmitListError
 } from '../account';
 import type { ListStore, ReviewedList, TraderList } from './db/list-store';
-import type { User, UserStore } from './db/user-store';
+import type { SellerRow, User, UserStore } from './db/user-store';
 import { LIST_SOURCES, parseListLink } from './lists/list-link';
 import { logger } from './logger';
 
@@ -18,6 +19,8 @@ import { logger } from './logger';
 //   PATCH  /api/lists/:id {usdRate}      → MyList: the list's own exchange rate (null: the owner's default)
 //   POST   /api/lists/rate {usdRate}     → 204: the owner's default exchange rate (null: prices stay in USD)
 //   GET    /api/admin/lists?status=…     → ModeratedList[] (pending by default)
+//   GET    /api/admin/lists?q=…          → ModeratedList[]: lists in any state, by seller, title or link
+//   GET    /api/admin/sellers?q=…        → ModeratedSeller[]: every seller, or those matching by name or @username
 //   POST   /api/admin/lists/:id {status} → 204; approving reads the list at once (`onDue`)
 //   POST   /api/admin/refresh {ids}|{all: true} → {refreshed: number[]}: approved lists read again now (`onDue`)
 //   POST   /api/admin/users/:id {banned} → 204
@@ -25,7 +28,7 @@ import { logger } from './logger';
 // SameSite=Lax, another site can't send them with it, and a cross-site JSON POST would need a CORS preflight.
 
 // Lists one trader may have, in any state.
-export const MAX_LISTS_PER_USER = 10;
+export const MAX_LISTS_PER_USER = 25;
 // A link, or a moderator's decision; anything bigger isn't from our frontend.
 const MAX_BODY_BYTES = 2048;
 
@@ -68,6 +71,43 @@ function usdRate(value: unknown): number | null | undefined {
     return Math.round(value * 100) / 100;
 }
 
+// A moderator's search: at most this many lists (newest first) or sellers (most recently signed in first).
+export const MAX_SEARCH_RESULTS = 50;
+// Longer than any username, title or link; anything longer is cut.
+const MAX_QUERY = 200;
+
+const lower = (text: string) => text.toLocaleLowerCase('uk');
+
+// "@name" is the start of a seller's username (what "Показати списки" sends); anything else, a piece of their
+// username or Telegram name. Ignoring case, Cyrillic too, which SQLite's LIKE wouldn't.
+function sellerMatcher(query: string) {
+    if (query.startsWith('@')) {
+        const start = lower(query.slice(1));
+        return (s: { username: string }) => lower(s.username).startsWith(start);
+    }
+    const needle = lower(query);
+    return (s: { username: string; displayName: string }) =>
+        [s.username, s.displayName].some((f) => lower(f).includes(needle));
+}
+
+// Whether a list matches a moderator's search: a pasted link finds its list however it's spelled
+// (parseListLink); "@name" finds the seller's lists; anything else is a piece of the seller's username or name,
+// the list's title or its link.
+function listMatcher(query: string) {
+    const link = parseListLink(query);
+    if (link)
+        return (l: ReviewedList) =>
+            l.source === link.source && l.ref === link.ref;
+    const seller = sellerMatcher(query);
+    if (query.startsWith('@')) return seller;
+    const needle = lower(query);
+    return (l: ReviewedList) =>
+        seller(l) ||
+        [l.title, LIST_SOURCES[l.source].link(l.ref)].some(
+            (f) => f !== null && lower(f).includes(needle)
+        );
+}
+
 // A route's `:id`, when it's one a row could have.
 const rowId = (id: string) => {
     const n = Number(id);
@@ -85,6 +125,21 @@ const myList = (l: TraderList): MyList => ({
     cardCount: l.cardCount,
     lastError: l.lastError,
     usdRate: l.usdRate
+});
+
+const moderatedSeller = (
+    s: SellerRow,
+    isAdmin: (user: User) => boolean
+): ModeratedSeller => ({
+    id: s.id,
+    username: s.username,
+    displayName: s.displayName,
+    banned: s.banned,
+    admin: isAdmin(s),
+    usdRate: s.usdRate,
+    createdAt: s.createdAt,
+    lastLoginAt: s.lastLoginAt,
+    lists: { pending: s.pending, approved: s.approved, rejected: s.rejected }
 });
 
 const moderatedList = (l: ReviewedList): ModeratedList => ({
@@ -190,8 +245,17 @@ export function listsHandlers(
         }),
 
         queue: signedIn((_user, req) => {
-            const status =
-                new URL(req.url).searchParams.get('status') ?? 'pending';
+            const params = new URL(req.url).searchParams;
+            const query = params.get('q')?.trim().slice(0, MAX_QUERY);
+            if (query) {
+                const body: ModeratedList[] = lists
+                    .withStatus()
+                    .filter(listMatcher(query))
+                    .slice(0, MAX_SEARCH_RESULTS)
+                    .map(moderatedList);
+                return Response.json(body, { headers: noStore });
+            }
+            const status = params.get('status') ?? 'pending';
             if (!STATUSES.has(status as ListStatus))
                 return error('Unknown status', 400);
             const body: ModeratedList[] = lists
@@ -236,6 +300,19 @@ export function listsHandlers(
             });
             if (refreshed.length > 0) onDue(refreshed);
             return Response.json({ refreshed });
+        }, true),
+
+        sellers: signedIn((_user, req) => {
+            const query = new URL(req.url).searchParams
+                .get('q')
+                ?.trim()
+                .slice(0, MAX_QUERY);
+            const body: ModeratedSeller[] = users
+                .sellers()
+                .filter(query ? sellerMatcher(query) : () => true)
+                .slice(0, MAX_SEARCH_RESULTS)
+                .map((s) => moderatedSeller(s, auth.isAdmin));
+            return Response.json(body, { headers: noStore });
         }, true),
 
         ban: signedIn(async (user, req, id: string) => {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Ban, Check, RefreshCw, Undo2, X } from 'lucide-react';
-import type { ListStatus, ModeratedList } from '@/account';
+import { Ban, Check, List, RefreshCw, Search, Undo2, X } from 'lucide-react';
+import type { ListStatus, ModeratedList, ModeratedSeller } from '@/account';
 import { formatDate, ListName, ListStatusLine } from '@/components/list-parts';
 import {
     Loading,
@@ -9,24 +9,36 @@ import {
     SERVER_ERROR
 } from '@/components/page-layout';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useAccount } from '@/hooks/use-account';
 import { LISTS, plural } from '@/i18n';
 import { cn } from '@/lib/utils';
 import {
     fetchQueue,
+    fetchSellers,
     refreshLists,
     reviewList,
+    searchLists,
     setBanned
 } from '@/lib/account-api';
 
-const TABS: { status: ListStatus; label: string }[] = [
-    { status: 'pending', label: 'На перевірці' },
-    { status: 'approved', label: 'Схвалені' },
-    { status: 'rejected', label: 'Відхилені' }
+// The server's MAX_SEARCH_RESULTS: a search that fills it may have more.
+const MAX_RESULTS = 50;
+// Typing pauses this long before the search is sent.
+const SEARCH_DELAY_MS = 250;
+
+// The lists in one state, or the sellers.
+type Tab = ListStatus | 'sellers';
+const TABS: { tab: Tab; label: string }[] = [
+    { tab: 'pending', label: 'На перевірці' },
+    { tab: 'approved', label: 'Схвалені' },
+    { tab: 'rejected', label: 'Відхилені' },
+    { tab: 'sellers', label: 'Продавці' }
 ];
 
 // /admin: moderators (ADMIN_TELEGRAM_IDS) approve or reject submitted lists, and ban traders. Approving reads the
-// list at once; approved lists can be read again on demand, all of them or the ones ticked.
+// list at once; approved lists can be read again on demand, all of them or the ones ticked. The search finds lists in
+// any state, by seller, title or link, and shows them in place of the tab; on the "Продавці" tab it finds sellers.
 export function AdminPage() {
     const auth = useAccount();
     return (
@@ -52,7 +64,7 @@ export function AdminPage() {
 }
 
 function Moderation() {
-    const [status, setStatus] = useState<ListStatus>('pending');
+    const [tab, setTab] = useState<Tab>('pending');
     const [lists, setLists] = useState<ModeratedList[] | null>();
     const [error, setError] = useState<string | null>(null);
     const [done, setDone] = useState<string | null>(null);
@@ -60,12 +72,20 @@ function Moderation() {
     const [reloads, setReloads] = useState(0);
     // approved lists ticked for a refresh
     const [selected, setSelected] = useState<ReadonlySet<number>>(new Set());
+    const [text, setText] = useState('');
+    const [query, setQuery] = useState('');
 
     useEffect(() => {
+        const timer = setTimeout(() => setQuery(text.trim()), SEARCH_DELAY_MS);
+        return () => clearTimeout(timer);
+    }, [text]);
+
+    useEffect(() => {
+        if (tab === 'sellers') return;
         let live = true;
         setLists(undefined);
         setSelected(new Set());
-        fetchQueue(status)
+        (query ? searchLists(query) : fetchQueue(tab))
             .then((l) => live && setLists(l))
             .catch(() => {
                 if (!live) return;
@@ -75,7 +95,7 @@ function Moderation() {
         return () => {
             live = false;
         };
-    }, [status, reloads]);
+    }, [tab, query, reloads]);
 
     // Runs a moderation action, then reloads the tab. An action may say what it did.
     const act = async (action: () => Promise<string | void>) => {
@@ -92,19 +112,52 @@ function Moderation() {
         }
     };
 
+    const showTab = (next: Tab) => {
+        setTab(next);
+        setText('');
+        setQuery('');
+    };
+    // a seller's lists: a search for their @username, which matches usernames from the start
+    const showListsOf = (username: string) => {
+        setTab('pending');
+        setText(`@${username}`);
+        setQuery(`@${username}`);
+    };
+    // the list tabs aren't highlighted while the search shows lists from all of them
+    const current = (t: Tab) => tab === t && (t === 'sellers' || !query);
+    const approved = lists?.some((l) => l.status === 'approved') ?? false;
+
     return (
         <>
+            <div className='relative'>
+                <Search className='pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground' />
+                <Input
+                    type='search'
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    placeholder={
+                        tab === 'sellers'
+                            ? 'Пошук продавця: @username або ім’я'
+                            : 'Пошук: @продавець, ім’я, назва або посилання на список'
+                    }
+                    aria-label={
+                        tab === 'sellers' ? 'Пошук продавців' : 'Пошук списків'
+                    }
+                    className='h-10 pl-9'
+                />
+            </div>
+
             <div role='tablist' className='flex flex-wrap gap-2'>
-                {TABS.map((tab) => (
+                {TABS.map((t) => (
                     <Button
-                        key={tab.status}
+                        key={t.tab}
                         role='tab'
-                        aria-selected={status === tab.status}
-                        variant={status === tab.status ? 'default' : 'outline'}
+                        aria-selected={current(t.tab)}
+                        variant={current(t.tab) ? 'default' : 'outline'}
                         size='sm'
-                        onClick={() => setStatus(tab.status)}
+                        onClick={() => showTab(t.tab)}
                     >
-                        {tab.label}
+                        {t.label}
                     </Button>
                 ))}
             </div>
@@ -112,114 +165,285 @@ function Moderation() {
             {error && <Notice tone='error'>{error}</Notice>}
             {done && <Notice tone='ok'>{done}</Notice>}
 
-            {status === 'approved' && lists && lists.length > 0 && (
-                <div className='flex flex-wrap gap-2'>
-                    <Button
-                        size='sm'
-                        variant='outline'
-                        disabled={busy || selected.size === 0}
-                        onClick={() => act(() => refresh([...selected]))}
-                    >
-                        <RefreshCw />
-                        Оновити вибрані
-                        {selected.size > 0 && ` (${selected.size})`}
-                    </Button>
-                    <Button
-                        size='sm'
-                        variant='outline'
-                        disabled={busy}
-                        onClick={() => act(() => refresh('all'))}
-                    >
-                        <RefreshCw />
-                        Оновити всі
-                    </Button>
-                </div>
-            )}
-
-            {lists === undefined ? (
-                <Loading />
-            ) : lists && lists.length === 0 ? (
-                <p className='text-muted-foreground'>Тут порожньо.</p>
+            {tab === 'sellers' ? (
+                <Sellers
+                    query={query}
+                    busy={busy}
+                    reloads={reloads}
+                    act={act}
+                    onShowLists={showListsOf}
+                />
             ) : (
-                lists && (
-                    <ul className='grid gap-2'>
-                        {lists.map((list) => (
-                            <li
-                                key={list.id}
-                                className='grid gap-3 rounded-lg border bg-card px-4 py-3'
+                <>
+                    {approved && (query || tab === 'approved') && (
+                        <div className='flex flex-wrap gap-2'>
+                            <Button
+                                size='sm'
+                                variant='outline'
+                                disabled={busy || selected.size === 0}
+                                onClick={() =>
+                                    act(() => refresh([...selected]))
+                                }
                             >
-                                <div className='flex min-w-0 items-start gap-3'>
-                                    {list.status === 'approved' && (
-                                        <input
-                                            type='checkbox'
-                                            aria-label='Вибрати для оновлення'
-                                            checked={selected.has(list.id)}
-                                            onChange={() =>
-                                                setSelected((s) =>
-                                                    toggle(s, list.id)
-                                                )
-                                            }
-                                            className='mt-1 size-4 shrink-0 accent-primary'
-                                        />
-                                    )}
-                                    <div className='grid min-w-0 gap-0.5'>
-                                        <ListName list={list} />
-                                        <ListStatusLine list={list} />
-                                        <Owner list={list} />
-                                    </div>
-                                </div>
-                                <div className='flex flex-wrap gap-2'>
-                                    {list.status !== 'approved' && (
-                                        <Button
-                                            size='sm'
-                                            disabled={busy}
-                                            onClick={() =>
-                                                act(() =>
-                                                    reviewList(
-                                                        list.id,
-                                                        'approved'
+                                <RefreshCw />
+                                Оновити вибрані
+                                {selected.size > 0 && ` (${selected.size})`}
+                            </Button>
+                            {!query && (
+                                <Button
+                                    size='sm'
+                                    variant='outline'
+                                    disabled={busy}
+                                    onClick={() => act(() => refresh('all'))}
+                                >
+                                    <RefreshCw />
+                                    Оновити всі
+                                </Button>
+                            )}
+                        </div>
+                    )}
+
+                    {query && lists && lists.length >= MAX_RESULTS && (
+                        <p className='text-sm text-muted-foreground'>
+                            Показано перші {MAX_RESULTS}: уточніть запит.
+                        </p>
+                    )}
+
+                    {lists === undefined ? (
+                        <Loading />
+                    ) : lists && lists.length === 0 ? (
+                        <p className='text-muted-foreground'>
+                            {query ? 'Нічого не знайдено.' : 'Тут порожньо.'}
+                        </p>
+                    ) : (
+                        lists && (
+                            <ul className='grid gap-2'>
+                                {lists.map((list) => (
+                                    <li
+                                        key={list.id}
+                                        className='grid gap-3 rounded-lg border bg-card px-4 py-3'
+                                    >
+                                        <div className='flex min-w-0 items-start gap-3'>
+                                            {list.status === 'approved' && (
+                                                <input
+                                                    type='checkbox'
+                                                    aria-label='Вибрати для оновлення'
+                                                    checked={selected.has(
+                                                        list.id
+                                                    )}
+                                                    onChange={() =>
+                                                        setSelected((s) =>
+                                                            toggle(s, list.id)
+                                                        )
+                                                    }
+                                                    className='mt-1 size-4 shrink-0 accent-primary'
+                                                />
+                                            )}
+                                            <div className='grid min-w-0 gap-0.5'>
+                                                <ListName list={list} />
+                                                <ListStatusLine list={list} />
+                                                <Owner list={list} />
+                                            </div>
+                                        </div>
+                                        <div className='flex flex-wrap gap-2'>
+                                            {list.status !== 'approved' && (
+                                                <Button
+                                                    size='sm'
+                                                    disabled={busy}
+                                                    onClick={() =>
+                                                        act(() =>
+                                                            reviewList(
+                                                                list.id,
+                                                                'approved'
+                                                            )
+                                                        )
+                                                    }
+                                                >
+                                                    <Check />
+                                                    Схвалити
+                                                </Button>
+                                            )}
+                                            {list.status !== 'rejected' && (
+                                                <Button
+                                                    size='sm'
+                                                    variant='outline'
+                                                    disabled={busy}
+                                                    onClick={() =>
+                                                        act(() =>
+                                                            reviewList(
+                                                                list.id,
+                                                                'rejected'
+                                                            )
+                                                        )
+                                                    }
+                                                >
+                                                    <X />
+                                                    Відхилити
+                                                </Button>
+                                            )}
+                                            <BanButton
+                                                banned={list.owner.banned}
+                                                username={list.owner.username}
+                                                disabled={busy}
+                                                onToggle={(banned) =>
+                                                    act(() =>
+                                                        setBanned(
+                                                            list.owner.id,
+                                                            banned
+                                                        )
                                                     )
-                                                )
-                                            }
-                                        >
-                                            <Check />
-                                            Схвалити
-                                        </Button>
-                                    )}
-                                    {list.status !== 'rejected' && (
-                                        <Button
-                                            size='sm'
-                                            variant='outline'
-                                            disabled={busy}
-                                            onClick={() =>
-                                                act(() =>
-                                                    reviewList(
-                                                        list.id,
-                                                        'rejected'
-                                                    )
-                                                )
-                                            }
-                                        >
-                                            <X />
-                                            Відхилити
-                                        </Button>
-                                    )}
-                                    <BanButton
-                                        list={list}
-                                        disabled={busy}
-                                        onToggle={(banned) =>
-                                            act(() =>
-                                                setBanned(list.owner.id, banned)
-                                            )
-                                        }
-                                    />
-                                </div>
-                            </li>
-                        ))}
-                    </ul>
-                )
+                                                }
+                                            />
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        )
+                    )}
+                </>
             )}
         </>
+    );
+}
+
+// The "Продавці" tab: every seller (or those the search finds), most recently signed in first, with their lists'
+// states, exchange rate and dates; "Показати списки" opens their lists.
+function Sellers({
+    query,
+    busy,
+    reloads,
+    act,
+    onShowLists
+}: {
+    query: string;
+    busy: boolean;
+    reloads: number;
+    act: (action: () => Promise<string | void>) => void;
+    onShowLists: (username: string) => void;
+}) {
+    const [sellers, setSellers] = useState<ModeratedSeller[] | null>();
+    useEffect(() => {
+        let live = true;
+        setSellers(undefined);
+        fetchSellers(query)
+            .then((s) => live && setSellers(s))
+            .catch(() => live && setSellers(null));
+        return () => {
+            live = false;
+        };
+    }, [query, reloads]);
+
+    if (sellers === undefined) return <Loading />;
+    if (sellers === null) return <Notice tone='error'>{SERVER_ERROR}</Notice>;
+    if (sellers.length === 0)
+        return (
+            <p className='text-muted-foreground'>
+                {query ? 'Нікого не знайдено.' : 'Продавців ще немає.'}
+            </p>
+        );
+    return (
+        <>
+            {sellers.length >= MAX_RESULTS && (
+                <p className='text-sm text-muted-foreground'>
+                    Показано перших {MAX_RESULTS}: уточніть запит.
+                </p>
+            )}
+            <ul className='grid gap-2'>
+                {sellers.map((seller) => (
+                    <li
+                        key={seller.id}
+                        className='grid gap-3 rounded-lg border bg-card px-4 py-3'
+                    >
+                        <div className='grid min-w-0 gap-0.5'>
+                            <p className='min-w-0 font-medium'>
+                                {seller.displayName}{' '}
+                                <a
+                                    href={`https://t.me/${seller.username}`}
+                                    target='_blank'
+                                    rel='noopener noreferrer'
+                                    className='font-normal text-primary hover:underline'
+                                >
+                                    @{seller.username}
+                                </a>
+                                {seller.admin && (
+                                    <span className='font-normal text-muted-foreground'>
+                                        {' '}
+                                        · модератор
+                                    </span>
+                                )}
+                                {seller.banned && (
+                                    <span className='font-normal text-destructive'>
+                                        {' '}
+                                        · заблоковано
+                                    </span>
+                                )}
+                            </p>
+                            <SellerLists seller={seller} />
+                            <p className='text-sm text-muted-foreground'>
+                                {seller.usdRate === null
+                                    ? 'курс не вказано'
+                                    : `курс ${seller.usdRate.toLocaleString('uk-UA')} ₴ за $1`}
+                                {' · з нами з '}
+                                {formatDate(seller.createdAt)}
+                                {' · останній вхід '}
+                                {formatDate(seller.lastLoginAt)}
+                            </p>
+                        </div>
+                        <div className='flex flex-wrap gap-2'>
+                            <Button
+                                size='sm'
+                                variant='outline'
+                                onClick={() => onShowLists(seller.username)}
+                            >
+                                <List />
+                                Показати списки
+                            </Button>
+                            {!seller.admin && (
+                                <BanButton
+                                    banned={seller.banned}
+                                    username={seller.username}
+                                    disabled={busy}
+                                    onToggle={(banned) =>
+                                        act(() => setBanned(seller.id, banned))
+                                    }
+                                />
+                            )}
+                        </div>
+                    </li>
+                ))}
+            </ul>
+        </>
+    );
+}
+
+// "2 схвалені · 1 на перевірці", leaving out states with none; "списків немає" without any.
+function SellerLists({ seller }: { seller: ModeratedSeller }) {
+    const { pending, approved, rejected } = seller.lists;
+    const parts = [
+        approved > 0 && {
+            text: `схвалено ${approved}`,
+            className: 'text-emerald-700 dark:text-emerald-400'
+        },
+        pending > 0 && {
+            text: `на перевірці ${pending}`,
+            className: 'text-amber-700 dark:text-amber-400'
+        },
+        rejected > 0 && {
+            text: `відхилено ${rejected}`,
+            className: 'text-destructive'
+        }
+    ].filter((p) => p !== false);
+    return (
+        <p className='text-sm text-muted-foreground'>
+            {parts.length === 0
+                ? 'списків немає'
+                : parts.map((p, i) => (
+                      <span key={p.text}>
+                          {i > 0 && ' · '}
+                          <span className={p.className}>{p.text}</span>
+                      </span>
+                  ))}
+        </p>
     );
 }
 
@@ -278,15 +502,16 @@ function RateNote({ list }: { list: ModeratedList }) {
 
 // A ban takes all of the trader's lists out of search and signs them out, so it asks first.
 function BanButton({
-    list,
+    banned,
+    username,
     disabled,
     onToggle
 }: {
-    list: ModeratedList;
+    banned: boolean;
+    username: string;
     disabled: boolean;
     onToggle: (banned: boolean) => void;
 }) {
-    const { banned, username } = list.owner;
     return (
         <Button
             size='sm'
