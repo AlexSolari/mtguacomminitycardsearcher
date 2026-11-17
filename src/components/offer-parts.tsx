@@ -157,9 +157,10 @@ export function PriceBlock({
 export const formatUsd = (usd: number) =>
     `$${usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-// A trader's offer: Scryfall's price for the card, as a guide; the trader names their own price. In UAH at the
-// trader's rate when they set one, with the dollar price it came from underneath; otherwise in USD.
-// "≈" when it's for the card or its set rather than this exact printing.
+// A trader's offer: TCGplayer's price for the card (from Scryfall, or the list's own), as a guide; the trader
+// names their own price. In UAH at the trader's rate when they set one, with the dollar price it came from
+// underneath; otherwise in USD, with its source underneath. "≈" when it's for the card or its set rather than this
+// exact printing.
 function TraderPrice({ link }: { link: CardResult }) {
     const uah = sellerUah(link);
     const approx = link.approxPrice && (
@@ -170,24 +171,27 @@ function TraderPrice({ link }: { link: CardResult }) {
     if (uah === null)
         return (
             <span
-                className='whitespace-nowrap text-sm font-semibold tabular-nums text-foreground'
-                title='Ціна Scryfall у доларах, для орієнтиру. Свою ціну назве продавець.'
+                className='flex flex-col items-end leading-tight'
+                title='Ціна TCGplayer у доларах, для орієнтиру. Свою ціну назве продавець.'
             >
-                {approx}
-                {formatUsd(link.usdPrice)}
+                <span className='whitespace-nowrap text-sm font-semibold tabular-nums text-foreground'>
+                    {approx}
+                    {formatUsd(link.usdPrice)}
+                </span>
+                <span className='text-xs text-muted-foreground'>TCGplayer</span>
             </span>
         );
     return (
         <span
             className='flex flex-col items-end leading-tight'
-            title='Ціна Scryfall у доларах за курсом продавця, для орієнтиру. Остаточну ціну назве продавець.'
+            title='Ціна TCGplayer у доларах за курсом продавця, для орієнтиру. Остаточну ціну назве продавець.'
         >
             <span className='whitespace-nowrap text-sm font-semibold tabular-nums text-foreground'>
                 {approx}
                 {formatPrice(uah)}
             </span>
             <span className='whitespace-nowrap text-xs tabular-nums text-muted-foreground'>
-                {formatUsd(link.usdPrice)} ×{' '}
+                TCGplayer {formatUsd(link.usdPrice)} ×{' '}
                 {link.usdRate!.toLocaleString('uk-UA')}
             </span>
         </span>

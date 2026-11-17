@@ -312,7 +312,7 @@ function TraderLists({ user }: { user: CurrentUser }) {
                 <section className='grid gap-2 rounded-lg border bg-card px-4 py-3'>
                     <h2 className='font-semibold'>Курс долара</h2>
                     <p className='text-sm leading-relaxed text-muted-foreground'>
-                        Ціни у ваших списках беремо зі Scryfall у доларах.
+                        Ціни у ваших списках — це ціни TCGplayer у доларах.
                         Вкажіть свій курс, і покупці бачитимуть їх у гривнях.
                         Без курсу ціни показуються в доларах. Для окремого
                         списку можна задати інший курс.
