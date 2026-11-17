@@ -255,7 +255,24 @@ function Owner({ list }: { list: ModeratedList }) {
             )}
             {' · додано '}
             {formatDate(list.createdAt)}
+            {' · '}
+            <RateNote list={list} />
         </p>
+    );
+}
+
+// The exchange rate the list's prices show at in search, and whose it is. Sellers change it without review.
+function RateNote({ list }: { list: ModeratedList }) {
+    const rate = list.usdRate ?? list.owner.usdRate;
+    if (rate === null) return <>курс не вказано, ціни в доларах</>;
+    return (
+        <>
+            курс{' '}
+            <span className='font-medium text-foreground tabular-nums'>
+                {rate.toLocaleString('uk-UA')} ₴ за $1
+            </span>{' '}
+            ({list.usdRate === null ? 'загальний' : 'для цього списку'})
+        </>
     );
 }
 

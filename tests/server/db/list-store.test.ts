@@ -130,7 +130,8 @@ describe('ListStore', () => {
                 reviewedAt: 300,
                 username: 'alice',
                 displayName: 'Alice',
-                banned: false
+                banned: false,
+                ownerUsdRate: null
             }
         ]);
         users.setBanned(alice.id, true);

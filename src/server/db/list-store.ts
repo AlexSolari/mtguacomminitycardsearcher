@@ -29,6 +29,7 @@ export type ReviewedList = TraderList & {
     username: string;
     displayName: string;
     banned: boolean;
+    ownerUsdRate: number | null; // the owner's default exchange rate (UserStore.usdRate)
 };
 
 // A card as the refresh stores it: the list's row, with the price it settled on.
@@ -124,7 +125,8 @@ export class ListStore {
     withStatus(status: ListStatus): ReviewedList[] {
         return this.db
             .query<Omit<ReviewedList, 'banned'> & { banned: number }, [string]>(
-                `SELECT ${LIST_COLUMNS}, users.username, users.display_name AS displayName, users.banned
+                `SELECT ${LIST_COLUMNS}, users.username, users.display_name AS displayName, users.banned,
+                        users.usd_rate AS ownerUsdRate
                  FROM lists JOIN users ON users.id = lists.user_id
                  WHERE lists.status = ? ORDER BY lists.created_at, lists.id`
             )

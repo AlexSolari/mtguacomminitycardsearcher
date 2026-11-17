@@ -73,5 +73,6 @@ export type ModeratedList = MyList & {
         username: string;
         displayName: string;
         banned: boolean;
+        usdRate: number | null; // their default exchange rate; the list's own (`usdRate`) wins over it
     };
 };

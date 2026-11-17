@@ -223,6 +223,18 @@ describe('lists routes', () => {
         expect((await setListRate(999, 40)).status).toBe(404);
         expect((await setListRate('x', 40)).status).toBe(404);
         expect((await setRate(40, null)).status).toBe(401);
+
+        // an approved list's rate changes without another review, and moderators see both rates
+        await review(list.id, 'approved');
+        await setRate(41);
+        await setListRate(list.id, 43);
+        const [moderated] = await queue('approved');
+        expect(moderated).toMatchObject({
+            id: list.id,
+            status: 'approved',
+            usdRate: 43,
+            owner: { usdRate: 41 }
+        });
     });
 
     test('a trader deletes their own lists only', async () => {
@@ -281,7 +293,8 @@ describe('lists routes', () => {
                     id: alice.id,
                     username: 'alice',
                     displayName: 'ALICE',
-                    banned: false
+                    banned: false,
+                    usdRate: null
                 }
             },
             {
@@ -291,7 +304,8 @@ describe('lists routes', () => {
                     id: bob.id,
                     username: 'bob',
                     displayName: 'BOB',
-                    banned: false
+                    banned: false,
+                    usdRate: null
                 }
             }
         ]);

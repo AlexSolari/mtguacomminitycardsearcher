@@ -94,7 +94,8 @@ const moderatedList = (l: ReviewedList): ModeratedList => ({
         id: l.userId,
         username: l.username,
         displayName: l.displayName,
-        banned: l.banned
+        banned: l.banned,
+        usdRate: l.ownerUsdRate
     }
 });
 
