@@ -3,7 +3,7 @@ import type { StoredCard } from '../db/list-store';
 import type { CardPrice, PriceCache } from '../db/price-cache';
 import { SCRYFALL_HEADERS } from '../name-resolver';
 import { toPrice } from '../parsers/helpers';
-import type { ShopClient } from '../shop-client';
+import { HttpError, type ShopClient } from '../shop-client';
 import type { Finish, ListCard } from './list-card';
 import { ListRefreshFailure } from './list-reader';
 
@@ -18,9 +18,14 @@ const PAUSE_MS = 1_000;
 //   {id}          ManaBox rows (their Scryfall id): the exact printing
 //   {name, set}   MTGGoldfish rows with [SET]: that set's printing, which may not be the row's variant
 //   {name}        rows without a set (or one Scryfall doesn't know): Scryfall's default printing
+//   promo         MTGGoldfish promos ([PRM-…], no set): every printing searched, the one its words name (pickPromo)
+// The first three go to /cards/collection in batches; a promo is a /cards/search of its own.
 // `key` is the PriceCache key for the answer.
 type Identifier = { id: string } | { name: string; set?: string };
-type Ask = { key: string; identifier: Identifier; exact: boolean };
+type Promo = { name: string; words: string[] };
+type Ask = { key: string; exact: boolean } & (
+    { identifier: Identifier } | { promo: Promo }
+);
 
 // The fields read from Scryfall's answer:
 //   {"object":"list","not_found":[{"name":"Lotus Bloom","set":"prm"}],
@@ -34,7 +39,32 @@ type Printing = {
     prices?: { usd?: unknown; usd_foil?: unknown; usd_etched?: unknown };
     image_uris?: { normal?: string };
     card_faces?: { name?: string; image_uris?: { normal?: string } }[];
+    set_name?: string; // /cards/search, for promos: "Store Championships"
+    promo_types?: string[]; // likewise: ["storechampionship"]
 };
+
+// MTGGoldfish's promo groups, in the words Scryfall uses for them (set names, promo types). Groups not here
+// ("MSC", misc) have only the row's <…> to go by.
+const PROMO_GROUPS: Record<string, string[]> = {
+    PRE: ['prerelease'],
+    FNM: ['fnm'],
+    GDP: ['gameday'],
+    BAB: ['buyabox'],
+    WPN: ['wizardsplaynetwork'],
+    OHP: ['openhouse'],
+    MPR: ['player', 'reward'],
+    WMCQ: ['wmcq']
+};
+
+// Words too common in set names to tell printings apart.
+const STOP_WORDS = new Set(['the', 'of', 'and', 'magic', 'promo']);
+
+// "DFT Store Championships" → ["dft", "store", "championship"]: lower-case, plurals without their "s".
+const words = (text: string) =>
+    normalize(text)
+        .split(/[^a-z0-9]+/)
+        .map((w) => (w.length > 3 && w.endsWith('s') ? w.slice(0, -1) : w))
+        .filter((w) => w && !STOP_WORDS.has(w));
 
 // Cached for a row Scryfall doesn't have, so it isn't asked again every day.
 const NOT_FOUND: CardPrice = {
@@ -62,6 +92,18 @@ const byName = (name: string): Ask => ({
 });
 
 function askFor(card: ListCard): Ask {
+    if (card.promo) {
+        const named =
+            card.variant && card.variant !== 'promo' ? words(card.variant) : [];
+        return {
+            key: `promo:${card.promo}/${named.join(' ')}/${normalize(card.name)}`,
+            promo: {
+                name: faceName(card.name),
+                words: [...named, ...(PROMO_GROUPS[card.promo] ?? [])]
+            },
+            exact: true
+        };
+    }
     if (card.scryfallId)
         return {
             key: `id:${card.scryfallId}`,
@@ -100,10 +142,14 @@ export class ListPrices {
             if (card.usd === undefined) asks.set(card, askFor(card));
         const found = await this.lookup([...asks.values()], now, signal);
 
-        // a set Scryfall doesn't know by that code (MTGGoldfish spells a few differently): by name alone instead
+        // a set Scryfall doesn't know by that code (MTGGoldfish spells a few differently), or a promo its words
+        // don't single out: by name alone instead
         const fallbacks = new Map<ListCard, Ask>();
         for (const [card, ask] of asks)
-            if ('set' in ask.identifier && !found.get(ask.key)?.scryfallId)
+            if (
+                ('promo' in ask || 'set' in ask.identifier) &&
+                !found.get(ask.key)?.scryfallId
+            )
                 fallbacks.set(card, byName(card.name));
         const byNames = await this.lookup([...fallbacks.values()], now, signal);
 
@@ -144,18 +190,53 @@ export class ListPrices {
                 asks.filter((a) => !prices.has(a.key)).map((a) => [a.key, a])
             ).values()
         ];
-        for (let i = 0; i < missing.length; i += MAX_COLLECTION) {
+        // collection batches first, then a search per promo, with a pause before each request but the first
+        const batched = missing.flatMap((a) => ('identifier' in a ? [a] : []));
+        const requests: (() => Promise<Map<string, CardPrice>>)[] = [];
+        for (let i = 0; i < batched.length; i += MAX_COLLECTION) {
+            const chunk = batched.slice(i, i + MAX_COLLECTION);
+            requests.push(() => this.fetchChunk(chunk, signal));
+        }
+        for (const ask of missing)
+            if ('promo' in ask)
+                requests.push(() => this.searchPromo(ask, ask.promo, signal));
+        for (const [i, request] of requests.entries()) {
             if (i > 0) await this.sleep(this.pauseMs);
-            const chunk = missing.slice(i, i + MAX_COLLECTION);
-            const fetched = await this.fetchChunk(chunk, signal);
+            const fetched = await request();
             this.cache.set(fetched, now);
             for (const [key, price] of fetched) prices.set(key, price);
         }
         return prices;
     }
 
+    // Every paper printing of the card, from which pickPromo takes the one the row names. A card Scryfall doesn't
+    // know is a 404, which is an answer: no printing.
+    private async searchPromo(
+        ask: Ask,
+        promo: Promo,
+        signal?: AbortSignal
+    ): Promise<Map<string, CardPrice>> {
+        let data: Printing[];
+        try {
+            const answer = await this.client.fetchJson<{ data?: unknown }>(
+                this.client.url('/cards/search', {
+                    q: `!"${promo.name}" game:paper`,
+                    unique: 'prints'
+                }),
+                { signal, headers: SCRYFALL_HEADERS }
+            );
+            data = Array.isArray(answer?.data) ? answer.data : [];
+        } catch (err) {
+            if (!(err instanceof HttpError && err.status === 404))
+                throw new ListRefreshFailure('unavailable', { cause: err });
+            data = [];
+        }
+        const printing = pickPromo(data, promo.words);
+        return new Map([[ask.key, printing ? priceOf(printing) : NOT_FOUND]]);
+    }
+
     private async fetchChunk(
-        chunk: Ask[],
+        chunk: (Ask & { identifier: Identifier })[],
         signal?: AbortSignal
     ): Promise<Map<string, CardPrice>> {
         let data: Printing[];
@@ -189,6 +270,36 @@ export class ListPrices {
         }
         return prices;
     }
+}
+
+// The printing a promo row names: the one whose set name, promo types and set code share the most of its words
+// ("Store Championship" → "Store Championships", ["storechampionship"]), when only one does best. A row with no
+// words to go by is that printing only when the card has a single promo.
+export function pickPromo(
+    printings: Printing[],
+    named: string[]
+): Printing | null {
+    if (named.length === 0) {
+        const promos = printings.filter((p) => p.promo_types?.length);
+        return promos.length === 1 ? promos[0]! : null;
+    }
+    const joined = named.join('');
+    const score = (p: Printing) => {
+        const types = p.promo_types ?? [];
+        const own = new Set([
+            ...words(p.set_name ?? ''),
+            ...types,
+            p.set ?? ''
+        ]);
+        return (
+            named.filter((w) => own.has(w)).length +
+            (types.includes(joined) ? 1 : 0)
+        );
+    };
+    const scores = printings.map(score);
+    const best = Math.max(0, ...scores);
+    const top = printings.filter((_, i) => scores[i] === best);
+    return best > 0 && top.length === 1 ? top[0]! : null;
 }
 
 function fits(printing: Printing, identifier: Identifier) {

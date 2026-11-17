@@ -83,7 +83,7 @@ export const LIST_SOURCES: Record<
     moxfield: {
         label: 'Moxfield',
         base: 'https://api2.moxfield.com',
-        page: (ref) => ({ path: `/v2/decks/all/${ref}` }),
+        page: (ref) => ({ path: `/v3/decks/all/${ref}` }),
         link: (ref) => `https://moxfield.com/decks/${ref}`,
         headers: { 'User-Agent': 'PostmanRuntime/7.31.1' }
     }

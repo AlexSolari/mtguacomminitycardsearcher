@@ -77,7 +77,7 @@ describe('ListReader', () => {
         expect(urls).toEqual([
             'https://www.mtggoldfish.com/proxies/new?id=6906342',
             'https://manabox.app/decks/abc',
-            'https://api2.moxfield.com/v2/decks/all/abc'
+            'https://api2.moxfield.com/v3/decks/all/abc'
         ]);
         // only Moxfield's read carries a User-Agent of its own (the stopgap in list-link.ts)
         expect(headers).toEqual([

@@ -60,7 +60,7 @@ describe('parseListLink', () => {
         'https://moxfield.com/decks/personal',
         'https://moxfield.com/decks/oEWXWHM5eEGMmopExLWRCA/a/b',
         'https://moxfield.com/users/someone',
-        'https://api2.moxfield.com/v2/decks/all/oEWXWHM5eEGMmopExLWRCA'
+        'https://api2.moxfield.com/v3/decks/all/oEWXWHM5eEGMmopExLWRCA'
     ])('not a list: %p', (link) => {
         expect(parseListLink(link)).toBeNull();
     });
@@ -89,7 +89,7 @@ describe('LIST_SOURCES', () => {
     test("Moxfield is read from its API, with the stopgap User-Agent, and linked to the deck's page", () => {
         const moxfield = LIST_SOURCES.moxfield;
         expect(moxfield.page('abc_D-1')).toEqual({
-            path: '/v2/decks/all/abc_D-1'
+            path: '/v3/decks/all/abc_D-1'
         });
         expect(moxfield.link('abc_D-1')).toBe(
             'https://moxfield.com/decks/abc_D-1'

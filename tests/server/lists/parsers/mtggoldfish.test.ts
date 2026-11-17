@@ -34,7 +34,8 @@ describe('mtggoldfish', () => {
                         '1 Fire // Ice',
                         '1 Gaea&#39;s Will &lt;retro&gt; [MH2] (FE)',
                         '1 Sol Ring [C21] (X)',
-                        '1 B.F.M. (Big Furry Monster)'
+                        '1 B.F.M. (Big Furry Monster)',
+                        '3 Cauldron Familiar &lt;Store Championship&gt; [PRM-MSC]'
                     ].join('\r\n')
                 )
             )
@@ -57,6 +58,7 @@ describe('mtggoldfish', () => {
                     name: 'Lotus Bloom',
                     quantity: 1,
                     finish: 'foil',
+                    promo: 'PRE',
                     variant: 'promo'
                 },
                 { name: "Green Sun's Zenith", quantity: 4, finish: 'nonfoil' },
@@ -86,6 +88,14 @@ describe('mtggoldfish', () => {
                     name: 'B.F.M. (Big Furry Monster)',
                     quantity: 1,
                     finish: 'nonfoil'
+                },
+                // a promo's <…> is its variant, which list-prices.ts finds the printing by
+                {
+                    name: 'Cauldron Familiar',
+                    quantity: 3,
+                    finish: 'nonfoil',
+                    promo: 'MSC',
+                    variant: 'Store Championship'
                 }
             ]
         });

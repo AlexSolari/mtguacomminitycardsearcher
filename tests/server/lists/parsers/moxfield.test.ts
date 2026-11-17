@@ -16,8 +16,17 @@ const row = {
         prices: { usd: 2.5000001, usd_foil: 3.25, eur: 2.97 }
     }
 };
-const deck = (boards: Record<string, unknown>, extra = {}) =>
-    JSON.stringify({ mainboard: {}, ...boards, ...extra });
+// A v3 deck: each board's rows under `cards`, by entry id.
+const deck = (boards: Record<string, Record<string, unknown>>, extra = {}) =>
+    JSON.stringify({
+        boards: Object.fromEntries(
+            Object.entries({ mainboard: {}, ...boards }).map(([key, cards]) => [
+                key,
+                { count: Object.keys(cards).length, cards }
+            ])
+        ),
+        ...extra
+    });
 
 describe('moxfield', () => {
     test('deck: title, edit date and one row per printing, the maybeboard left out', async () => {
@@ -37,14 +46,12 @@ describe('moxfield', () => {
         }
         expect(list!.cards.some((c) => c.finish === 'foil')).toBe(true);
         expect(list!.cards.some((c) => c.finish === 'nonfoil')).toBe(true);
-        const maybe = Object.values(JSON.parse(text).maybeboard ?? {}).map(
-            (r: any) => r.card.name
-        );
-        const main = new Set(
-            Object.values(JSON.parse(text).mainboard).map(
-                (r: any) => r.card.name
-            )
-        );
+        const { boards } = JSON.parse(text);
+        const names = (board: string) =>
+            Object.values(boards[board].cards).map((r: any) => r.card.name);
+        const maybe = names('maybeboard');
+        const main = new Set(names('mainboard'));
+        expect(maybe.length).toBeGreaterThan(0);
         for (const name of maybe.filter((n) => !main.has(n)))
             expect(list!.cards.map((c) => c.name)).not.toContain(name);
         expect(list).toMatchSnapshot();
@@ -70,13 +77,20 @@ describe('moxfield', () => {
                                 finish: 'etched',
                                 card: { ...row.card, name: 'Fire // Ice' }
                             }
+                        },
+                        maybeboard: { d: { ...row, quantity: 7 } },
+                        tokens: {
+                            e: {
+                                ...row,
+                                card: { ...row.card, name: 'Treasure' }
+                            }
                         }
                     },
                     {
                         name: '  Sell list  ',
                         lastUpdatedAtUtc: '2026-09-14T22:39:01.717Z',
                         createdByUser: { userName: 'someone' },
-                        tokens: [{ name: 'Treasure' }]
+                        tokensToCards: { x: ['y'] }
                     }
                 )
             )
@@ -116,6 +130,35 @@ describe('moxfield', () => {
                 }
             ]
         });
+    });
+
+    // the bug v2 had: Moxfield keyed rows by card name there, so these three came back as one
+    test('one card in several printings and finishes stays several rows', () => {
+        const printing = (set: string, cn: string, finish: string) => ({
+            quantity: 1,
+            finish,
+            card: { ...row.card, name: 'Voice of the Blessed', set, cn }
+        });
+        expect(
+            parseMoxfield(
+                deck({
+                    mainboard: {
+                        a: printing('vow', '44', 'foil'),
+                        b: printing('vow', '44', 'nonFoil'),
+                        c: printing('vow', '326', 'foil')
+                    }
+                })
+            )?.cards.map((c) => [
+                c.set,
+                c.collectorNumber,
+                c.finish,
+                c.quantity
+            ])
+        ).toEqual([
+            ['vow', '44', 'foil', 1],
+            ['vow', '44', 'nonfoil', 1],
+            ['vow', '326', 'foil', 1]
+        ]);
     });
 
     test('missing details are left out rather than guessed', () => {
@@ -178,6 +221,17 @@ describe('moxfield', () => {
         expect(parseMoxfield('null')).toBeNull();
         expect(parseMoxfield('[]')).toBeNull();
         expect(parseMoxfield('{"name":"x"}')).toBeNull();
-        expect(parseMoxfield('{"mainboard":[]}')).toBeNull();
+        // v2's shape: boards at the top level
+        expect(parseMoxfield('{"mainboard":{}}')).toBeNull();
+        expect(parseMoxfield('{"boards":[]}')).toBeNull();
+        expect(
+            parseMoxfield('{"boards":{"mainboard":{"cards":[]}}}')
+        ).toBeNull();
+        // a board without rows is skipped, not the deck
+        expect(
+            parseMoxfield(
+                '{"boards":{"mainboard":{"cards":{}},"sideboard":{"count":0}}}'
+            )
+        ).toEqual({ cards: [] });
     });
 });

@@ -346,44 +346,33 @@ const moxDeck = await moxfield.fetchJson<any>(
     moxfield.url(moxfieldSource.page('oEWXWHM5eEGMmopExLWRCA').path),
     { headers: moxfieldSource.headers }
 );
-if (!moxDeck?.mainboard) throw new Error('Moxfield: no mainboard in the deck');
-const moxBoards = Object.fromEntries(
-    Object.entries(moxDeck)
-        .filter(
-            ([, b]) =>
-                b &&
-                typeof b === 'object' &&
-                !Array.isArray(b) &&
-                Object.values(b).some((r: any) => r?.card)
-        )
-        .map(([key, board]) => [
-            key,
-            Object.fromEntries(
-                Object.entries(board as object).map(
-                    ([id, r]: [string, any]) => [
-                        id,
-                        {
-                            ...pick(r, ['quantity', 'finish']),
-                            card: {
-                                ...pick(r.card, MOXFIELD_CARD_FIELDS),
-                                prices: pick(r.card.prices ?? {}, [
-                                    'usd',
-                                    'usd_foil',
-                                    'usd_etched'
-                                ])
-                            }
-                        }
-                    ]
-                )
-            )
-        ])
-);
+if (!moxDeck?.boards?.mainboard?.cards)
+    throw new Error('Moxfield: no mainboard in the deck');
+const moxRow = (r: any) => ({
+    ...pick(r, ['quantity', 'finish']),
+    card: {
+        ...pick(r.card, MOXFIELD_CARD_FIELDS),
+        prices: pick(r.card.prices ?? {}, ['usd', 'usd_foil', 'usd_etched'])
+    }
+});
 await save(
     'moxfield-deck.json',
     json({
         name: moxDeck.name,
         lastUpdatedAtUtc: moxDeck.lastUpdatedAtUtc,
-        mainboard: {},
-        ...moxBoards
+        boards: Object.fromEntries(
+            Object.entries(moxDeck.boards).map(([key, b]: [string, any]) => [
+                key,
+                {
+                    count: b.count,
+                    cards: Object.fromEntries(
+                        Object.entries(b.cards ?? {}).map(([id, r]) => [
+                            id,
+                            moxRow(r)
+                        ])
+                    )
+                }
+            ])
+        )
     })
 );

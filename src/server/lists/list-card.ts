@@ -11,6 +11,7 @@ export type ListCard = {
     set?: string; // Scryfall's set code, lower-case
     collectorNumber?: string;
     variant?: string; // MTGGoldfish's free-text treatment: "retro", "borderless", "promo pack"…
+    promo?: string; // MTGGoldfish's promo group ("PRE", "FNM", "MSC"…), which isn't a set: see list-prices.ts
     scryfallId?: string;
     image?: string;
     usd?: number; // this printing and finish's price in USD, when the list carries one (ManaBox)
@@ -32,6 +33,7 @@ export function mergeRows(cards: ListCard[]): ListCard[] {
             card.set,
             card.collectorNumber,
             card.variant?.toLowerCase(),
+            card.promo,
             card.finish
         ].join('\n');
         const seen = rows.get(key);

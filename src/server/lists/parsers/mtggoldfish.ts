@@ -13,6 +13,7 @@ import {
 //   1 Sacred Foundry &lt;retro&gt; [RVR]     ← treatment in <…>, set in […]
 //   2 Boseiju, Who Endures [NEO]
 //   1 Lotus Bloom [PRM-PRE] (F)              ← (F): foil; PRM-…: Goldfish's promo groups, not real set codes
+//   3 Cauldron Familiar &lt;Store Championship&gt; [PRM-MSC]   ← a promo's <…> names it within the group
 //   1 Gaea&#39;s Will &lt;retro&gt; [MH2] (FE)  ← (FE): foil-etched
 //   1 Anger                                  ← a deck built without printings has neither
 //   sideboard                                ← section headers; every section counts
@@ -37,13 +38,14 @@ export function parseMtggoldfish(html: string): ParsedList | null {
         const quantity = Number(line?.[1]);
         if (!line || quantity < 1) continue;
         const set = line[4]?.trim();
-        const promo = !!set && /^PRM-/i.test(set);
+        const promo = set?.match(/^PRM-([\w-]+)$/i)?.[1]?.toUpperCase();
         cards.push({
             name: line[2]!.trim(),
             quantity,
             finish: FINISHES[line[5] ?? ''] ?? 'nonfoil',
-            // a promo group names no printing, so the card is priced by name alone; it's still shown as a promo
+            // a promo group isn't a set: the printing is looked for by the group and the <…> (list-prices.ts)
             ...(set && !promo && { set: set.toLowerCase() }),
+            ...(promo && { promo }),
             ...((line[3] || promo) && {
                 variant: line[3]?.trim() ?? 'promo'
             })

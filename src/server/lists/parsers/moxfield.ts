@@ -6,19 +6,22 @@ import {
     type ParsedList
 } from '../list-card';
 
-// api2.moxfield.com/v2/decks/all/<publicId>: a deck as JSON, the API behind moxfield.com/decks/<publicId>.
-// Every board (mainboard, sideboard, commanders, companions…) is a top-level object of rows by entry id:
+// api2.moxfield.com/v3/decks/all/<publicId>: a deck as JSON, the API behind moxfield.com/decks/<publicId>.
+// Each board (mainboard, sideboard, commanders, companions…) lists its rows by entry id, so one card in several
+// printings or finishes is several rows. (v2 keyed them by card name, which kept one printing and added up the
+// copies.)
 //
 //   {"name":"Sell list","lastUpdatedAtUtc":"2026-09-14T22:39:01.717Z",
-//    "mainboard":{"LGNXZ":{"quantity":1,"finish":"foil","card":{"name":"Kroxa, Titan of Death's Hunger",
-//      "scryfall_id":"cee0459b-9aac-4d2f-abe4-4d5fedde7eb8","set":"thb","cn":"221",
-//      "prices":{"usd":2.5,"usd_foil":3.25}}}, …},
-//    "sideboard":{…}, "maybeboard":{…}, "tokens":[…], …}
+//    "boards":{
+//      "mainboard":{"count":250,"cards":{"EgDRZ":{"quantity":1,"finish":"foil",
+//        "card":{"name":"Kroxa, Titan of Death's Hunger","scryfall_id":"cee0459b-9aac-4d2f-abe4-4d5fedde7eb8",
+//          "set":"thb","cn":"221","prices":{"usd":2.5,"usd_foil":3.25}}}, …}},
+//      "sideboard":{"count":0,"cards":{}}, "maybeboard":{…}, "tokens":{…}, …}}
 //
 // `finish` is "nonFoil" or "foil" ("etched" is a guess at the third), and `prices` are Scryfall's, per finish.
-// The maybeboard holds cards the owner is only considering, so it's left out. A body that isn't a deck (a
-// redesign, or not JSON at all) is null.
-const SKIPPED_BOARDS = new Set(['maybeboard']);
+// The maybeboard holds cards the owner is only considering, and tokens aren't cards anyone sells, so both are
+// left out. A body that isn't a deck (a redesign, or not JSON at all) is null.
+const SKIPPED_BOARDS = new Set(['maybeboard', 'tokens']);
 
 const FINISHES: Record<string, Finish> = {
     nonfoil: 'nonfoil',
@@ -43,10 +46,6 @@ const usd = (value: unknown) => {
 
 const isObject = (v: unknown): v is Record<string, any> =>
     !!v && typeof v === 'object' && !Array.isArray(v);
-
-// A board is an object of rows, each with a `card`; other top-level objects (the owner, settings) aren't.
-const isBoard = (v: unknown) =>
-    isObject(v) && Object.values(v).some((row) => isObject(row?.card));
 
 function toCard(row: any): ListCard | null {
     const card = row?.card;
@@ -82,17 +81,20 @@ export function parseMoxfield(text: string): ParsedList | null {
     } catch {
         return null;
     }
-    if (!isObject(deck) || !isObject(deck.mainboard)) return null;
-    const cards = Object.entries(deck)
-        .filter(([key, board]) => !SKIPPED_BOARDS.has(key) && isBoard(board))
+    const boards = isObject(deck) ? deck.boards : undefined;
+    if (!isObject(boards) || !isObject(boards.mainboard?.cards)) return null;
+    const cards = Object.entries(boards)
+        .filter(
+            ([key, board]) => !SKIPPED_BOARDS.has(key) && isObject(board?.cards)
+        )
         // a malformed row is skipped, not the whole list
         .flatMap(([, board]) =>
-            Object.values(board).flatMap((row) => toCard(row) ?? [])
+            Object.values(board.cards).flatMap((row) => toCard(row) ?? [])
         );
-    const editedAt = Date.parse(deck.lastUpdatedAtUtc);
+    const { name, lastUpdatedAtUtc } = deck as Record<string, unknown>;
+    const editedAt = Date.parse(String(lastUpdatedAtUtc));
     return {
-        ...(typeof deck.name === 'string' &&
-            deck.name.trim() && { title: deck.name.trim() }),
+        ...(typeof name === 'string' && name.trim() && { title: name.trim() }),
         ...(Number.isFinite(editedAt) && { editedAt }),
         cards: mergeRows(cards)
     };
