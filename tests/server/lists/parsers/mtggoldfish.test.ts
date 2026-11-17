@@ -21,7 +21,7 @@ describe('mtggoldfish', () => {
         expect(list).toMatchSnapshot();
     });
 
-    test('reads quantity, name, treatment, set and foil; promo groups name no set', () => {
+    test('reads quantity, name, treatment, set and foil; promo groups name no set, only "promo"', () => {
         expect(
             parseMtggoldfish(
                 page(
@@ -53,7 +53,12 @@ describe('mtggoldfish', () => {
                     finish: 'nonfoil',
                     set: 'neo'
                 },
-                { name: 'Lotus Bloom', quantity: 1, finish: 'foil' },
+                {
+                    name: 'Lotus Bloom',
+                    quantity: 1,
+                    finish: 'foil',
+                    variant: 'promo'
+                },
                 { name: "Green Sun's Zenith", quantity: 4, finish: 'nonfoil' },
                 {
                     name: 'Raph & Mikey, Troublemakers',

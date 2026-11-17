@@ -203,12 +203,14 @@ export function SellerBadge({
 }
 
 // What a trader's list says of the printing, and how fresh the list is: "RVR · retro · оновлено 17 лист."
+// A list that names no printing still gets an image, Scryfall's default printing; saying so keeps it from
+// passing for the trader's.
 export function SellerDetails({ link }: { link: CardResult }) {
     const { printing, updatedAt } = link.seller!;
     return (
         <span className='text-xs text-muted-foreground'>
-            {printing && <>{printing} · </>}
-            оновлено {LIST_DATE.format(updatedAt)}
+            {printing ?? 'друк не вказано'} · оновлено{' '}
+            {LIST_DATE.format(updatedAt)}
         </span>
     );
 }

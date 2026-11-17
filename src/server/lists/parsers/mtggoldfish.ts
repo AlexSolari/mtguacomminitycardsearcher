@@ -37,13 +37,16 @@ export function parseMtggoldfish(html: string): ParsedList | null {
         const quantity = Number(line?.[1]);
         if (!line || quantity < 1) continue;
         const set = line[4]?.trim();
+        const promo = !!set && /^PRM-/i.test(set);
         cards.push({
             name: line[2]!.trim(),
             quantity,
             finish: FINISHES[line[5] ?? ''] ?? 'nonfoil',
-            // a promo group names no printing, so the card is priced by name alone
-            ...(set && !/^PRM-/i.test(set) && { set: set.toLowerCase() }),
-            ...(line[3] && { variant: line[3].trim() })
+            // a promo group names no printing, so the card is priced by name alone; it's still shown as a promo
+            ...(set && !promo && { set: set.toLowerCase() }),
+            ...((line[3] || promo) && {
+                variant: line[3]?.trim() ?? 'promo'
+            })
         });
     }
     return { cards: mergeRows(cards) };
