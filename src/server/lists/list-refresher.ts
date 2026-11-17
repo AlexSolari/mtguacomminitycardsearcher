@@ -89,9 +89,7 @@ export class ListRefresher {
         // each list once per pass, even if saving its result failed and left it due
         const done = new Set<number>();
         for (;;) {
-            const due = this.lists
-                .due(this.now(), BATCH + done.size)
-                .filter((l) => !done.has(l.id));
+            const due = this.lists.due(this.now(), BATCH, [...done]);
             if (due.length === 0) return;
             for (const list of due) {
                 done.add(list.id);

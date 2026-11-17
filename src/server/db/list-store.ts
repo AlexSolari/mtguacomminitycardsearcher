@@ -179,15 +179,17 @@ export class ListStore {
             .get(id, now);
     }
 
-    // Approved lists whose refresh is due, most overdue first. Banned users' lists wait until the ban is lifted.
-    due(now = Date.now(), limit = 10): TraderList[] {
+    // Approved lists whose refresh is due, most overdue first, leaving out `except` (the ones a pass has read).
+    // Banned users' lists wait until the ban is lifted.
+    due(now = Date.now(), limit = 10, except: number[] = []): TraderList[] {
         return this.db
-            .query<TraderList, [number, number]>(
+            .query<TraderList, [number, string, number]>(
                 `SELECT ${LIST_COLUMNS} FROM lists JOIN users ON users.id = lists.user_id
                  WHERE lists.status = 'approved' AND lists.next_fetch_at <= ? AND users.banned = 0
+                   AND lists.id NOT IN (SELECT value FROM json_each(?))
                  ORDER BY lists.next_fetch_at, lists.id LIMIT ?`
             )
-            .all(now, limit);
+            .all(now, JSON.stringify(except), limit);
     }
 
     // A successful refresh: the list's cards are replaced as a whole. `nextFetchAt` schedules the next one.

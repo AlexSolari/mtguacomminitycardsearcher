@@ -178,6 +178,10 @@ describe('ListStore', () => {
         lists.review(c.id, 'approved', 200);
         expect(lists.due(1000).map((l) => l.id)).toEqual([b.id, c.id, a.id]);
         expect(lists.due(1000, 2).map((l) => l.id)).toEqual([b.id, c.id]);
+        expect(lists.due(1000, 2, [b.id]).map((l) => l.id)).toEqual([
+            c.id,
+            a.id
+        ]);
         users.setBanned(alice.id, true);
         expect(lists.due(1000).map((l) => l.id)).toEqual([b.id]);
     });

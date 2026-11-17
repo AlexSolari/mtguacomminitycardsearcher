@@ -18,24 +18,16 @@ export class PriceCache {
         private readonly maxAgeMs = 24 * 60 * 60_000
     ) {}
 
-    // The fresh prices among `keys`; a key that's missing or stale isn't in the map.
+    // The fresh prices among `keys`; a key that's missing or stale isn't in the map. One query for them all: a big
+    // list has thousands of keys.
     get(keys: string[], now = Date.now()): Map<string, CardPrice> {
-        const found = new Map<string, CardPrice>();
-        const query = this.db.query<
-            CardPrice & { key: string },
-            [string, number]
-        >(
-            `SELECT key, usd, usd_foil AS usdFoil, usd_etched AS usdEtched, scryfall_id AS scryfallId, image
-             FROM card_prices WHERE key = ? AND fetched_at > ?`
-        );
-        for (const key of new Set(keys)) {
-            const row = query.get(key, now - this.maxAgeMs);
-            if (row) {
-                const { key: _, ...price } = row;
-                found.set(key, price);
-            }
-        }
-        return found;
+        const rows = this.db
+            .query<CardPrice & { key: string }, [string, number]>(
+                `SELECT key, usd, usd_foil AS usdFoil, usd_etched AS usdEtched, scryfall_id AS scryfallId, image
+                 FROM card_prices WHERE key IN (SELECT value FROM json_each(?)) AND fetched_at > ?`
+            )
+            .all(JSON.stringify([...new Set(keys)]), now - this.maxAgeMs);
+        return new Map(rows.map(({ key, ...price }) => [key, price]));
     }
 
     set(prices: Map<string, CardPrice>, now = Date.now()) {
