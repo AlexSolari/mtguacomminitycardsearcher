@@ -348,12 +348,14 @@ const moxDeck = await moxfield.fetchJson<any>(
 );
 if (!moxDeck?.boards?.mainboard?.cards)
     throw new Error('Moxfield: no mainboard in the deck');
-const moxRow = (r: any) => ({
+const moxRow = (r: any): any => ({
     ...pick(r, ['quantity', 'finish']),
     card: {
         ...pick(r.card, MOXFIELD_CARD_FIELDS),
         prices: pick(r.card.prices ?? {}, ['usd', 'usd_foil', 'usd_etched'])
-    }
+    },
+    // a card in several printings: their rows
+    ...(r.printingData?.length && { printingData: r.printingData.map(moxRow) })
 });
 await save(
     'moxfield-deck.json',

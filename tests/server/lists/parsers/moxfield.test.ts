@@ -161,6 +161,45 @@ describe('moxfield', () => {
         ]);
     });
 
+    // Moxfield keeps a card in several printings as one entry, its first printing with every copy; the rows are in
+    // printingData ("Voice of the Blessed": 3, foil, VOW #44 on the entry)
+    test("a card's printingData rows are read instead of its entry", () => {
+        const printing = (cn: string, finish: string) => ({
+            quantity: 1,
+            finish,
+            card: { ...row.card, name: 'Voice of the Blessed', set: 'vow', cn }
+        });
+        expect(
+            parseMoxfield(
+                deck({
+                    mainboard: {
+                        a: {
+                            ...printing('44', 'foil'),
+                            quantity: 3,
+                            printingData: [
+                                printing('44', 'foil'),
+                                printing('354', 'nonFoil'),
+                                printing('354', 'foil')
+                            ]
+                        },
+                        // an empty breakdown: the entry itself
+                        b: { ...row, printingData: [] }
+                    }
+                })
+            )?.cards.map((c) => [
+                c.name,
+                c.collectorNumber,
+                c.finish,
+                c.quantity
+            ])
+        ).toEqual([
+            ['Voice of the Blessed', '44', 'foil', 1],
+            ['Voice of the Blessed', '354', 'nonfoil', 1],
+            ['Voice of the Blessed', '354', 'foil', 1],
+            ["Kroxa, Titan of Death's Hunger", '221', 'nonfoil', 1]
+        ]);
+    });
+
     test('missing details are left out rather than guessed', () => {
         expect(
             parseMoxfield(

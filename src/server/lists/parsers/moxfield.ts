@@ -7,15 +7,20 @@ import {
 } from '../list-card';
 
 // api2.moxfield.com/v3/decks/all/<publicId>: a deck as JSON, the API behind moxfield.com/decks/<publicId>.
-// Each board (mainboard, sideboard, commanders, companions…) lists its rows by entry id, so one card in several
-// printings or finishes is several rows. (v2 keyed them by card name, which kept one printing and added up the
-// copies.)
+// Each board (mainboard, sideboard, commanders, companions…) lists its entries by id, one per card. A card the owner
+// has in several printings or finishes is still one entry (its first printing, all the copies added up), with the
+// real breakdown in `printingData`: rows of the same shape, which are read instead.
 //
 //   {"name":"Sell list","lastUpdatedAtUtc":"2026-09-14T22:39:01.717Z",
 //    "boards":{
-//      "mainboard":{"count":250,"cards":{"EgDRZ":{"quantity":1,"finish":"foil",
-//        "card":{"name":"Kroxa, Titan of Death's Hunger","scryfall_id":"cee0459b-9aac-4d2f-abe4-4d5fedde7eb8",
-//          "set":"thb","cn":"221","prices":{"usd":2.5,"usd_foil":3.25}}}, …}},
+//      "mainboard":{"count":250,"cards":{
+//        "EgDRZ":{"quantity":1,"finish":"foil",
+//          "card":{"name":"Kroxa, Titan of Death's Hunger","scryfall_id":"cee0459b-9aac-4d2f-abe4-4d5fedde7eb8",
+//            "set":"thb","cn":"221","prices":{"usd":2.5,"usd_foil":3.25}}},
+//        "YnDy3":{"quantity":3,"finish":"foil","card":{…vow 44…},
+//          "printingData":[{"quantity":1,"finish":"foil","card":{…vow 44…}},
+//                          {"quantity":1,"finish":"nonFoil","card":{…vow 354…}},
+//                          {"quantity":1,"finish":"foil","card":{…vow 354…}}]}, …}},
 //      "sideboard":{"count":0,"cards":{}}, "maybeboard":{…}, "tokens":{…}, …}}
 //
 // `finish` is "nonFoil" or "foil" ("etched" is a guess at the third), and `prices` are Scryfall's, per finish.
@@ -87,10 +92,14 @@ export function parseMoxfield(text: string): ParsedList | null {
         .filter(
             ([key, board]) => !SKIPPED_BOARDS.has(key) && isObject(board?.cards)
         )
+        .flatMap(([, board]) => Object.values(board.cards))
+        .flatMap((entry: any) =>
+            Array.isArray(entry?.printingData) && entry.printingData.length
+                ? entry.printingData
+                : [entry]
+        )
         // a malformed row is skipped, not the whole list
-        .flatMap(([, board]) =>
-            Object.values(board.cards).flatMap((row) => toCard(row) ?? [])
-        );
+        .flatMap((row) => toCard(row) ?? []);
     const { name, lastUpdatedAtUtc } = deck as Record<string, unknown>;
     const editedAt = Date.parse(String(lastUpdatedAtUtc));
     return {
