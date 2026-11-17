@@ -151,7 +151,8 @@ export class ListStore {
     }
 
     // A moderator's "refresh now": makes approved lists (`ids`, or all of them) due at once, and returns the ones it
-    // moved. Lists already due are left out, so a second click while they're being read doesn't read them twice.
+    // moved. Lists already due are left out, so a second click while they're being read doesn't read them twice;
+    // so are banned users' lists, which wait until the ban is lifted.
     refreshNow(ids: number[] | 'all', now = Date.now()): number[] {
         if (ids !== 'all' && ids.length === 0) return [];
         const only =
@@ -160,11 +161,22 @@ export class ListStore {
             .query<{ id: number }, number[]>(
                 `UPDATE lists SET next_fetch_at = ?
                  WHERE status = 'approved' AND next_fetch_at > ? ${only}
+                   AND user_id NOT IN (SELECT id FROM users WHERE banned = 1)
                  RETURNING id`
             )
             .all(now, now, ...(ids === 'all' ? [] : ids))
             .map((r) => r.id)
             .sort((a, b) => a - b);
+    }
+
+    // One list, if it's approved, due and its owner isn't banned: what an approval or a moderator's refresh reads.
+    dueList(id: number, now = Date.now()): TraderList | null {
+        return this.db
+            .query<TraderList, [number, number]>(
+                `SELECT ${LIST_COLUMNS} FROM lists JOIN users ON users.id = lists.user_id
+                 WHERE lists.id = ? AND lists.status = 'approved' AND lists.next_fetch_at <= ? AND users.banned = 0`
+            )
+            .get(id, now);
     }
 
     // Approved lists whose refresh is due, most overdue first. Banned users' lists wait until the ban is lifted.

@@ -42,6 +42,7 @@ const row = (name: string, quantity = 1): ListCard => ({
 
 describe('ListRefresher', () => {
     let lists: ListStore;
+    let users: UserStore;
     let alice: User;
     let now: number;
     let pages: Map<string, () => ParsedList | Promise<ParsedList>>;
@@ -52,7 +53,8 @@ describe('ListRefresher', () => {
     beforeEach(() => {
         const db = openDatabase(':memory:');
         lists = new ListStore(db);
-        alice = new UserStore(db).login(
+        users = new UserStore(db);
+        alice = users.login(
             { telegramId: 1, username: 'alice', displayName: 'Alice' },
             0
         );
@@ -272,6 +274,16 @@ describe('ListRefresher', () => {
         await refresher.run();
         expect(read).toEqual(['abc', '1']);
         expect(lists.get(a)?.fetchedAt).toBe(DAY);
+    });
+
+    test("run(ids) leaves a banned user's lists unread", async () => {
+        users.setBanned(alice.id, true);
+        const id = approve(goldfish); // a moderator approves a banned user's list
+        pages.set('1', () => ({ cards: [] }));
+        now = DAY;
+        await refresher.run([id]);
+        expect(read).toEqual([]);
+        expect(lists.get(id)?.fetchedAt).toBeNull();
     });
 
     test('lists asked for during a pass are read in one more pass; a check for all of them wins', async () => {

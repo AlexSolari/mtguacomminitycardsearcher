@@ -100,16 +100,12 @@ export class ListRefresher {
         }
     }
 
-    // Only these lists, each if it's still approved and due (ListStore.review and refreshNow make it so).
+    // Only these lists, each if it's still approved and due (ListStore.review and refreshNow make it so) and its
+    // owner isn't banned: an approval doesn't check the owner.
     private async refreshLists(ids: Set<number>) {
         for (const id of ids) {
-            const list = this.lists.get(id);
-            if (
-                list?.status === 'approved' &&
-                list.nextFetchAt !== null &&
-                list.nextFetchAt <= this.now()
-            )
-                await this.refresh(list);
+            const list = this.lists.dueList(id, this.now());
+            if (list) await this.refresh(list);
         }
     }
 

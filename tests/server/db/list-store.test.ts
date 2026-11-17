@@ -201,6 +201,20 @@ describe('ListStore', () => {
         expect(lists.refreshNow([], 1000)).toEqual([]);
     });
 
+    test("refreshNow and dueList leave banned users' lists alone", () => {
+        const a = approved(alice);
+        const b = approved(bob, manabox);
+        users.setBanned(alice.id, true);
+        expect(lists.refreshNow('all', 1000)).toEqual([b.id]);
+        expect(lists.refreshNow([a.id], 1000)).toEqual([]);
+        expect(lists.get(a.id)?.nextFetchAt).not.toBe(1000);
+        expect(lists.dueList(b.id, 1000)?.id).toBe(b.id);
+        expect(lists.dueList(b.id, 999)).toBeNull(); // not due yet
+        expect(lists.dueList(a.id, Number.MAX_SAFE_INTEGER)).toBeNull();
+        users.setBanned(alice.id, false);
+        expect(lists.dueList(a.id, Number.MAX_SAFE_INTEGER)?.id).toBe(a.id);
+    });
+
     test("exchange rates: an offer takes its list's rate, else its owner's; only the owner sets a list's", () => {
         const a = approved(alice);
         const b = approved(bob, manabox);

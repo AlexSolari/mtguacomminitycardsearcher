@@ -128,8 +128,9 @@ export const CardSection = memo(function CardSection({
     const { exact, auctions, traders, art, other, pricing, min } =
         splitMatches(result);
     const links = result.links;
+    // traders' offers aren't compared on price, so a lone shop offer beside them isn't "best"
     const isBest = (link: CardResult) =>
-        links.length > 1 &&
+        links.length - traders.length > 1 &&
         pricing.has(link) &&
         link.price !== null &&
         link.price === min;

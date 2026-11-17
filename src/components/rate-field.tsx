@@ -6,7 +6,8 @@ import { MAX_RATE, MIN_RATE, parseRate } from '@/lib/usd-rate';
 import { cn } from '@/lib/utils';
 
 const show = (rate: number | null) =>
-    rate === null ? '' : rate.toLocaleString('uk-UA');
+    // a decimal comma, but no grouping: "1 000" wouldn't parse back (parseRate)
+    rate === null ? '' : rate.toLocaleString('uk-UA', { useGrouping: false });
 
 // An exchange rate (UAH per USD) with a save button that shows once it's changed. Emptying it and saving clears it.
 export function RateField({
