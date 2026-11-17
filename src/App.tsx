@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils';
 import { CardListForm } from '@/components/card-list-form';
 import { CollapsedCardList } from '@/components/collapsed-card-list';
 import { ResultsPanel } from '@/components/results-panel';
+import { SellerInvite } from '@/components/seller-invite';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
 import { useResultsView } from '@/components/view-toggle';
@@ -108,6 +109,8 @@ export function App() {
                         />
                     )}
                 </aside>
+
+                {layout === 'landing' && <SellerInvite />}
 
                 {entries && (
                     <div className='flex min-w-0 flex-col gap-6'>
