@@ -27,7 +27,11 @@ export type MagicswampCard = {
     sellers?: MagicswampOffer[];
 };
 
-export type MagicswampResponse = { data?: MagicswampCard[] };
+export type MagicswampResponse = {
+    data?: MagicswampCard[];
+    total?: number;
+    totalPages?: number;
+};
 
 // The badges the site itself shows for each condition, so ours match what the user finds on the listing.
 const CONDITIONS: Record<string, string> = {

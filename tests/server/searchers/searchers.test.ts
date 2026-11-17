@@ -386,7 +386,7 @@ describe('single-request searchers', () => {
 
     test('MagicswampCardSearcher', async () => {
         const url =
-            'https://magicswamp.com.ua/api/listings/grouped/cards?game=mtg&search=Sol+Ring&limit=50';
+            'https://magicswamp.com.ua/api/listings/grouped/cards?game=mtg&search=Sol+Ring&limit=100';
         const { client, requests } = fakeClient('https://magicswamp.com.ua', {
             [url]: await fixture('magicswamp-search.json')
         });
@@ -397,6 +397,37 @@ describe('single-request searchers', () => {
         );
         expect(results.length).toBeGreaterThan(0);
         expect(requests).toEqual([{ url, init: { signal } }]);
+        expect(logs).toEqual([]);
+    });
+
+    // the API allows 300 requests a minute for all our users together
+    test('MagicswampCardSearcher stays under 300 requests a minute', () => {
+        const { client } = new MagicswampCardSearcher() as unknown as {
+            client: { baseUrl: string; intervalMs: number };
+        };
+        expect(client.baseUrl).toBe('https://magicswamp.com.ua');
+        expect(client.intervalMs).toBe(220);
+    });
+
+    test('MagicswampCardSearcher logs an error when results span several pages', async () => {
+        const url =
+            'https://magicswamp.com.ua/api/listings/grouped/cards?game=mtg&search=Opt&limit=100';
+        const page = JSON.parse(await fixture('magicswamp-search.json'));
+        const { client } = fakeClient('https://magicswamp.com.ua', {
+            [url]: JSON.stringify({ ...page, total: 150, totalPages: 2 })
+        });
+        const results = await new MagicswampCardSearcher(client).search('Opt');
+        expect(results.length).toBeGreaterThan(0);
+        expect(logs).toMatchObject([
+            {
+                level: 'error',
+                message: 'magicswamp results span several pages',
+                shop: 'magicswamp',
+                card: 'Opt',
+                total: 150,
+                totalPages: 2
+            }
+        ]);
     });
 
     test('CitadelCardSearcher', async () => {
