@@ -42,7 +42,7 @@ A shop redesign can break its parser. If one shop stops returning results, that'
 - **Light and dark themes**, following the system setting unless you pick one.
 - **Traders' lists**: people who sell cards in Telegram groups sign in with Telegram on `/lists` and add their MTGGoldfish, ManaBox or Moxfield lists.
   Once a moderator approves a list on `/admin`, its cards show under each card as "Гравці", with the seller's Telegram and Scryfall's USD price as a guide; they never count toward best price or the total.
-  Lists are read again daily. A trader can delete a list, or their whole account, at any time.
+  Lists are read again every night. A trader can delete a list, or their whole account, at any time.
 
 ## Running locally
 
@@ -108,7 +108,7 @@ browser ──POST /api/search {cards:[…]}──▶ Bun server
 - **Streaming:** `/api/search` answers in NDJSON, a line per card each time one of its shops finishes, so a slow shop (Kartoteka) doesn't hold back the others; the card shows which shops are still searching.
 - **Filtering:** the server keeps only listings whose name contains the searched card. Shop search is fuzzy, so "Sol Ring" also matches "Soldier of the Grey Host".
 - **Grouping:** the browser groups the results.
-- **Traders' lists:** a job in the server reads each approved list right after approval and then daily (one request every 5 s per source), prices rows from Scryfall in USD, and stores them in SQLite. Search reads them from there alongside the shops, uncached.
+- **Traders' lists:** a job in the server reads each approved list right after approval and then every night, 02:00–07:00 Kyiv time, when traffic is lowest (one request every 5 s per source), prices rows from Scryfall in USD, and stores them in SQLite. Search reads them from there alongside the shops, uncached.
 
 ## Project layout
 
@@ -141,7 +141,7 @@ src/
       scrapers/             HTML search pages (Carton, Citadel, Kartoteka)
     auth/                   Telegram sign-in (OpenID Connect) and sessions
     db/                     SQLite: users, sessions, lists, their cards, cached prices
-    lists/                  traders' lists: links, parsers (MTGGoldfish, ManaBox, Moxfield), daily refresh, Scryfall prices
+    lists/                  traders' lists: links, parsers (MTGGoldfish, ManaBox, Moxfield), nightly refresh, Scryfall prices
     lists-route.ts          /api/lists and /api/admin: a trader's lists, moderation
   App.tsx                   the search page; frontend.tsx picks the page by path
   components/               UI (card-section.tsx renders a card's results, search-summary.tsx the totals,

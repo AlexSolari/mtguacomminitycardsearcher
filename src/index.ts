@@ -101,20 +101,20 @@ const auth = authHandlers(
     loginConfig && new TelegramLogin(loginConfig),
     adminIds()
 );
-// Reads approved lists when they're due, and right after one is approved.
+// Reads approved lists at night (each at its slot), and at once when a moderator approves or refreshes one.
 const refresher = new ListRefresher(
     listStore,
     new ListReader(),
     new ListPrices(scryfallCollection, new PriceCache(db)),
     cardNames.index
 );
-// `bun --hot` (bun dev) runs this file again on every change but keeps the old run's timers, so each reload would
-// add a refresher; the last one is stopped first.
-const hot = globalThis as { listRefresher?: ListRefresher };
-hot.listRefresher?.stop();
-hot.listRefresher = refresher;
 refresher.start();
-const lists = listsHandlers(listStore, users, auth, () => void refresher.run());
+const lists = listsHandlers(
+    listStore,
+    users,
+    auth,
+    (ids) => void refresher.run(ids)
+);
 
 const server = serve({
     // Bun drops a connection after 10 s without a byte (the default), and a search stays quiet while its slowest

@@ -8,13 +8,17 @@ import type { ListLink } from '@/server/lists/list-link';
 import { ListRefreshFailure } from '@/server/lists/list-reader';
 import {
     ListRefresher,
-    REFRESH_MS,
+    MIN_GAP_MS,
     retryDelay
 } from '@/server/lists/list-refresher';
+import { isNight, nextSlot } from '@/server/lists/night-schedule';
 import { captureLogs } from '../capture-logs';
 
 const logs = captureLogs();
 const HOUR = 60 * 60_000;
+// 03:00 and 14:00 in Kyiv, 17 November 2026 (UTC+2)
+const NIGHT = Date.UTC(2026, 10, 17, 1, 0);
+const DAY = Date.UTC(2026, 10, 17, 12, 0);
 
 const goldfish: ListLink = { source: 'mtggoldfish', ref: '1' };
 const manabox: ListLink = { source: 'manabox', ref: 'abc' };
@@ -52,7 +56,7 @@ describe('ListRefresher', () => {
             { telegramId: 1, username: 'alice', displayName: 'Alice' },
             0
         );
-        now = 1000;
+        now = NIGHT;
         pages = new Map();
         read = [];
         purged = [];
@@ -90,7 +94,7 @@ describe('ListRefresher', () => {
     const cardsOf = (id: number) =>
         lists.offers('Sol Ring').filter((o) => o.listId === id);
 
-    test("reads each approved list that's due, under the cards' own names, and schedules the next read a day on", async () => {
+    test("reads each approved list that's due, under the cards' own names, and schedules the next read for its slot tomorrow night", async () => {
         const id = approve(goldfish);
         lists.submit(alice.id, manabox, 0); // pending: never read
         pages.set('1', () => ({
@@ -106,12 +110,16 @@ describe('ListRefresher', () => {
         await refresher.run();
 
         expect(read).toEqual(['1']);
+        const next = nextSlot(id, NIGHT + MIN_GAP_MS);
         expect(lists.get(id)).toMatchObject({
-            fetchedAt: 1000,
-            nextFetchAt: 1000 + REFRESH_MS,
+            fetchedAt: NIGHT,
+            nextFetchAt: next,
             cardCount: 7,
             lastError: null
         });
+        expect(isNight(next)).toBe(true);
+        expect(next - NIGHT).toBeGreaterThan(MIN_GAP_MS);
+        expect(next - NIGHT).toBeLessThan(28 * HOUR);
         // spellings of one card are one row; the index's loose match isn't trusted
         expect(cardsOf(id).map((o) => [o.name, o.quantity, o.set])).toEqual([
             ['Sol Ring', 3, null],
@@ -130,12 +138,12 @@ describe('ListRefresher', () => {
                 rows: 5
             }
         ]);
-        expect(purged).toEqual([1000]);
+        expect(purged).toEqual([NIGHT]);
 
-        // not due again until tomorrow
+        // not due again until its slot
         await refresher.run();
         expect(read).toEqual(['1']);
-        now += REFRESH_MS;
+        now = next;
         await refresher.run();
         expect(read).toEqual(['1', '1']);
     });
@@ -153,7 +161,7 @@ describe('ListRefresher', () => {
         expect(cardsOf(id).map((o) => o.name)).toEqual(['sol ring']);
     });
 
-    test('a failure keeps the cards, says why, and retries after 1, 2, 4… hours, then daily', async () => {
+    test('a failure keeps the cards, says why, and retries after 1, 2, 4… hours, then daily; never in the day', async () => {
         const id = approve(manabox);
         pages.set('abc', () => ({ title: 'Trades', cards: [row('Sol Ring')] }));
         await refresher.run();
@@ -162,7 +170,7 @@ describe('ListRefresher', () => {
             throw new ListRefreshFailure('not-found');
         });
         logs.length = 0;
-        now += REFRESH_MS;
+        now = lists.get(id)!.nextFetchAt!; // 03:37, the list's slot
         await refresher.run();
         expect(lists.get(id)).toMatchObject({
             title: 'Trades',
@@ -183,16 +191,22 @@ describe('ListRefresher', () => {
             }
         ]);
 
+        // two hours on from 04:37 is 06:37: still the night
         now += HOUR;
         await refresher.run();
         expect(lists.get(id)?.nextFetchAt).toBe(now + 2 * HOUR);
+        // four hours on from 06:37 is the day: the slot the next night instead
+        now += 2 * HOUR;
+        await refresher.run();
+        expect(lists.get(id)?.nextFetchAt).toBe(nextSlot(id, now + 4 * HOUR));
+        expect(lists.get(id)?.nextFetchAt).toBeGreaterThan(now + 12 * HOUR);
         expect([1, 2, 3, 5, 6, 10].map(retryDelay)).toEqual([
             HOUR,
             2 * HOUR,
             4 * HOUR,
             16 * HOUR,
-            REFRESH_MS,
-            REFRESH_MS
+            24 * HOUR,
+            24 * HOUR
         ]);
     });
 
@@ -231,8 +245,62 @@ describe('ListRefresher', () => {
         pages.set('abc', () => ({ cards: [] }));
         await refresher.run();
         expect(read).toEqual(['1', 'abc']);
-        expect(lists.get(first)?.fetchedAt).toBe(1000);
-        expect(lists.get(second)?.fetchedAt).toBe(1000);
+        expect(lists.get(first)?.fetchedAt).toBe(NIGHT);
+        expect(lists.get(second)?.fetchedAt).toBe(NIGHT);
+    });
+
+    test('run(ids) reads only those lists, in the day too, and leaves the rest for the night', async () => {
+        const a = approve(goldfish);
+        const b = approve(manabox);
+        const pending = lists.submit(
+            alice.id,
+            { source: 'manabox', ref: 'p' },
+            0
+        )!;
+        pages.set('1', () => ({ cards: [] }));
+        pages.set('abc', () => ({ cards: [] }));
+        now = DAY;
+        await refresher.run([b, pending.id, 999]);
+        expect(read).toEqual(['abc']);
+        // read in the day, so next tonight, at its slot
+        expect(lists.get(b)?.nextFetchAt).toBe(nextSlot(b, DAY + MIN_GAP_MS));
+        expect(isNight(lists.get(b)!.nextFetchAt!)).toBe(true);
+        // b isn't due any more: asking again reads nothing
+        await refresher.run([b]);
+        expect(read).toEqual(['abc']);
+        // the night's check reads a
+        await refresher.run();
+        expect(read).toEqual(['abc', '1']);
+        expect(lists.get(a)?.fetchedAt).toBe(DAY);
+    });
+
+    test('lists asked for during a pass are read in one more pass; a check for all of them wins', async () => {
+        const a = approve(goldfish);
+        let b = 0;
+        let c = 0;
+        pages.set('1', () => {
+            b = approve(manabox);
+            c = approve({ source: 'manabox', ref: 'c' });
+            void refresher.run([b]);
+            void refresher.run([c]);
+            return { cards: [] };
+        });
+        pages.set('abc', () => ({ cards: [] }));
+        pages.set('c', () => ({ cards: [] }));
+        await refresher.run([a]);
+        expect(read).toEqual(['1', 'abc', 'c']);
+
+        read.length = 0;
+        const d = approve({ source: 'manabox', ref: 'd' });
+        pages.set('d', () => {
+            const e = approve({ source: 'manabox', ref: 'e' });
+            void refresher.run([e]);
+            void refresher.run();
+            return { cards: [] };
+        });
+        pages.set('e', () => ({ cards: [] }));
+        await refresher.run([d]);
+        expect(read).toEqual(['d', 'e']);
     });
 
     test("a list whose result can't be saved is tried once per run, not forever", async () => {
@@ -242,21 +310,44 @@ describe('ListRefresher', () => {
         expect(read).toEqual(['1']);
     });
 
-    test('start reads at once and then every tick; stop ends it', async () => {
-        approve(goldfish);
+    test('start checks every 5 minutes through the night in Kyiv, and at once if it starts at night; stop ends it', async () => {
+        const jobs: { cron: string; tz: string; stopped: boolean }[] = [];
+        let tick = (): unknown => undefined;
+        const schedule = (
+            cron: string,
+            handler: () => unknown,
+            { tz }: { tz: string }
+        ) => {
+            const job = { cron, tz, stopped: false };
+            jobs.push(job);
+            tick = handler;
+            return { stop: () => (job.stopped = true) };
+        };
+        const id = approve(goldfish);
         pages.set('1', () => ({ cards: [] }));
-        refresher.start(10);
-        refresher.start(10); // a second start keeps the one timer
+
+        // started in the day: nothing until the night's check
+        now = DAY;
+        refresher.start(schedule);
+        refresher.start(schedule); // a second start keeps the one job
         await Bun.sleep(1);
+        expect(jobs).toEqual([
+            { cron: '*/5 2-6 * * *', tz: 'Europe/Kyiv', stopped: false }
+        ]);
+        expect(read).toEqual([]);
+        now = NIGHT;
+        await tick();
         expect(read).toEqual(['1']);
-        now += REFRESH_MS;
-        await Bun.sleep(30);
+
         refresher.stop();
-        const reads = read.length;
-        expect(reads).toBeGreaterThanOrEqual(2);
-        now += REFRESH_MS;
-        await Bun.sleep(30);
-        expect(read).toHaveLength(reads);
+        expect(jobs[0]?.stopped).toBe(true);
+
+        // started at night (a restart): at once
+        now = lists.get(id)!.nextFetchAt!;
+        refresher.start(schedule);
+        await Bun.sleep(1);
+        expect(read).toEqual(['1', '1']);
+        refresher.stop();
     });
 
     test('by default it runs on the real clock', async () => {
@@ -269,5 +360,7 @@ describe('ListRefresher', () => {
             { price: async () => [], purge: () => {} }
         );
         await r.run();
+        r.start(); // Bun.cron
+        r.stop();
     });
 });
