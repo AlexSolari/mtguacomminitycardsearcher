@@ -35,7 +35,8 @@ describe('mtggoldfish', () => {
                         '1 Gaea&#39;s Will &lt;retro&gt; [MH2] (FE)',
                         '1 Sol Ring [C21] (X)',
                         '1 B.F.M. (Big Furry Monster)',
-                        '3 Cauldron Familiar &lt;Store Championship&gt; [PRM-MSC]'
+                        '3 Cauldron Familiar &lt;Store Championship&gt; [PRM-MSC]',
+                        '1 Splinter Twin &lt;01a08234-d609-7a21-9f15-e4740bccab5c&gt; [SPG] (F)'
                     ].join('\r\n')
                 )
             )
@@ -96,6 +97,13 @@ describe('mtggoldfish', () => {
                     finish: 'nonfoil',
                     promo: 'MSC',
                     variant: 'Store Championship'
+                },
+                // Goldfish's id in place of a treatment's name: dropped
+                {
+                    name: 'Splinter Twin',
+                    quantity: 1,
+                    finish: 'foil',
+                    set: 'spg'
                 }
             ]
         });

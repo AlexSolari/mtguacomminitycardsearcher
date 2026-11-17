@@ -28,6 +28,11 @@ export const DECK_FIELD =
 const LINE =
     /^(\d+)x?\s+(.+?)(?:\s+<([^<>]+)>)?(?:\s+\[([^[\]]+)\])?(?:\s+\(([A-Z]{1,3})\))?$/;
 const FINISHES: Record<string, Finish> = { F: 'foil', FE: 'etched' };
+// Goldfish's own id in place of a treatment's name, for some printings it hasn't named (seen on 2026 Special
+// Guests: "Splinter Twin <01a08234-d609-7a21-9f15-e4740bccab5c> [SPG] (F)"). It names nothing we can use, so it's
+// dropped, and the row is the set's printing.
+const GOLDFISH_ID =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function parseMtggoldfish(html: string): ParsedList | null {
     const field = html.match(DECK_FIELD);
@@ -39,6 +44,9 @@ export function parseMtggoldfish(html: string): ParsedList | null {
         if (!line || quantity < 1) continue;
         const set = line[4]?.trim();
         const promo = set?.match(/^PRM-([\w-]+)$/i)?.[1]?.toUpperCase();
+        const treatment = line[3]?.trim();
+        const variant =
+            treatment && !GOLDFISH_ID.test(treatment) ? treatment : undefined;
         cards.push({
             name: line[2]!.trim(),
             quantity,
@@ -46,9 +54,7 @@ export function parseMtggoldfish(html: string): ParsedList | null {
             // a promo group isn't a set: the printing is looked for by the group and the <…> (list-prices.ts)
             ...(set && !promo && { set: set.toLowerCase() }),
             ...(promo && { promo }),
-            ...((line[3] || promo) && {
-                variant: line[3]?.trim() ?? 'promo'
-            })
+            ...((variant || promo) && { variant: variant ?? 'promo' })
         });
     }
     return { cards: mergeRows(cards) };
