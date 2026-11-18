@@ -9,6 +9,30 @@ export const SOURCE_LABELS: Record<ListSource, string> = {
     moxfield: 'Moxfield'
 };
 
+// The sources' icons, loaded from their sites like the shops' (SHOP_INFO). MTGGoldfish's /favicon.ico is empty
+// (it's behind Cloudflare), so it's the icon its pages link to.
+const SOURCE_ICONS: Record<ListSource, string> = {
+    mtggoldfish:
+        'https://assets1.mtggoldfish.com/assets/goldfish-32-921a4c78.png',
+    manabox: 'https://manabox.app/favicon.ico',
+    moxfield: 'https://moxfield.com/favicon.ico'
+};
+
+// A source's name with its icon, as ShopBadge shows a shop's.
+export function SourceName({ source }: { source: ListSource }) {
+    return (
+        <span className='inline-flex items-center gap-1 align-text-bottom font-medium text-foreground'>
+            <img
+                src={SOURCE_ICONS[source]}
+                alt=''
+                className='size-4 rounded-sm bg-foreground/5'
+                loading='lazy'
+            />
+            {SOURCE_LABELS[source]}
+        </span>
+    );
+}
+
 // Why the last refresh failed; the cards from the refresh before stay in search meanwhile.
 const REFRESH_ERRORS: Record<ListRefreshError, string> = {
     'not-found':

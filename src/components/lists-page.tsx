@@ -20,7 +20,8 @@ import { TelegramIcon } from '@/components/icons';
 import {
     ListName,
     ListStatusLine,
-    SOURCE_LABELS
+    SOURCE_LABELS,
+    SourceName
 } from '@/components/list-parts';
 import {
     Loading,
@@ -273,14 +274,20 @@ function TraderLists({ user }: { user: CurrentUser }) {
             <AccountBar user={user} />
 
             <section className='grid gap-3'>
-                <p className='leading-relaxed text-muted-foreground'>
-                    Додайте посилання на свій список на MTGGoldfish, ManaBox або
-                    Moxfield або вставте повідомлення з кількома посиланнями:
-                    додамо всі списки з нього. Після перевірки модератором карти
-                    з нього з’являться в пошуку з вашим @{user.username}. Списки
-                    оновлюються щоночі, тож достатньо тримати їх актуальними
-                    там.
-                </p>
+                <div className='grid gap-1 leading-relaxed text-muted-foreground'>
+                    <p>
+                        Додайте посилання на свій список або вставте
+                        повідомлення з кількома посиланнями: додамо всі списки з
+                        нього. Після перевірки модератором карти з нього
+                        з’являться в пошуку. Списки оновлюються щоночі.
+                    </p>
+                    <p>
+                        Підтримуються посилання на{' '}
+                        <SourceName source='mtggoldfish' />,{' '}
+                        <SourceName source='moxfield' />,{' '}
+                        <SourceName source='manabox' />.
+                    </p>
+                </div>
                 <form
                     onSubmit={add}
                     className='flex flex-col gap-2 sm:flex-row'
