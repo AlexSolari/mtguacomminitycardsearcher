@@ -28,7 +28,12 @@ const pick = (o: any, keys: string[]) =>
 const CARD = 'Counterspell';
 
 const carton = new ShopClient('https://carton.cards');
-const cartonSearch = await carton.fetchHtml(carton.url('/search', { q: CARD }));
+const cartonSearch = await carton.fetchHtml(
+    carton.url('/search', {
+        q: CARD,
+        universe: 'magic-the-gathering'
+    })
+);
 await save('carton-search.html', cartonSearch);
 
 // CartOn's product pages name the sellers (also outside the page's JSON), so the fixture is rebuilt from the

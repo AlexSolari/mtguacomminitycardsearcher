@@ -40,6 +40,13 @@ export function parseCarton(html: string, base: string): CardResult[] {
     }));
 }
 
+// The search shows 24 products a page, newest first, and its props name the next page while there is one:
+//   {"products":[…],"productsCount":30,"nextPage":2}
+export function parseCartonNextPage(html: string): number | null {
+    const next = Number(pageProps(html)?.nextPage);
+    return Number.isInteger(next) && next > 1 ? next : null;
+}
+
 // The badges for CartOn's conditions ("heavaly" is the site's own spelling).
 const CONDITIONS: Record<string, string> = {
     mint: 'M',
