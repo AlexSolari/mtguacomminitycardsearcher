@@ -5,7 +5,10 @@ import { BATCH_WINDOW_MS } from '@/server/batcher';
 import { HttpError, ShopClient } from '@/server/shop-client';
 import { parseCarton } from '@/server/parsers/scrapers/carton';
 import { parseManavault } from '@/server/parsers/api/manavault';
-import { CartonCardSearcher } from '@/server/searchers/carton-card-searcher';
+import {
+    CartonCardSearcher,
+    MAX_SEARCH_PAGES
+} from '@/server/searchers/carton-card-searcher';
 import { CitadelCardSearcher } from '@/server/searchers/citadel-card-searcher';
 import { GinCardSearcher } from '@/server/searchers/gin-card-searcher';
 import { KartotekaCardSearcher } from '@/server/searchers/kartoteka-card-searcher';
@@ -295,7 +298,17 @@ describe('GinCardSearcher', () => {
 // The cap and the fallbacks for failed product pages are expandCheapest's, tested in card-searcher.test.ts.
 describe('CartonCardSearcher', () => {
     const base = 'https://carton.cards';
-    const searchUrl = `${base}/search?q=Counterspell`;
+    const searchUrl = `${base}/search?q=Counterspell&universe=magic-the-gathering`;
+    // a search page holding these products, and naming the next page when there is one
+    const searchPage = (products: object[], nextPage: number | null = null) =>
+        `<div id="app" data-page="${JSON.stringify({
+            props: { products, nextPage }
+        }).replace(/"/g, '&quot;')}"></div>`;
+    const tile = (name: string, path: string) => ({
+        name,
+        url_path: path,
+        min_price: 1
+    });
 
     test("swaps each exact product for its page's offers", async () => {
         const productPage = await fixture('carton-product.html');
@@ -346,6 +359,44 @@ describe('CartonCardSearcher', () => {
         );
         expect(requested()).toEqual([searchUrl]);
         expect(results).toMatchObject([{ url: fuzzy, fromPrice: true }]);
+    });
+
+    // CartOn lists newest first, so "Opt" (30 products matching anywhere in the name) has its printings on page 2
+    test('reads the next pages, up to MAX_SEARCH_PAGES', async () => {
+        const pages: Record<string, string> = {};
+        for (let n = 1; n <= MAX_SEARCH_PAGES + 1; n++)
+            pages[n === 1 ? searchUrl : `${searchUrl}&page=${n}`] = searchPage(
+                [tile(`Counterspell Squad (S-${n})`, `/squad-${n}`)],
+                n + 1
+            );
+        const { client, requested } = fakeClient(base, pages);
+        const results = await new CartonCardSearcher(client).search(
+            'Counterspell'
+        );
+        expect(requested()).toEqual(
+            Object.keys(pages).slice(0, MAX_SEARCH_PAGES)
+        );
+        expect(results.map((r) => r.url)).toEqual(
+            Array.from(
+                { length: MAX_SEARCH_PAGES },
+                (_, i) => `${base}/squad-${i + 1}`
+            )
+        );
+        expect(logs).toEqual([]);
+    });
+
+    test('a failed next page keeps the earlier pages, and is logged', async () => {
+        const { client } = fakeClient(base, {
+            [searchUrl]: searchPage([tile('Counterspell Squad', '/squad')], 2),
+            [`${searchUrl}&page=2`]: new Error('timeout')
+        });
+        const results = await new CartonCardSearcher(client).search(
+            'Counterspell'
+        );
+        expect(results).toMatchObject([{ url: `${base}/squad` }]);
+        expect(logs).toMatchObject([
+            { message: 'follow-up request failed, keeping search results' }
+        ]);
     });
 
     test('an empty search parse is logged (how a shop redesign shows up)', async () => {

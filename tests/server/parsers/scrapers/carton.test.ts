@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { SHOP_INFO } from '@/shops';
 import {
     parseCarton,
+    parseCartonNextPage,
     parseCartonProduct
 } from '@/server/parsers/scrapers/carton';
 import { expectWellFormed, html } from '../parser-fixtures';
@@ -63,6 +64,14 @@ describe('carton', () => {
                 base
             ).map((r) => r.price)
         ).toEqual([null, null]);
+    });
+
+    test('the next page, while there is one', () => {
+        const withNext = (nextPage: unknown) =>
+            `<div data-page="${JSON.stringify({ props: { nextPage } }).replace(/"/g, '&quot;')}"></div>`;
+        expect(parseCartonNextPage(withNext(2))).toBe(2);
+        expect(parseCartonNextPage(withNext(null))).toBeNull();
+        expect(parseCartonNextPage('<html></html>')).toBeNull();
     });
 });
 
