@@ -56,11 +56,19 @@ export type MyLists = { lists: MyList[]; max: number; usdRate: number | null };
 // Why POST /api/lists/rate or PATCH /api/lists/:id refused a rate: not a number between 1 and 1000 (or null).
 export type RateError = 'invalid-rate';
 
-// Why POST /api/lists refused a link.
-export type SubmitListError =
-    | 'invalid-link' // not an MTGGoldfish, ManaBox or Moxfield list
-    | 'taken' // this list was added before, by this user or another
-    | 'too-many'; // the user has `max` lists already
+// POST /api/lists {text}: every list linked in the text (one link, or a trader's Telegram post with several),
+// added at once. `added` newest first, as in MyLists; `skipped`, the links it didn't add, in the message's order.
+export type SubmittedLists = {
+    added: MyList[];
+    skipped: { url: string; reason: SkipReason }[];
+};
+export type SkipReason =
+    | 'mine' // the user added it before
+    | 'taken' // another user added it
+    | 'too-many'; // the user reached `max` lists before this one
+
+// Why POST /api/lists refused a text: there's no MTGGoldfish, ManaBox or Moxfield list link in it.
+export type SubmitListError = 'no-links';
 
 // POST /api/admin/refresh: the approved lists queued to be read again now (lists already queued aren't repeated).
 export type ListsRefreshed = { refreshed: number[] };

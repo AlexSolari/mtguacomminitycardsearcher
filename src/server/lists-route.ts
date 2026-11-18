@@ -5,16 +5,17 @@ import type {
     MyList,
     MyLists,
     RateError,
-    SubmitListError
+    SubmitListError,
+    SubmittedLists
 } from '../account';
 import type { ListStore, ReviewedList, TraderList } from './db/list-store';
 import type { SellerRow, User, UserStore } from './db/user-store';
-import { LIST_SOURCES, parseListLink } from './lists/list-link';
+import { findListLinks, LIST_SOURCES, parseListLink } from './lists/list-link';
 import { logger } from './logger';
 
 // Traders' lists and their moderation:
 //   GET    /api/lists                    → MyLists
-//   POST   /api/lists {link}             → 201 MyList | 400/403/409 {error: SubmitListError}
+//   POST   /api/lists {text}             → SubmittedLists: every list linked in the text | 400 {error: SubmitListError}
 //   DELETE /api/lists/:id                → 204
 //   PATCH  /api/lists/:id {usdRate}      → MyList: the list's own exchange rate (null: the owner's default)
 //   POST   /api/lists/rate {usdRate}     → 204: the owner's default exchange rate (null: prices stay in USD)
@@ -29,8 +30,10 @@ import { logger } from './logger';
 
 // Lists one trader may have, in any state.
 export const MAX_LISTS_PER_USER = 25;
-// A link, or a moderator's decision; anything bigger isn't from our frontend.
+// An exchange rate, or a moderator's decision; anything bigger isn't from our frontend.
 const MAX_BODY_BYTES = 2048;
+// A trader's message with their links: a Telegram message is at most 4096 characters, a few more once in JSON.
+const MAX_MESSAGE_BYTES = 16384;
 
 const STATUSES = new Set<ListStatus>(['pending', 'approved', 'rejected']);
 
@@ -40,11 +43,14 @@ const noContent = () => new Response(null, { status: 204 });
 const noStore = { 'Cache-Control': 'no-store' };
 
 // The request's JSON object, or null when it isn't one (or isn't sent as JSON).
-async function readJson(req: Request): Promise<Record<string, unknown> | null> {
+async function readJson(
+    req: Request,
+    maxBytes = MAX_BODY_BYTES
+): Promise<Record<string, unknown> | null> {
     if (!req.headers.get('content-type')?.startsWith('application/json'))
         return null;
     const text = await req.text();
-    if (text.length > MAX_BODY_BYTES) return null;
+    if (text.length > maxBytes) return null;
     try {
         const body = JSON.parse(text);
         return typeof body === 'object' && body !== null && !Array.isArray(body)
@@ -192,24 +198,42 @@ export function listsHandlers(
             return Response.json(body, { headers: noStore });
         }),
 
+        // Every list linked in a pasted message, up to the user's limit. Lists the user has already are skipped
+        // as theirs, so pasting an updated post again adds only its new links.
         submit: signedIn(async (user, req) => {
-            const body = await readJson(req);
-            const link =
-                typeof body?.link === 'string'
-                    ? parseListLink(body.link)
-                    : null;
-            if (!link)
-                return error('invalid-link' satisfies SubmitListError, 400);
-            if (lists.ofUser(user.id).length >= MAX_LISTS_PER_USER)
-                return error('too-many' satisfies SubmitListError, 403);
-            const list = lists.submit(user.id, link, now());
-            if (!list) return error('taken' satisfies SubmitListError, 409);
-            logger.info('list submitted', {
-                user: user.id,
-                list: list.id,
-                source: list.source
-            });
-            return Response.json(myList(list), { status: 201 });
+            const body = await readJson(req, MAX_MESSAGE_BYTES);
+            const links =
+                typeof body?.text === 'string' ? findListLinks(body.text) : [];
+            if (links.length === 0)
+                return error('no-links' satisfies SubmitListError, 400);
+            const own = lists.ofUser(user.id);
+            const mine = new Set(own.map((l) => `${l.source}/${l.ref}`));
+            let room = MAX_LISTS_PER_USER - own.length;
+            const result: SubmittedLists = { added: [], skipped: [] };
+            for (const link of links) {
+                const url = LIST_SOURCES[link.source].link(link.ref);
+                if (mine.has(`${link.source}/${link.ref}`)) {
+                    result.skipped.push({ url, reason: 'mine' });
+                    continue;
+                }
+                if (room <= 0) {
+                    result.skipped.push({ url, reason: 'too-many' });
+                    continue;
+                }
+                const list = lists.submit(user.id, link, now());
+                if (!list) {
+                    result.skipped.push({ url, reason: 'taken' });
+                    continue;
+                }
+                room--;
+                logger.info('list submitted', {
+                    user: user.id,
+                    list: list.id,
+                    source: list.source
+                });
+                result.added.unshift(myList(list));
+            }
+            return Response.json(result);
         }),
 
         remove: signedIn((user, _req, id: string) => {

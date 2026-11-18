@@ -40,7 +40,7 @@ A shop redesign can break its parser. If one shop stops returning results, that'
 - **Not found**: cards that no shop has are listed together.
 - **Blocked shops**: when a shop refuses our server (HTTP 403, as Nerdik and Kartoteka do to some server IPs), the card links to that shop's own search to check by hand.
 - **Light and dark themes**, following the system setting unless you pick one.
-- **Traders' lists**: people who sell cards in Telegram groups sign in with Telegram on `/lists` and add their MTGGoldfish, ManaBox or Moxfield lists.
+- **Traders' lists**: people who sell cards in Telegram groups sign in with Telegram on `/lists` and add their MTGGoldfish, ManaBox or Moxfield lists: one link, or a whole Telegram post with several (every list linked in it is added).
   Once a moderator approves a list on `/admin`, its cards show under each card as "Гравці", with the seller's Telegram and Scryfall's USD price as a guide; they never count toward best price or the total.
   Lists are read again every night. A trader can delete a list, or their whole account, at any time.
 

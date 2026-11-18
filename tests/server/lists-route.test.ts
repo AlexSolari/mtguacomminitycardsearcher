@@ -3,7 +3,8 @@ import type {
     ModeratedList,
     ModeratedSeller,
     MyList,
-    MyLists
+    MyLists,
+    SubmittedLists
 } from '@/account';
 import { openDatabase } from '@/server/db/database';
 import { ListStore } from '@/server/db/list-store';
@@ -78,8 +79,11 @@ describe('lists routes', () => {
                       ? init.body
                       : JSON.stringify(init.body)
         });
-    const submit = (user: User | null, link: unknown) =>
-        routes.submit(request('/api/lists', user, { body: { link } }));
+    const submit = (user: User | null, text: unknown) =>
+        routes.submit(request('/api/lists', user, { body: { text } }));
+    // a list the user adds by its link
+    const add = async (user: User, link: string) =>
+        ((await (await submit(user, link)).json()) as SubmittedLists).added[0]!;
     const mine = async (user: User) =>
         (await (
             await routes.mine(request('/api/lists', user))
@@ -104,21 +108,34 @@ describe('lists routes', () => {
             String(id)
         );
 
+    const goldfish = (id: number) => `https://www.mtggoldfish.com/deck/${id}`;
+    // a trader's post, the way they share their lists in Telegram groups
+    const post = (...ids: number[]) =>
+        ids
+            .map((id) => `🔥 Список №${id}\n${goldfish(id)}#paper🔥`)
+            .join('\n\n');
+
     test('a trader adds a list by its link; it waits for review', async () => {
         const res = await submit(alice, ` ${GOLDFISH} `);
-        expect(res.status).toBe(201);
-        const list = (await res.json()) as MyList;
-        expect(list).toEqual({
-            id: expect.any(Number),
-            source: 'mtggoldfish',
-            url: 'https://www.mtggoldfish.com/deck/6906342',
-            title: null,
-            status: 'pending',
-            createdAt: 1000,
-            fetchedAt: null,
-            cardCount: 0,
-            lastError: null,
-            usdRate: null
+        expect(res.status).toBe(200);
+        const body = (await res.json()) as SubmittedLists;
+        const list = body.added[0]!;
+        expect(body).toEqual({
+            added: [
+                {
+                    id: expect.any(Number),
+                    source: 'mtggoldfish',
+                    url: 'https://www.mtggoldfish.com/deck/6906342',
+                    title: null,
+                    status: 'pending',
+                    createdAt: 1000,
+                    fetchedAt: null,
+                    cardCount: 0,
+                    lastError: null,
+                    usdRate: null
+                }
+            ],
+            skipped: []
         });
         expect(await mine(alice)).toEqual({
             lists: [list],
@@ -131,53 +148,86 @@ describe('lists routes', () => {
         ]);
     });
 
-    test("a link that isn't an MTGGoldfish or ManaBox list is refused", async () => {
-        for (const link of ['https://example.com/deck/1', 'not a url', 42]) {
-            const res = await submit(alice, link);
+    test('a post adds every list in it, newest first, and skips the ones already added', async () => {
+        await submit(alice, goldfish(2));
+        await submit(bob, goldfish(3));
+        logs.length = 0;
+        const res = await submit(alice, `Продаж, курс 40\n${post(1, 2, 3, 4)}`);
+        expect(res.status).toBe(200);
+        const body = (await res.json()) as SubmittedLists;
+        expect(body.added.map((l) => [l.url, l.status])).toEqual([
+            [goldfish(4), 'pending'],
+            [goldfish(1), 'pending']
+        ]);
+        expect(body.skipped).toEqual([
+            { url: goldfish(2), reason: 'mine' },
+            { url: goldfish(3), reason: 'taken' }
+        ]);
+        expect((await mine(alice)).lists.map((l) => l.url)).toEqual([
+            goldfish(4),
+            goldfish(1),
+            goldfish(2)
+        ]);
+        expect(logs.map((l) => [l.message, l.user])).toEqual([
+            ['list submitted', alice.id],
+            ['list submitted', alice.id]
+        ]);
+    });
+
+    test(`stops at ${MAX_LISTS_PER_USER} lists, naming the ones left out`, async () => {
+        for (let i = 1; i < MAX_LISTS_PER_USER; i++)
+            await submit(alice, goldfish(i));
+        const ids = [1, 100, 101, 102];
+        const body = (await (
+            await submit(alice, post(...ids))
+        ).json()) as SubmittedLists;
+        expect(body.added.map((l) => l.url)).toEqual([goldfish(100)]);
+        expect(body.skipped).toEqual([
+            { url: goldfish(1), reason: 'mine' },
+            { url: goldfish(101), reason: 'too-many' },
+            { url: goldfish(102), reason: 'too-many' }
+        ]);
+        expect((await mine(alice)).lists).toHaveLength(MAX_LISTS_PER_USER);
+    });
+
+    test('a post without list links, or no text, is refused', async () => {
+        for (const text of [
+            'Продам карти, пишіть',
+            'https://example.com/deck/1',
+            42,
+            undefined
+        ]) {
+            const res = await submit(alice, text);
             expect(res.status).toBe(400);
-            expect(await res.json()).toEqual({ error: 'invalid-link' });
+            expect(await res.json()).toEqual({ error: 'no-links' });
         }
-    });
-
-    test('a list belongs to whoever added it first', async () => {
-        await submit(alice, MANABOX);
-        for (const user of [alice, bob]) {
-            const res = await submit(user, `${MANABOX}/`);
-            expect(res.status).toBe(409);
-            expect(await res.json()).toEqual({ error: 'taken' });
-        }
-    });
-
-    test(`a trader may have ${MAX_LISTS_PER_USER} lists`, async () => {
-        for (let i = 1; i <= MAX_LISTS_PER_USER; i++)
-            expect(
-                (await submit(alice, `https://www.mtggoldfish.com/deck/${i}`))
-                    .status
-            ).toBe(201);
-        const res = await submit(alice, GOLDFISH);
-        expect(res.status).toBe(403);
-        expect(await res.json()).toEqual({ error: 'too-many' });
+        expect((await mine(alice)).lists).toEqual([]);
     });
 
     test('only JSON bodies of a sane size are read', async () => {
         const send = (body: string, type?: string) =>
             routes.submit(request('/api/lists', alice, { body, type }));
         expect(
-            (await send(JSON.stringify({ link: GOLDFISH }), 'text/plain'))
+            (await send(JSON.stringify({ text: GOLDFISH }), 'text/plain'))
                 .status
         ).toBe(400);
         expect((await send('{')).status).toBe(400);
         expect((await send(JSON.stringify([GOLDFISH]))).status).toBe(400);
+        // a Telegram-sized post, but not much more
         expect(
             (
                 await send(
-                    JSON.stringify({ link: GOLDFISH, pad: 'x'.repeat(3000) })
+                    JSON.stringify({ text: `${'💥'.repeat(2000)} ${GOLDFISH}` })
+                )
+            ).status
+        ).toBe(200);
+        expect(
+            (
+                await send(
+                    JSON.stringify({ text: `${'x'.repeat(20000)} ${MANABOX}` })
                 )
             ).status
         ).toBe(400);
-        expect((await send(JSON.stringify({ link: GOLDFISH }))).status).toBe(
-            201
-        );
     });
 
     test('a trader sets a default exchange rate, and one per list over it', async () => {
@@ -197,7 +247,7 @@ describe('lists routes', () => {
                 }),
                 String(id)
             );
-        const list = (await (await submit(alice, GOLDFISH)).json()) as MyList;
+        const list = await add(alice, GOLDFISH);
         logs.length = 0;
 
         expect((await setRate(42.456)).status).toBe(204);
@@ -247,7 +297,7 @@ describe('lists routes', () => {
     });
 
     test('a trader deletes their own lists only', async () => {
-        const { id } = (await (await submit(alice, GOLDFISH)).json()) as MyList;
+        const { id } = await add(alice, GOLDFISH);
         const remove = (user: User, listId: string) =>
             routes.remove(
                 request(`/api/lists/${listId}`, user, { method: 'DELETE' }),
@@ -292,8 +342,8 @@ describe('lists routes', () => {
     });
 
     test('the queue lists pending lists with their owner; approving reads the list at once', async () => {
-        const a = (await (await submit(alice, GOLDFISH)).json()) as MyList;
-        const b = (await (await submit(bob, MANABOX)).json()) as MyList;
+        const a = await add(alice, GOLDFISH);
+        const b = await add(bob, MANABOX);
         expect(await queue()).toEqual([
             {
                 ...a,
@@ -350,14 +400,12 @@ describe('lists routes', () => {
             { telegramId: 9, username: 'olena_cards', displayName: 'Олена' },
             0
         );
-        const a = (await (await submit(alice, GOLDFISH)).json()) as MyList;
-        const b = (await (await submit(bob, MANABOX)).json()) as MyList;
-        const c = (await (
-            await submit(
-                olena,
-                'https://moxfield.com/decks/q8YrkjxqgUSG0GQ3m9aQMQ'
-            )
-        ).json()) as MyList;
+        const a = await add(alice, GOLDFISH);
+        const b = await add(bob, MANABOX);
+        const c = await add(
+            olena,
+            'https://moxfield.com/decks/q8YrkjxqgUSG0GQ3m9aQMQ'
+        );
         await review(a.id, 'approved');
         await review(b.id, 'rejected');
         lists.saveCards(a.id, { title: 'Modern Burn', cards: [] }, 1000, 2000);
@@ -407,7 +455,7 @@ describe('lists routes', () => {
             { telegramId: 9, username: 'olena_cards', displayName: 'Олена' },
             5
         );
-        const list = (await (await submit(alice, GOLDFISH)).json()) as MyList;
+        const list = await add(alice, GOLDFISH);
         await review(list.id, 'approved');
         await submit(alice, MANABOX);
         users.setUsdRate(alice.id, 42);
@@ -471,7 +519,7 @@ describe('lists routes', () => {
     });
 
     test('a review needs a known list and status', async () => {
-        const { id } = (await (await submit(alice, GOLDFISH)).json()) as MyList;
+        const { id } = await add(alice, GOLDFISH);
         expect((await review(id, 'pending')).status).toBe(400);
         expect((await review(999, 'approved')).status).toBe(404);
         expect((await review('x', 'approved')).status).toBe(404);
@@ -485,8 +533,8 @@ describe('lists routes', () => {
     test('a moderator has approved lists read again now: the ticked ones, or all', async () => {
         const refresh = (body: unknown, user: User | null = mod) =>
             routes.refresh(request('/api/admin/refresh', user, { body }));
-        const a = (await (await submit(alice, GOLDFISH)).json()) as MyList;
-        const b = (await (await submit(bob, MANABOX)).json()) as MyList;
+        const a = await add(alice, GOLDFISH);
+        const b = await add(bob, MANABOX);
         await review(a.id, 'approved');
         await review(b.id, 'approved');
         lists.saveCards(a.id, { cards: [] }, 1000, 5000);

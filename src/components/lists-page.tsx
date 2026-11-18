@@ -13,7 +13,8 @@ import type {
     MyList,
     LoginFailure,
     MyLists,
-    SubmitListError
+    SkipReason,
+    SubmittedLists
 } from '@/account';
 import { TelegramIcon } from '@/components/icons';
 import {
@@ -29,6 +30,7 @@ import {
 } from '@/components/page-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { RateField } from '@/components/rate-field';
 import { useAccount } from '@/hooks/use-account';
 import { LISTS, LISTS_GENITIVE, plural } from '@/i18n';
@@ -40,7 +42,7 @@ import {
     logout,
     setDefaultRate,
     setListRate,
-    submitList
+    submitLists
 } from '@/lib/account-api';
 
 const LOGIN_FAILURES: Record<LoginFailure, string> = {
@@ -52,11 +54,8 @@ const LOGIN_FAILURES: Record<LoginFailure, string> = {
     banned: 'Ваш акаунт заблоковано.'
 };
 
-const SUBMIT_ERRORS: Record<Exclude<SubmitListError, 'too-many'>, string> = {
-    'invalid-link':
-        'Це не посилання на список MTGGoldfish, ManaBox або Moxfield. Скопіюйте адресу сторінки зі списком.',
-    taken: 'Цей список уже додано.'
-};
+const NO_LINKS =
+    'Тут немає посилань на списки MTGGoldfish, ManaBox або Moxfield. Скопіюйте адресу сторінки зі списком або все повідомлення з посиланнями.';
 
 // /lists, "Мої списки": traders sign in with Telegram and add their MTGGoldfish, ManaBox or Moxfield lists, which show in
 // search once a moderator approves them. The sign-in comes back here, with ?login=<reason> when it failed.
@@ -183,10 +182,10 @@ function listMatcher(filter: string) {
 function TraderLists({ user }: { user: CurrentUser }) {
     const [data, setData] = useState<MyLists | null>();
     const [filter, setFilter] = useState('');
-    const [link, setLink] = useState('');
+    const [text, setText] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [added, setAdded] = useState(false);
+    const [result, setResult] = useState<SubmittedLists | null>(null);
 
     // An expired session (401) starts over from the sign-in; anything else is the server's fault.
     const fail = (err: unknown) => {
@@ -203,28 +202,21 @@ function TraderLists({ user }: { user: CurrentUser }) {
             });
     }, []);
 
-    async function add(e: FormEvent) {
-        e.preventDefault();
-        if (!data || !link.trim()) return;
+    // One link, or a whole post with several (the way traders share their lists in Telegram groups).
+    async function add(e?: FormEvent) {
+        e?.preventDefault();
+        if (!data || !text.trim() || submitting) return;
         setSubmitting(true);
         setError(null);
-        setAdded(false);
+        setResult(null);
         try {
-            const list = await submitList(link.trim());
-            setData({ ...data, lists: [list, ...data.lists] });
-            setLink('');
-            setAdded(true);
+            const result = await submitLists(text);
+            setData({ ...data, lists: [...result.added, ...data.lists] });
+            setText('');
+            setResult(result);
         } catch (err) {
-            if (err instanceof ApiError && err.code === 'too-many')
-                setError(
-                    `Можна додати не більше ${plural(data.max, LISTS_GENITIVE)}.`
-                );
-            else if (
-                err instanceof ApiError &&
-                err.code &&
-                err.code in SUBMIT_ERRORS
-            )
-                setError(SUBMIT_ERRORS[err.code as keyof typeof SUBMIT_ERRORS]);
+            if (err instanceof ApiError && err.code === 'no-links')
+                setError(NO_LINKS);
             else fail(err);
         } finally {
             setSubmitting(false);
@@ -265,7 +257,7 @@ function TraderLists({ user }: { user: CurrentUser }) {
         )
             return;
         setError(null);
-        setAdded(false);
+        setResult(null);
         try {
             await deleteList(id);
             setData({ ...data, lists: data.lists.filter((l) => l.id !== id) });
@@ -283,8 +275,9 @@ function TraderLists({ user }: { user: CurrentUser }) {
             <section className='grid gap-3'>
                 <p className='leading-relaxed text-muted-foreground'>
                     Додайте посилання на свій список на MTGGoldfish, ManaBox або
-                    Moxfield. Після перевірки модератором карти з нього
-                    з’являться в пошуку з вашим @{user.username}. Списки
+                    Moxfield або вставте повідомлення з кількома посиланнями:
+                    додамо всі списки з нього. Після перевірки модератором карти
+                    з нього з’являться в пошуку з вашим @{user.username}. Списки
                     оновлюються щоночі, тож достатньо тримати їх актуальними
                     там.
                 </p>
@@ -292,19 +285,28 @@ function TraderLists({ user }: { user: CurrentUser }) {
                     onSubmit={add}
                     className='flex flex-col gap-2 sm:flex-row'
                 >
-                    <Input
-                        value={link}
-                        onChange={(e) => setLink(e.target.value)}
-                        placeholder='https://www.mtggoldfish.com/deck/… або https://manabox.app/decks/…'
-                        aria-label='Посилання на список'
-                        aria-invalid={error !== null && !full}
+                    {/* Enter adds, as a one-line field would; Shift+Enter starts a new line */}
+                    <Textarea
+                        value={text}
+                        onChange={(e) => setText(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                add();
+                            }
+                        }}
+                        rows={1}
+                        placeholder='https://www.mtggoldfish.com/deck/… або повідомлення з кількома посиланнями'
+                        aria-label='Посилання на список або повідомлення з посиланнями'
+                        aria-invalid={error === NO_LINKS}
                         disabled={!data || full}
-                        className='h-10'
+                        className='max-h-60 min-h-10'
                     />
                     <Button
                         type='submit'
                         size='lg'
-                        disabled={!data || full || submitting || !link.trim()}
+                        disabled={!data || full || submitting || !text.trim()}
+                        className='sm:self-start'
                     >
                         {submitting ? (
                             <Loader2 className='animate-spin' />
@@ -315,11 +317,8 @@ function TraderLists({ user }: { user: CurrentUser }) {
                     </Button>
                 </form>
                 {error && <Notice tone='error'>{error}</Notice>}
-                {added && (
-                    <Notice tone='ok'>
-                        Список додано. Він з’явиться в пошуку, щойно модератор
-                        його схвалить.
-                    </Notice>
+                {result && data && (
+                    <SubmitResult result={result} max={data.max} />
                 )}
                 {full && !error && (
                     <Notice>
@@ -423,6 +422,75 @@ function TraderLists({ user }: { user: CurrentUser }) {
 
             <DeleteAccount />
         </>
+    );
+}
+
+// What adding a post's links did: how many were added, and the links that weren't, with why.
+function SubmitResult({
+    result,
+    max
+}: {
+    result: SubmittedLists;
+    max: number;
+}) {
+    const n = result.added.length;
+    const skipped = (reason: SkipReason) =>
+        result.skipped.filter((s) => s.reason === reason).map((s) => s.url);
+    const mine = skipped('mine');
+    const taken = skipped('taken');
+    const tooMany = skipped('too-many');
+    return (
+        <>
+            {n > 0 && (
+                <Notice tone='ok'>
+                    {n === 1
+                        ? 'Список додано. Він з’явиться в пошуку, щойно модератор його схвалить.'
+                        : `Додано ${plural(n, LISTS)}. Вони з’являться в пошуку, щойно модератор їх схвалить.`}
+                </Notice>
+            )}
+            {mine.length > 0 && (
+                <Notice>
+                    {n === 0 && result.skipped.length === 1
+                        ? 'Цей список у вас уже є.'
+                        : `Уже є у вас: ${plural(mine.length, LISTS)}.`}
+                </Notice>
+            )}
+            {taken.length > 0 && (
+                <Notice tone='error'>
+                    {taken.length === 1
+                        ? 'Цей список уже додав інший продавець:'
+                        : 'Ці списки вже додали інші продавці:'}
+                    <LinkList urls={taken} />
+                </Notice>
+            )}
+            {tooMany.length > 0 && (
+                <Notice tone='error'>
+                    Не вмістилися: можна мати не більше{' '}
+                    {plural(max, LISTS_GENITIVE)}. Видаліть старі, щоб додати
+                    ці:
+                    <LinkList urls={tooMany} />
+                </Notice>
+            )}
+        </>
+    );
+}
+
+function LinkList({ urls }: { urls: string[] }) {
+    return (
+        <ul className='mt-1 grid gap-0.5'>
+            {urls.map((url) => (
+                <li key={url} className='break-all'>
+                    <a
+                        href={url}
+                        target='_blank'
+                        rel='noreferrer'
+                        className='underline underline-offset-2'
+                    >
+                        {url}
+                    </a>
+                </li>
+            ))}
+        </ul>
     );
 }
 

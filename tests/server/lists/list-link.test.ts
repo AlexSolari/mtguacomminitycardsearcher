@@ -1,5 +1,9 @@
 import { describe, expect, test } from 'bun:test';
-import { LIST_SOURCES, parseListLink } from '@/server/lists/list-link';
+import {
+    findListLinks,
+    LIST_SOURCES,
+    parseListLink
+} from '@/server/lists/list-link';
 
 describe('parseListLink', () => {
     test.each([
@@ -110,5 +114,50 @@ describe('LIST_SOURCES', () => {
             const site = new URL(source.link('1')).hostname;
             expect(host === site || host.endsWith(`.${site}`)).toBe(true);
         }
+    });
+});
+
+describe('findListLinks', () => {
+    // a trader's post, the way they share their lists in Telegram groups
+    const POST = `#Продажа курс 40, Киев (МВ) или доставка НП, карты в ЕДХ, пионер, модерн и стандарт, в сайде фойл.
+https://www.mtggoldfish.com/deck/2813365#paper
+https://www.mtggoldfish.com/deck/5190327#paper
+🎃🎃🎃 Список, состоящий из отличных карт во все форматы
+https://www.mtggoldfish.com/deck/7217240#paper
+
+💥💥💥Список с МАНАБАЗОЙ (шокленды, вержи, сурвейленды, фастленды)
+https://www.mtggoldfish.com/deck/7911381#paper💥💥💥
+
+💣💣💣 REALITY FRACTURE!!! https://www.mtggoldfish.com/deck/7972707#paper 💣💣💣
+Последнее обновление списков: 18.11.2026`;
+
+    test('finds every list in a post, in order, emoji and text around them', () => {
+        expect(findListLinks(POST)).toEqual(
+            ['2813365', '5190327', '7217240', '7911381', '7972707'].map(
+                (ref) => ({ source: 'mtggoldfish', ref })
+            )
+        );
+    });
+
+    test('mixes sources, drops repeats and links that are no list, and trims punctuation', () => {
+        expect(
+            findListLinks(
+                `Moxfield (https://moxfield.com/decks/oEWXWHM5eEGMmopExLWRCA), ManaBox: https://manabox.app/decks/Qsjv6XwMQ_SynKoo3V-epw.
+                 again https://www.mtggoldfish.com/deck/006906342, https://mtggoldfish.com/deck/6906342!
+                 <https://t.me/somechannel> https://www.mtggoldfish.com/archetype/modern-boros`
+            )
+        ).toEqual([
+            { source: 'moxfield', ref: 'oEWXWHM5eEGMmopExLWRCA' },
+            { source: 'manabox', ref: 'Qsjv6XwMQ_SynKoo3V-epw' },
+            { source: 'mtggoldfish', ref: '6906342' }
+        ]);
+    });
+
+    test('a single link is a message with one list; text without lists has none', () => {
+        expect(
+            findListLinks(' https://www.mtggoldfish.com/deck/1#paper ')
+        ).toEqual([{ source: 'mtggoldfish', ref: '1' }]);
+        expect(findListLinks('Продам карти, пишіть в особисті')).toEqual([]);
+        expect(findListLinks('')).toEqual([]);
     });
 });

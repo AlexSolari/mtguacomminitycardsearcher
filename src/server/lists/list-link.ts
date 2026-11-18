@@ -49,6 +49,27 @@ export function parseListLink(input: string): ListLink | null {
     return null;
 }
 
+// A link in running text runs to the first space or non-ASCII character: traders glue emoji to their links
+// ("…/deck/7911381#paper💥💥💥").
+const LINK_IN_TEXT = /https?:\/\/[!-~]+/gi;
+// what ends the sentence or wraps the link, not the link: "(…/deck/1).", "<…/deck/1>"
+const TRAILING_PUNCTUATION = /[.,;:!?'")\]}>]+$/;
+
+// The lists linked in a trader's message, as they post them in Telegram groups: prices, shipping and emoji around
+//   🔥🔥🔥ЭКСКЛЮЗИВНЫЙ список из сетов WILDS OF ELDRAINE, …
+//   https://www.mtggoldfish.com/deck/7859174#paper
+// Each list once, in the order they appear; links that aren't lists are left out.
+export function findListLinks(text: string): ListLink[] {
+    const found = new Map<string, ListLink>();
+    for (const [match] of text.matchAll(LINK_IN_TEXT)) {
+        const link = parseListLink(match.replace(TRAILING_PUNCTUATION, ''));
+        if (!link) continue;
+        const key = `${link.source}/${link.ref}`;
+        if (!found.has(key)) found.set(key, link);
+    }
+    return [...found.values()];
+}
+
 // Where a list is fetched from. MTGGoldfish's deck pages are behind a Cloudflare challenge, so its list is read
 // from the proxy printer, which is prefilled with the deck and isn't (see parsers/mtggoldfish.ts).
 export const LIST_SOURCES: Record<

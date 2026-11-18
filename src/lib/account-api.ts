@@ -5,7 +5,8 @@ import type {
     ModeratedList,
     ModeratedSeller,
     MyList,
-    MyLists
+    MyLists,
+    SubmittedLists
 } from '@/account';
 
 // The account and lists API (server/auth/auth-route.ts, server/lists-route.ts). A failed request throws
@@ -51,9 +52,9 @@ export const deleteAccount = () =>
     api<void>('/api/auth/me', { method: 'DELETE' });
 
 export const fetchMyLists = () => api<MyLists>('/api/lists');
-// Throws ApiError with a SubmitListError `code` when the link is refused.
-export const submitList = (link: string) =>
-    api<MyList>('/api/lists', { body: { link } });
+// Every list linked in `text`, one link or a whole message. Throws ApiError with `code` 'no-links' when it has none.
+export const submitLists = (text: string) =>
+    api<SubmittedLists>('/api/lists', { body: { text } });
 export const deleteList = (id: number) =>
     api<void>(`/api/lists/${id}`, { method: 'DELETE' });
 // exchange rates, UAH per USD; null clears one
