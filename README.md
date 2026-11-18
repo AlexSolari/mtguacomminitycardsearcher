@@ -33,6 +33,8 @@ A shop redesign can break its parser. If one shop stops returning results, that'
     - auctions, fuzzy "other matches" and Art Series cards in separate groups; the last two are collapsed by default
     - foil, language, condition, discount and stock badges where the shop provides them
 - **Grid or table view**, remembered per browser.
+- **Filters**: foil or non-foil, and which languages and shops to show (traders' lists among them), remembered per browser. They apply to the results and the summary without searching again.
+  An offer that doesn't say its language or finish is kept: Kartoteka and traders' lists give no language, and some shops leave out the foil flag on regular cards.
 - **Summary**: how many cards have an exact match, the number of offers, the cheapest total and which shops failed.
   The total counts exact matches only, for the quantity in the list, within each shop's stock. Cards with no exact match or too few copies are listed separately.
 - Results for each card appear as soon as each shop answers; there's no waiting for the whole list or the slowest shop.

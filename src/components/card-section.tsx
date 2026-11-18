@@ -1,5 +1,11 @@
 import { Fragment, memo, useId, useState } from 'react';
-import { AlertTriangle, ChevronRight, Loader2, SearchX } from 'lucide-react';
+import {
+    AlertTriangle,
+    ChevronRight,
+    FilterX,
+    Loader2,
+    SearchX
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { OFFERS, plural } from '@/i18n';
 import { offerKey, splitMatches } from '@/results';
@@ -120,10 +126,12 @@ function GroupDivider({
 // views re-renders nothing.
 export const CardSection = memo(function CardSection({
     result,
-    count
+    count,
+    hidden = 0
 }: {
-    result: SearchResult;
+    result: SearchResult; // already filtered (filterResult)
     count: number; // copies wanted
+    hidden?: number; // offers the filters hide
 }) {
     const { exact, auctions, traders, art, other, pricing, min } =
         splitMatches(result);
@@ -238,74 +246,89 @@ export const CardSection = memo(function CardSection({
                 )}
                 <span className='rounded-full bg-muted px-2 py-0.5 text-xs tabular-nums'>
                     {plural(links.length, OFFERS)}
+                    {hidden > 0 && (
+                        <span className='text-muted-foreground/80'>
+                            {' '}
+                            · приховано {hidden}
+                        </span>
+                    )}
                 </span>
             </SectionHeader>
 
-            {links.length === 0
-                ? result.errors.length === 0 &&
-                  !result.pending?.length && (
-                      <div className='flex items-center gap-3 rounded-xl border border-dashed px-4 py-6 text-sm text-muted-foreground'>
-                          <SearchX className='size-5 shrink-0' />
-                          Не знайдено в жодному магазині.
-                      </div>
-                  )
-                : groups.map(
-                      (group) =>
-                          group.links.length > 0 && (
-                              <Fragment key={group.key}>
-                                  {group.label && (
-                                      <GroupDivider
-                                          label={group.label}
-                                          count={group.links.length}
-                                          expanded={group.collapse?.open}
-                                          onToggle={group.collapse?.toggle}
-                                          controls={`${idPrefix}-${group.key}`}
-                                      />
-                                  )}
-                                  {group.collapse &&
-                                  !group.collapse.open ? null : (
-                                      <div
-                                          id={`${idPrefix}-${group.key}`}
-                                          className={cn(
-                                              'flex flex-col gap-3',
-                                              group.dim &&
-                                                  'opacity-70 transition-opacity hover:opacity-100'
-                                          )}
-                                      >
-                                          {group.note && (
-                                              <p className='text-xs text-muted-foreground'>
-                                                  {group.note}
-                                              </p>
-                                          )}
-                                          <div className='group-data-[view=grid]/results:hidden'>
-                                              <ResultTable
-                                                  links={group.links}
-                                                  isBest={isBest}
-                                                  card={result.card}
-                                                  group={group.key}
-                                              />
-                                          </div>
-                                          <div
-                                              className={cn(
-                                                  grid,
-                                                  'group-data-[view=table]/results:hidden'
-                                              )}
-                                          >
-                                              {group.links.map((link) => (
-                                                  <ResultTile
-                                                      key={offerKey(link)}
-                                                      link={link}
-                                                      best={isBest(link)}
-                                                      card={result.card}
-                                                      group={group.key}
-                                                  />
-                                              ))}
-                                          </div>
-                                      </div>
-                                  )}
-                              </Fragment>
-                          )
-                  )}
+            {links.length === 0 ? (
+                hidden > 0 ? (
+                    <div className='flex items-center gap-3 rounded-xl border border-dashed px-4 py-6 text-sm text-muted-foreground'>
+                        <FilterX className='size-5 shrink-0' />
+                        Жодна пропозиція не відповідає фільтрам.
+                    </div>
+                ) : (
+                    result.errors.length === 0 &&
+                    !result.pending?.length && (
+                        <div className='flex items-center gap-3 rounded-xl border border-dashed px-4 py-6 text-sm text-muted-foreground'>
+                            <SearchX className='size-5 shrink-0' />
+                            Не знайдено в жодному магазині.
+                        </div>
+                    )
+                )
+            ) : (
+                groups.map(
+                    (group) =>
+                        group.links.length > 0 && (
+                            <Fragment key={group.key}>
+                                {group.label && (
+                                    <GroupDivider
+                                        label={group.label}
+                                        count={group.links.length}
+                                        expanded={group.collapse?.open}
+                                        onToggle={group.collapse?.toggle}
+                                        controls={`${idPrefix}-${group.key}`}
+                                    />
+                                )}
+                                {group.collapse &&
+                                !group.collapse.open ? null : (
+                                    <div
+                                        id={`${idPrefix}-${group.key}`}
+                                        className={cn(
+                                            'flex flex-col gap-3',
+                                            group.dim &&
+                                                'opacity-70 transition-opacity hover:opacity-100'
+                                        )}
+                                    >
+                                        {group.note && (
+                                            <p className='text-xs text-muted-foreground'>
+                                                {group.note}
+                                            </p>
+                                        )}
+                                        <div className='group-data-[view=grid]/results:hidden'>
+                                            <ResultTable
+                                                links={group.links}
+                                                isBest={isBest}
+                                                card={result.card}
+                                                group={group.key}
+                                            />
+                                        </div>
+                                        <div
+                                            className={cn(
+                                                grid,
+                                                'group-data-[view=table]/results:hidden'
+                                            )}
+                                        >
+                                            {group.links.map((link) => (
+                                                <ResultTile
+                                                    key={offerKey(link)}
+                                                    link={link}
+                                                    best={isBest(link)}
+                                                    card={result.card}
+                                                    group={group.key}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </Fragment>
+                        )
+                )
+            )}
 
             {manualChecks.length > 0 && (
                 <>

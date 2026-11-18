@@ -35,8 +35,14 @@ function Stat({
 // Live totals over the cards searched so far, including what's in for cards still waiting on a shop (they don't
 // count as finished, missing or short until they're complete). The minimum sum counts only exact matches, for as
 // many copies as the list asks for (within shop stock). Fuzzy matches, Art Series and auctions are left out: they aren't
-// the card, or have no fixed price.
-export function SearchSummary({ entries }: { entries: SearchEntry[] }) {
+// the card, or have no fixed price. `entries` are already filtered, so every figure is for the offers shown.
+export function SearchSummary({
+    entries,
+    filtered
+}: {
+    entries: SearchEntry[];
+    filtered?: boolean; // the filters are on
+}) {
     let finished = 0;
     let found = 0;
     let offers = 0;
@@ -122,7 +128,9 @@ export function SearchSummary({ entries }: { entries: SearchEntry[] }) {
             {missing.length > 0 && (
                 <div className='flex flex-wrap items-center gap-2 border-t pt-4 text-sm'>
                     <span className='text-muted-foreground'>
-                        Немає точних збігів:
+                        {filtered
+                            ? 'Немає точних збігів з цими фільтрами:'
+                            : 'Немає точних збігів:'}
                     </span>
                     {missing.map((card) => (
                         <Chip key={card}>{card}</Chip>
