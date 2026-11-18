@@ -18,14 +18,15 @@ const SOURCE_ICONS: Record<ListSource, string> = {
     moxfield: 'https://moxfield.com/favicon.ico'
 };
 
-// A source's name with its icon, as ShopBadge shows a shop's.
+// A source's name with its icon, in running text: the icon is the text's size and sits on its baseline
+// (-0.125em centres a 1em square on lowercase letters), the name keeps the text's style.
 export function SourceName({ source }: { source: ListSource }) {
     return (
-        <span className='inline-flex items-center gap-1 align-text-bottom font-medium text-foreground'>
+        <span className='whitespace-nowrap'>
             <img
                 src={SOURCE_ICONS[source]}
                 alt=''
-                className='size-4 rounded-sm bg-foreground/5'
+                className='mr-1 inline-block size-[1em] rounded-sm align-[-0.125em]'
                 loading='lazy'
             />
             {SOURCE_LABELS[source]}
