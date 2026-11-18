@@ -28,6 +28,7 @@ describe('lists routes', () => {
     let bob: User;
     let mod: User;
     let due: number[];
+    let submitted: { user: number; lists: number[]; pending: number }[];
     let routes: ReturnType<typeof listsHandlers>;
     beforeEach(() => {
         const db = openDatabase(':memory:');
@@ -42,6 +43,7 @@ describe('lists routes', () => {
         bob = login(2, 'bob');
         mod = login(3, 'mod');
         due = [];
+        submitted = [];
         // the signed-in user is whoever the test says (x-user), unless they're banned
         routes = listsHandlers(
             lists,
@@ -53,7 +55,15 @@ describe('lists routes', () => {
                 },
                 isAdmin: (user) => user.telegramId === mod.telegramId
             },
-            (ids) => due.push(...ids),
+            {
+                onDue: (ids) => due.push(...ids),
+                onSubmitted: (user, added, pending) =>
+                    submitted.push({
+                        user: user.id,
+                        lists: added.map((l) => l.id),
+                        pending
+                    })
+            },
             () => 1000
         );
         logs.length = 0; // the migration's log line
@@ -172,6 +182,26 @@ describe('lists routes', () => {
             ['list submitted', alice.id],
             ['list submitted', alice.id]
         ]);
+    });
+
+    test('moderators hear about each submission once, with every list it added', async () => {
+        await submit(bob, goldfish(3));
+        const body = (await (
+            await submit(alice, post(1, 2, 3))
+        ).json()) as SubmittedLists;
+        expect(submitted).toEqual([
+            { user: bob.id, lists: [expect.any(Number)], pending: 1 },
+            {
+                user: alice.id,
+                // in the post's order
+                lists: body.added.map((l) => l.id).reverse(),
+                pending: 3
+            }
+        ]);
+
+        // nothing new (all already added): no message
+        await submit(alice, post(1, 2));
+        expect(submitted).toHaveLength(2);
     });
 
     test(`stops at ${MAX_LISTS_PER_USER} lists, naming the ones left out`, async () => {

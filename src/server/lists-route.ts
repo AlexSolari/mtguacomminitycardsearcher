@@ -167,8 +167,16 @@ export function listsHandlers(
         currentUser: (req: Request) => User | null;
         isAdmin: (user: User) => boolean;
     },
-    // lists that just became due (approved, or refreshed by a moderator); the refresher reads them at once
-    onDue: (listIds: number[]) => void = () => {},
+    hooks: {
+        // lists that just became due (approved, or refreshed by a moderator); the refresher reads them at once
+        onDue?: (listIds: number[]) => void;
+        // lists a trader just submitted, and how many await review, these included; the moderators are told
+        onSubmitted?: (
+            user: User,
+            lists: TraderList[],
+            pending: number
+        ) => void;
+    } = {},
     now = () => Date.now()
 ) {
     // Runs `handle` for the signed-in user (a moderator, with `admin`), or answers 401/403.
@@ -187,6 +195,8 @@ export function listsHandlers(
             if (admin && !auth.isAdmin(user)) return error('Not allowed', 403);
             return handle(user, req, ...args);
         };
+
+    const onDue = hooks.onDue ?? (() => {});
 
     return {
         mine: signedIn((user) => {
@@ -210,6 +220,7 @@ export function listsHandlers(
             const mine = new Set(own.map((l) => `${l.source}/${l.ref}`));
             let room = MAX_LISTS_PER_USER - own.length;
             const result: SubmittedLists = { added: [], skipped: [] };
+            const added: TraderList[] = [];
             for (const link of links) {
                 const url = LIST_SOURCES[link.source].link(link.ref);
                 if (mine.has(`${link.source}/${link.ref}`)) {
@@ -231,8 +242,15 @@ export function listsHandlers(
                     list: list.id,
                     source: list.source
                 });
+                added.push(list);
                 result.added.unshift(myList(list));
             }
+            if (added.length > 0)
+                hooks.onSubmitted?.(
+                    user,
+                    added,
+                    lists.withStatus('pending').length
+                );
             return Response.json(result);
         }),
 

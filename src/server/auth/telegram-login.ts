@@ -21,8 +21,20 @@ export type TelegramIdentity = {
     displayName: string;
 };
 
-// From the environment: TELEGRAM_CLIENT_ID and TELEGRAM_CLIENT_SECRET, and the site's public URL for the redirect:
-// PUBLIC_URL, else Railway's own domain, else the local dev server. null (sign-in off) without the bot's details.
+// The site's public origin: PUBLIC_URL, else Railway's own domain, else the local dev server.
+export function publicOrigin(
+    env: Record<string, string | undefined> = process.env
+): string {
+    return (
+        env.PUBLIC_URL ??
+        (env.RAILWAY_PUBLIC_DOMAIN
+            ? `https://${env.RAILWAY_PUBLIC_DOMAIN}`
+            : `http://localhost:${env.PORT ?? 3000}`)
+    );
+}
+
+// From the environment: TELEGRAM_CLIENT_ID and TELEGRAM_CLIENT_SECRET, and the site's public URL (publicOrigin) for
+// the redirect. null (sign-in off) without the bot's details.
 export function telegramLoginConfig(
     env: Record<string, string | undefined> = process.env
 ): TelegramLoginConfig | null {
@@ -31,15 +43,10 @@ export function telegramLoginConfig(
         TELEGRAM_CLIENT_SECRET: clientSecret
     } = env;
     if (!clientId || !clientSecret) return null;
-    const origin =
-        env.PUBLIC_URL ??
-        (env.RAILWAY_PUBLIC_DOMAIN
-            ? `https://${env.RAILWAY_PUBLIC_DOMAIN}`
-            : `http://localhost:${env.PORT ?? 3000}`);
     return {
         clientId,
         clientSecret,
-        redirectUri: new URL('/api/auth/callback', origin).href
+        redirectUri: new URL('/api/auth/callback', publicOrigin(env)).href
     };
 }
 

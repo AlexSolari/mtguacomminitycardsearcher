@@ -69,8 +69,8 @@ const bodySnippet = (text: string) =>
         ? `${text.slice(0, MAX_ERROR_BODY)}…`
         : text || undefined;
 
-const responseDetails = (res: Response, method = 'GET') => ({
-    url: res.url,
+const responseDetails = (res: Response, method = 'GET', secret?: string) => ({
+    url: secret ? res.url.replaceAll(secret, '[secret]') : res.url,
     method,
     contentType: res.headers.get('content-type') ?? undefined
 });
@@ -81,6 +81,9 @@ export type ShopClientOptions = {
     maxWaitMs?: number; // a request that would wait longer than this for its slot fails at once (see waitForSlot)
     failuresToOpen?: number; // see CircuitBreaker
     openMs?: number;
+    // A credential in the URL (Telegram's bot token goes in the path): shown as [secret] in spans and errors, so
+    // it never reaches the logs, the traces or Sentry.
+    secret?: string;
 };
 
 // Statuses that mean the shop (or the proxy in front of it) is down, not that this request failed. A 500 can be one
@@ -98,6 +101,7 @@ export class ShopClient {
     // sliding window, so two requests can't start back to back at a window boundary.
     private readonly queue: PQueue;
     private readonly breaker: CircuitBreaker;
+    private readonly secret: string | undefined;
 
     // `baseUrl` is the shop's origin, e.g. "https://carton.cards"; paths and `url()` resolve against it.
     constructor(
@@ -107,9 +111,11 @@ export class ShopClient {
             timeoutMs = 15_000,
             maxWaitMs = 30_000,
             failuresToOpen = FAILURES_TO_OPEN,
-            openMs = OPEN_MS
+            openMs = OPEN_MS,
+            secret
         }: ShopClientOptions = {}
     ) {
+        this.secret = secret || undefined;
         this.host = new URL(baseUrl).host;
         this.intervalMs = intervalMs;
         this.timeoutMs = timeoutMs;
@@ -129,6 +135,21 @@ export class ShopClient {
             failuresToOpen,
             openMs
         );
+    }
+
+    // The text with the secret masked.
+    private masked(text: string): string {
+        return this.secret ? text.replaceAll(this.secret, '[secret]') : text;
+    }
+
+    // An error on its way out, with the secret masked in its message and URL. Masked before the span records it.
+    private maskError(err: unknown): unknown {
+        if (!this.secret || !(err instanceof Error)) return err;
+        err.message = this.masked(err.message);
+        const withUrl = err as Error & { url?: unknown };
+        if (typeof withUrl.url === 'string')
+            withUrl.url = this.masked(withUrl.url);
+        return err;
     }
 
     // ("/search", { q: "Sol Ring" }) → "https://carton.cards/search?q=Sol+Ring"
@@ -178,9 +199,11 @@ export class ShopClient {
                 'http.request.method': rest.method ?? 'GET',
                 'server.address': this.host,
                 'url.scheme': target.protocol.replace(/:$/, ''),
-                'url.path': target.pathname,
-                'url.full': `${target.origin}${target.pathname}`,
-                ...(target.search && { 'url.query': target.search.slice(1) })
+                'url.path': this.masked(target.pathname),
+                'url.full': this.masked(`${target.origin}${target.pathname}`),
+                ...(target.search && {
+                    'url.query': this.masked(target.search.slice(1))
+                })
             },
             async (span) => {
                 const queued = performance.now();
@@ -214,7 +237,7 @@ export class ShopClient {
                     return { res, text };
                 } catch (err) {
                     if (!signal?.aborted) judge('down');
-                    throw err;
+                    throw this.maskError(err);
                 }
             },
             {
@@ -228,7 +251,7 @@ export class ShopClient {
         const { res, text } = await this.fetch(url, init);
         if (!res.ok)
             throw new HttpError(res.status, {
-                ...responseDetails(res, init?.method),
+                ...responseDetails(res, init?.method, this.secret),
                 body: bodySnippet(text)
             });
         return text;
@@ -238,7 +261,7 @@ export class ShopClient {
     async fetchJson<T = unknown>(url: string, init?: RequestInit): Promise<T> {
         const { res, text } = await this.fetch(url, init);
         const details = () => ({
-            ...responseDetails(res, init?.method),
+            ...responseDetails(res, init?.method, this.secret),
             body: bodySnippet(text)
         });
         if (!res.ok) throw new HttpError(res.status, details());
@@ -261,7 +284,10 @@ export class ShopClient {
         } catch (err) {
             if (!res.ok) return '';
             if ((err as Error)?.name === 'TimeoutError')
-                throw this.timeoutError(err, responseDetails(res, method));
+                throw this.timeoutError(
+                    err,
+                    responseDetails(res, method, this.secret)
+                );
             throw err;
         }
     }

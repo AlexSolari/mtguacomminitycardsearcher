@@ -101,6 +101,7 @@ TypeScript isn't a dependency: don't use `bunx tsc`, which fetches an unrelated 
   Tests assert on spans with `tests/server/capture-spans.ts`.
 - **Secrets:** MTGin and Nerdik need `MTGIN_API_KEY` and `NERDIK_API_KEY` (Bun loads `.env`). Without one, that shop fails every search with an error rather than silently finding nothing.
   Traders' sign-in needs `TELEGRAM_CLIENT_ID` and `TELEGRAM_CLIENT_SECRET` (see Traders' lists); without them it's off and the rest of the site works.
+  Moderators' notifications need `TELEGRAM_BOT_TOKEN`, the bot's API token (not the Login Widget's secret); without it they're off.
 
 ### Traders' lists
 
@@ -116,6 +117,8 @@ Traders sign in with Telegram, add their MTGGoldfish, ManaBox or Moxfield lists 
   Approving a list and a moderator's refresh (`/admin`) read those lists at once, whatever the hour (`run(ids)`), and nothing else. Banned users' lists are never read, neither at night nor on request, until the ban is lifted.
   `ListPrices` prices rows without one from Scryfall's `/cards/collection` (USD for the row's finish), cached a day in `card_prices`, through the name resolver's collection client so both stay within Scryfall's limit.
   MTGGoldfish's promos (`[PRM-MSC]`, `[PRM-PRE]`…) name a group, not a set, so each is a `/cards/search` of its own on the same client: `pickPromo` takes the printing whose set name or promo types match the row's `<…>` and the group ("Store Championship" → Store Championships), and only when exactly one does; otherwise the row is priced by name, as `≈`.
+- **Notifications:** when a submission adds lists, `AdminNotifier` (`src/server/admin-notifier.ts`, wired through `listsHandlers`' `onSubmitted`) sends each moderator one Telegram message from the bot: the trader, the lists' links, the queue's size and a button to `/admin`. Silent 23:00–07:59 Kyiv time. It never fails or delays the submission; a failure is a `logger.warn`.
+  A moderator gets them only after pressing Start in the bot. The token is in the API's URL path, so its `ShopClient` gets it as `secret`, which masks it in spans and errors; any credential in a URL goes that way.
 - **Search:** `TraderListSearcher` reads the database: no `ShopClient` and no `CachedCardSearcher`, so a list shows as soon as it's read. Its offers' `url` is the trader's Telegram; `seller` carries the list.
 
 ### Adding a shop

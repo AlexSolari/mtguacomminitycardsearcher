@@ -367,3 +367,52 @@ describe('ShopClient spans', () => {
         }
     });
 });
+
+describe('ShopClient with a secret in the URL', () => {
+    const SECRET = 'bot123:token';
+    const client = () =>
+        new ShopClient(base, { secret: SECRET, timeoutMs: 50 });
+    // what the spans hold: their attributes and events (a recorded exception's message and stack)
+    const recorded = () =>
+        JSON.stringify(spans().map((s) => ({ a: s.attributes, e: s.events })));
+
+    test('spans and errors show [secret] in its place', async () => {
+        await client().fetchHtml(`/${SECRET}/page?key=${SECRET}`);
+        expect(spans()[0]!.attributes).toMatchObject({
+            'url.path': '/[secret]/page',
+            'url.full': `${base}/[secret]/page`,
+            'url.query': 'key=[secret]'
+        });
+
+        const err = await client()
+            .fetchHtml(`/missing?key=${SECRET}`)
+            .catch((e: unknown) => e);
+        expect(err).toBeInstanceOf(HttpError);
+        expect((err as HttpError).url).toBe(`${base}/missing?key=[secret]`);
+        expect(recorded()).not.toContain(SECRET);
+    });
+
+    test('a timeout masks it too, before the span records the error', async () => {
+        const err = await client()
+            .fetchHtml(`/slow?key=${SECRET}`)
+            .catch((e: unknown) => e);
+        expect(err).toBeInstanceOf(RequestTimeoutError);
+        expect((err as RequestTimeoutError).url).toBe(
+            `${base}/slow?key=[secret]`
+        );
+        expect(recorded()).not.toContain(SECRET);
+    });
+
+    test('an error message naming the URL is masked', async () => {
+        const unreachable = new ShopClient('http://127.0.0.1:1', {
+            secret: SECRET
+        });
+        const err = (await unreachable
+            .fetchHtml(`/${SECRET}`)
+            .catch((e: unknown) => e)) as Error;
+        expect(err.message).not.toContain(SECRET);
+        expect(String((err as { url?: string }).url ?? '')).not.toContain(
+            SECRET
+        );
+    });
+});

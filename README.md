@@ -66,10 +66,12 @@ Signing in needs a Telegram bot with Login Widget set up in @BotFather, with `<s
 | ---------------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | `TELEGRAM_CLIENT_ID`, `TELEGRAM_CLIENT_SECRET` | the bot's client ID and secret; without them sign-in is off and the rest of the site works       |
 | `ADMIN_TELEGRAM_IDS`                           | comma-separated numeric Telegram ids of the moderators                                           |
+| `TELEGRAM_BOT_TOKEN`                           | the bot's API token; the bot then messages each moderator when a trader submits lists            |
 | `PUBLIC_URL`                                   | the site's address for the redirect; defaults to Railway's domain, else `http://localhost:$PORT` |
 | `DB_PATH`                                      | the database file                                                                                |
 
 Telegram may not accept a `localhost` redirect; a tunnel (VS Code's port forwarding, for one) gives an `https` address to use as `PUBLIC_URL`.
+For the messages, each moderator presses Start in the bot once: a bot can't write to someone who hasn't.
 `bun dev` reads approved lists in the local database from MTGGoldfish, ManaBox and Moxfield, so keep experiments to a few lists.
 
 ### Production

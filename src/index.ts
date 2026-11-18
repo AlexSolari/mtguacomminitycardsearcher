@@ -24,9 +24,11 @@ import {
 import { VisitorIds } from './server/visitor-id';
 import { adminIds, authHandlers } from './server/auth/auth-route';
 import {
+    publicOrigin,
     TelegramLogin,
     telegramLoginConfig
 } from './server/auth/telegram-login';
+import { AdminNotifier, adminNotifierConfig } from './server/admin-notifier';
 import { databasePath, openDatabase } from './server/db/database';
 import { UserStore } from './server/db/user-store';
 import { ListStore } from './server/db/list-store';
@@ -96,11 +98,19 @@ if (!loginConfig)
         reason: 'TELEGRAM_CLIENT_ID or TELEGRAM_CLIENT_SECRET is not set'
     });
 const users = new UserStore(db);
+const admins = adminIds();
 const auth = authHandlers(
     users,
     loginConfig && new TelegramLogin(loginConfig),
-    adminIds()
+    admins
 );
+// Moderators hear about new lists in Telegram, once the bot's API token is set.
+const notifierConfig = adminNotifierConfig(admins, publicOrigin());
+if (!notifierConfig)
+    logger.info('admin notifications are off', {
+        reason: 'TELEGRAM_BOT_TOKEN or ADMIN_TELEGRAM_IDS is not set'
+    });
+const notifier = notifierConfig && new AdminNotifier(notifierConfig);
 // Reads approved lists at night (each at its slot), and at once when a moderator approves or refreshes one.
 const refresher = new ListRefresher(
     listStore,
@@ -109,12 +119,11 @@ const refresher = new ListRefresher(
     cardNames.index
 );
 refresher.start();
-const lists = listsHandlers(
-    listStore,
-    users,
-    auth,
-    (ids) => void refresher.run(ids)
-);
+const lists = listsHandlers(listStore, users, auth, {
+    onDue: (ids) => void refresher.run(ids),
+    onSubmitted: (user, added, pending) =>
+        void notifier?.listsSubmitted(user, added, pending)
+});
 
 const server = serve({
     // Bun drops a connection after 10 s without a byte (the default), and a search stays quiet while its slowest
