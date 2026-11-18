@@ -2,8 +2,10 @@
 import { useEffect, useState } from 'react';
 import { Hourglass, ImageOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { TelegramIcon } from '@/components/icons';
 import { useNearViewport } from '@/hooks/use-near-viewport';
 import { BIDS, plural } from '@/i18n';
+import { sellerUah } from '@/results';
 import type { AuctionInfo, CardResult } from '@/search-result';
 
 export const formatPrice = (price: number) =>
@@ -123,6 +125,7 @@ export function PriceBlock({
     link: CardResult;
     best: boolean;
 }) {
+    if (link.seller) return <TraderPrice link={link} />;
     return (
         <span className='flex flex-col items-end leading-tight'>
             {link.oldPrice !== undefined && (
@@ -150,6 +153,90 @@ export function PriceBlock({
         </span>
     );
 }
+
+export const formatUsd = (usd: number) =>
+    `$${usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+// A trader's offer: TCGplayer's price for the card (from Scryfall, or the list's own), as a guide; the trader
+// names their own price. In UAH at the trader's rate when they set one, with the dollar price it came from
+// underneath; otherwise in USD, with its source underneath. "≈" when it's for the card or its set rather than this
+// exact printing.
+function TraderPrice({ link }: { link: CardResult }) {
+    const uah = sellerUah(link);
+    const approx = link.approxPrice && (
+        <span className='mr-0.5 font-normal text-muted-foreground'>≈</span>
+    );
+    if (link.usdPrice === undefined)
+        return <span className='text-sm font-semibold text-foreground'>—</span>;
+    if (uah === null)
+        return (
+            <span
+                className='flex flex-col items-end leading-tight'
+                title='Ціна TCGplayer у доларах, для орієнтиру. Свою ціну назве продавець.'
+            >
+                <span className='whitespace-nowrap text-sm font-semibold tabular-nums text-foreground'>
+                    {approx}
+                    {formatUsd(link.usdPrice)}
+                </span>
+                <span className='text-xs text-muted-foreground'>TCGplayer</span>
+            </span>
+        );
+    return (
+        <span
+            className='flex flex-col items-end leading-tight'
+            title='Ціна TCGplayer у доларах за курсом продавця, для орієнтиру. Остаточну ціну назве продавець.'
+        >
+            <span className='whitespace-nowrap text-sm font-semibold tabular-nums text-foreground'>
+                {approx}
+                {formatPrice(uah)}
+            </span>
+            <span className='whitespace-nowrap text-xs tabular-nums text-muted-foreground'>
+                TCGplayer {formatUsd(link.usdPrice)} ×{' '}
+                {link.usdRate!.toLocaleString('uk-UA')}
+            </span>
+        </span>
+    );
+}
+
+// Who sells a trader's offer, in place of the shop badge: their Telegram username.
+export function SellerBadge({
+    link,
+    className
+}: {
+    link: CardResult;
+    className?: string;
+}) {
+    return (
+        <span
+            className={cn(
+                'inline-flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground',
+                className
+            )}
+            title={link.seller!.name}
+        >
+            <TelegramIcon className='size-3.5 shrink-0 text-sky-600 dark:text-sky-400' />
+            <span className='truncate'>@{link.seller!.username}</span>
+        </span>
+    );
+}
+
+// What a trader's list says of the printing, and how fresh the list is: "RVR · retro · оновлено 17 лист."
+// A list that names no printing still gets an image, Scryfall's default printing; saying so keeps it from
+// passing for the trader's.
+export function SellerDetails({ link }: { link: CardResult }) {
+    const { printing, updatedAt } = link.seller!;
+    return (
+        <span className='text-xs text-muted-foreground'>
+            {printing ?? 'друк не вказано'} · оновлено{' '}
+            {LIST_DATE.format(updatedAt)}
+        </span>
+    );
+}
+
+const LIST_DATE = new Intl.DateTimeFormat('uk', {
+    day: 'numeric',
+    month: 'short'
+});
 
 export const FOIL_BADGE =
     'bg-[linear-gradient(110deg,#f0abfc,#93c5fd_35%,#86efac_60%,#fde68a)] tracking-wider text-slate-900';

@@ -9,7 +9,9 @@ import {
     Badge,
     discountOf,
     FOIL_BADGE,
-    PriceBlock
+    PriceBlock,
+    SellerBadge,
+    SellerDetails
 } from '@/components/offer-parts';
 import { ShopBadge } from '@/components/shop-badge';
 import { useNearViewport } from '@/hooks/use-near-viewport';
@@ -85,6 +87,22 @@ const ResultRow = memo(function ResultRow({
                         <AuctionMeta auction={link.auction} />
                     </div>
                 )}
+                {link.seller && (
+                    <div className='mt-0.5'>
+                        <SellerDetails link={link} />
+                        {' · '}
+                        {/* the row opens the trader's Telegram; this, their whole list */}
+                        <a
+                            href={link.seller.list}
+                            target='_blank'
+                            rel='noopener noreferrer'
+                            onClick={(e) => e.stopPropagation()}
+                            className='text-xs text-muted-foreground underline-offset-2 hover:text-primary hover:underline'
+                        >
+                            {link.seller.listTitle ?? 'список'}
+                        </a>
+                    </div>
+                )}
             </td>
             <td className='px-3 py-1.5'>
                 <div className='flex flex-wrap items-center gap-1'>
@@ -129,7 +147,11 @@ const ResultRow = memo(function ResultRow({
                 </div>
             </td>
             <td className='px-3 py-1.5'>
-                <ShopBadge shop={link.shop} className='whitespace-nowrap' />
+                {link.seller ? (
+                    <SellerBadge link={link} className='max-w-40' />
+                ) : (
+                    <ShopBadge shop={link.shop} className='whitespace-nowrap' />
+                )}
             </td>
             <td className='whitespace-nowrap px-3 py-1.5 text-right text-xs text-muted-foreground'>
                 {link.stock !== undefined ? (

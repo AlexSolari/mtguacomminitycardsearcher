@@ -1,9 +1,12 @@
 // Re-downloads the shop pages the parser tests run against (tests/fixtures/).
 // Run it when a shop changes its markup: `bun scripts/update-fixtures.ts`, then `bun test` shows what broke,
 // and `bun test --update-snapshots` accepts the new output once the parsers are fixed.
-// About 8 requests, through ShopClient so they're spaced like the app's. Nerdik and MTGin need their API keys
+// About 11 requests, through ShopClient so they're spaced like the app's. Nerdik and MTGin need their API keys
 // (NERDIK_API_KEY, MTGIN_API_KEY in .env); without one, that shop's fixture is left as it is.
 import { mkdir } from 'node:fs/promises';
+import { LIST_SOURCES } from '../src/server/lists/list-link';
+import { manaboxProps } from '../src/server/lists/parsers/manabox';
+import { DECK_FIELD } from '../src/server/lists/parsers/mtggoldfish';
 import { decodeEntities } from '../src/server/parsers/helpers';
 import { jsonEnd } from '../src/server/parsers/scrapers/citadel';
 import { manavaultSource } from '../src/server/searchers/manavault-card-searcher';
@@ -273,3 +276,105 @@ const citadelPage = (
 );
 if (!citadelItems) throw new Error('Citadel: no items in the search page');
 await save('citadel-search.html', citadelPage);
+
+// Traders' lists (src/server/lists/): a public MTGGoldfish deck with printings, promos and foils, and a ManaBox
+// sell list. Only the list itself is kept: Goldfish's deck field, and ManaBox's island cut down to the fields
+// parseManabox reads (no store links, no owner details from the rest of the page).
+const goldfish = new ShopClient(LIST_SOURCES.mtggoldfish.base);
+const goldfishPage = LIST_SOURCES.mtggoldfish.page('6906342');
+const deckField = (
+    await goldfish.fetchHtml(
+        goldfish.url(goldfishPage.path, goldfishPage.params)
+    )
+).match(DECK_FIELD)?.[0];
+if (!deckField)
+    throw new Error('MTGGoldfish: no deck field on the proxies page');
+await save('mtggoldfish-proxies.html', deckField + '\n');
+
+const MANABOX_CARD_FIELDS = [
+    'name',
+    'quantity',
+    'variant',
+    'setId',
+    'collectorNumber'
+];
+const manabox = new ShopClient(LIST_SOURCES.manabox.base);
+const deck = manaboxProps(
+    await manabox.fetchHtml(
+        manabox.url(LIST_SOURCES.manabox.page('Qsjv6XwMQ_SynKoo3V-epw').path)
+    )
+)?.deck;
+if (!deck?.cards) throw new Error('ManaBox: no deck in the page');
+// back into Astro's [type, value] pairs (0 = value, 1 = array), as the page has them
+const astro = (v: unknown): unknown =>
+    Array.isArray(v)
+        ? [1, v.map(astro)]
+        : [0, v && typeof v === 'object' ? astroObject(v) : v];
+const astroObject = (o: object) =>
+    Object.fromEntries(Object.entries(o).map(([k, v]) => [k, astro(v)]));
+const deckProps = astroObject({
+    deck: {
+        name: deck.name,
+        editDate: deck.editDate,
+        cards: deck.cards.map((c: any) => ({
+            ...pick(c, MANABOX_CARD_FIELDS),
+            pricing: { tcgplayer: { value: c.pricing?.tcgplayer?.value } },
+            images: (c.images ?? [])
+                .slice(0, 1)
+                .map((i: any) => ({ imageUrlNormal: i.imageUrlNormal }))
+        }))
+    }
+});
+await save(
+    'manabox-deck.html',
+    `<astro-island uid="r1" component-export="Main" props="${JSON.stringify(
+        deckProps
+    )
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')}" ssr client="load"></astro-island>\n`
+);
+
+// A public Moxfield deck, from the API the app reads (with the same stopgap User-Agent, see list-link.ts). Only the
+// deck's name, edit date and boards are kept, and of each row the fields parseMoxfield reads: no owner, authors,
+// description or anything else from the rest of the answer.
+const MOXFIELD_CARD_FIELDS = ['name', 'set', 'cn', 'scryfall_id'];
+const moxfieldSource = LIST_SOURCES.moxfield;
+const moxfield = new ShopClient(moxfieldSource.base);
+const moxDeck = await moxfield.fetchJson<any>(
+    moxfield.url(moxfieldSource.page('oEWXWHM5eEGMmopExLWRCA').path),
+    { headers: moxfieldSource.headers }
+);
+if (!moxDeck?.boards?.mainboard?.cards)
+    throw new Error('Moxfield: no mainboard in the deck');
+const moxRow = (r: any): any => ({
+    ...pick(r, ['quantity', 'finish']),
+    card: {
+        ...pick(r.card, MOXFIELD_CARD_FIELDS),
+        prices: pick(r.card.prices ?? {}, ['usd', 'usd_foil', 'usd_etched'])
+    },
+    // a card in several printings: their rows
+    ...(r.printingData?.length && { printingData: r.printingData.map(moxRow) })
+});
+await save(
+    'moxfield-deck.json',
+    json({
+        name: moxDeck.name,
+        lastUpdatedAtUtc: moxDeck.lastUpdatedAtUtc,
+        boards: Object.fromEntries(
+            Object.entries(moxDeck.boards).map(([key, b]: [string, any]) => [
+                key,
+                {
+                    count: b.count,
+                    cards: Object.fromEntries(
+                        Object.entries(b.cards ?? {}).map(([id, r]) => [
+                            id,
+                            moxRow(r)
+                        ])
+                    )
+                }
+            ])
+        )
+    })
+);

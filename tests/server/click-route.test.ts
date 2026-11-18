@@ -73,6 +73,24 @@ describe('clickHandler', () => {
         expect(spans()[0]!.attributes).not.toHaveProperty('click.price');
     });
 
+    test("a trader's offer is recorded as one, without the seller", async () => {
+        const res = await clickHandler(visitors())(
+            post({
+                ...CLICK,
+                shop: 'traders',
+                group: 'traders',
+                best: false,
+                price: null
+            }),
+            '1.2.3.4'
+        );
+        expect(res.status).toBe(204);
+        expect(spans()[0]!.attributes).toMatchObject({
+            'click.shop': 'traders',
+            'click.group': 'traders'
+        });
+    });
+
     test('a bad click is a 400 and records nothing', async () => {
         const handle = clickHandler(visitors());
         for (const body of [

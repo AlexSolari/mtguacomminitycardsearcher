@@ -54,3 +54,5 @@ Thumbs.db
 # local scraper dumps
 responses/
 investigations/
+# local database (DB_PATH in production)
+data/

@@ -1,0 +1,61 @@
+import { decodeEntities } from '../../parsers/helpers';
+import {
+    mergeRows,
+    type Finish,
+    type ListCard,
+    type ParsedList
+} from '../list-card';
+
+// mtggoldfish.com/proxies/new?id=<deck>: the proxy printer, prefilled with the deck. The deck's own pages
+// (/deck/<id>, /deck/download/<id>) are behind a Cloudflare challenge; this one isn't. One line per printing:
+//
+//   <textarea name="deck" id="deck" class="form-control deck-pricer-deck-input">
+//   1 Sacred Foundry &lt;retro&gt; [RVR]     ← treatment in <…>, set in […]
+//   2 Boseiju, Who Endures [NEO]
+//   1 Lotus Bloom [PRM-PRE] (F)              ← (F): foil; PRM-…: Goldfish's promo groups, not real set codes
+//   3 Cauldron Familiar &lt;Store Championship&gt; [PRM-MSC]   ← a promo's <…> names it within the group
+//   1 Gaea&#39;s Will &lt;retro&gt; [MH2] (FE)  ← (FE): foil-etched
+//   1 Anger                                  ← a deck built without printings has neither
+//   sideboard                                ← section headers; every section counts
+//   </textarea>
+//
+// The page has no deck title. A missing deck is a 404, which the client reports; a page without the deck field
+// (a redesign) is null; a deck with no cards is an empty list.
+export const DECK_FIELD =
+    /<textarea\b[^>]*\bid="deck"[^>]*>([^<]*)<\/textarea>/;
+// The finish marker is any short upper-case code in brackets, so one we don't know yet ("(E)"?) doesn't end up in
+// the card's name; only the known ones set the finish. No card name ends that way ("B.F.M. (Big Furry Monster)").
+const LINE =
+    /^(\d+)x?\s+(.+?)(?:\s+<([^<>]+)>)?(?:\s+\[([^[\]]+)\])?(?:\s+\(([A-Z]{1,3})\))?$/;
+const FINISHES: Record<string, Finish> = { F: 'foil', FE: 'etched' };
+// Goldfish's own id in place of a treatment's name, for some printings it hasn't named (seen on 2026 Special
+// Guests: "Splinter Twin <01a08234-d609-7a21-9f15-e4740bccab5c> [SPG] (F)"). It names nothing we can use, so it's
+// dropped, and the row is the set's printing.
+const GOLDFISH_ID =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function parseMtggoldfish(html: string): ParsedList | null {
+    const field = html.match(DECK_FIELD);
+    if (!field) return null;
+    const cards: ListCard[] = [];
+    for (const raw of decodeEntities(field[1]!).split(/\r?\n/)) {
+        const line = raw.match(LINE);
+        const quantity = Number(line?.[1]);
+        if (!line || quantity < 1) continue;
+        const set = line[4]?.trim();
+        const promo = set?.match(/^PRM-([\w-]+)$/i)?.[1]?.toUpperCase();
+        const treatment = line[3]?.trim();
+        const variant =
+            treatment && !GOLDFISH_ID.test(treatment) ? treatment : undefined;
+        cards.push({
+            name: line[2]!.trim(),
+            quantity,
+            finish: FINISHES[line[5] ?? ''] ?? 'nonfoil',
+            // a promo group isn't a set: the printing is looked for by the group and the <…> (list-prices.ts)
+            ...(set && !promo && { set: set.toLowerCase() }),
+            ...(promo && { promo }),
+            ...((variant || promo) && { variant: variant ?? 'promo' })
+        });
+    }
+    return { cards: mergeRows(cards) };
+}

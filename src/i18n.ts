@@ -38,3 +38,14 @@ export const FILES: PluralForms = {
     few: 'файлів',
     many: 'файлів'
 };
+export const LISTS: PluralForms = {
+    one: 'список',
+    few: 'списки',
+    many: 'списків'
+};
+// genitive, as in "не більше 10 списків" / "не більше 1 списку"
+export const LISTS_GENITIVE: PluralForms = {
+    one: 'списку',
+    few: 'списків',
+    many: 'списків'
+};

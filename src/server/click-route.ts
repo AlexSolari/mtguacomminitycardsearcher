@@ -20,6 +20,7 @@ export const CLICK_BUCKETS: Bucket[] = [
 const GROUPS = new Set<OfferGroup>([
     'exact',
     'auctions',
+    'traders',
     'other',
     'art',
     'manual'

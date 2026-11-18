@@ -1,5 +1,11 @@
 import { describe, expect, test } from 'bun:test';
-import { cheapestCopies, isNotFound, offerKey, splitMatches } from '@/results';
+import {
+    cheapestCopies,
+    isNotFound,
+    offerKey,
+    sellerUah,
+    splitMatches
+} from '@/results';
 import type { CardResult, SearchResult } from '@/search-result';
 
 const offer = (
@@ -71,6 +77,35 @@ describe('splitMatches', () => {
         ).toBe(16);
     });
 
+    test("traders' offers are a group of their own, by USD price, and never price the card", () => {
+        const trader = (usdPrice?: number) =>
+            offer('Daze', null, {
+                shop: 'traders',
+                url: 'https://t.me/seller',
+                ...(usdPrice !== undefined && { usdPrice })
+            });
+        const split = splitMatches(
+            result('Daze', [
+                trader(),
+                trader(3),
+                offer('Daze', 40),
+                trader(1.5)
+            ])
+        );
+        expect(split.traders.map((l) => l.usdPrice)).toEqual([
+            1.5,
+            3,
+            undefined
+        ]);
+        expect(split.exact.map((l) => l.price)).toEqual([40]);
+        expect(split.min).toBe(40);
+        expect(split.pricing.size).toBe(1);
+
+        // a card only traders have has no price of its own
+        const only = splitMatches(result('Daze', [trader(2)]));
+        expect([only.exact, only.other, only.min]).toEqual([[], [], null]);
+    });
+
     test('is computed once per result object', () => {
         const r = result('Daze', [offer('Daze', 40)]);
         expect(splitMatches(r)).toBe(splitMatches(r));
@@ -106,12 +141,45 @@ describe('cheapestCopies', () => {
     });
 });
 
+test("sellerUah: a trader's USD price at their rate, to the hryvnia", () => {
+    const trader = (extra: Partial<CardResult>) =>
+        offer('Daze', null, { shop: 'traders', ...extra });
+    expect(sellerUah(trader({ usdPrice: 2.89, usdRate: 43.5 }))).toBe(126);
+    expect(sellerUah(trader({ usdPrice: 2.89 }))).toBeNull();
+    expect(sellerUah(trader({ usdRate: 43.5 }))).toBeNull();
+});
+
 test('offerKey tells apart offers that share a URL', () => {
     const a = offer('Daze', 10);
     expect(offerKey(a)).not.toBe(offerKey({ ...a, price: 12 }));
     expect(offerKey(a)).not.toBe(offerKey({ ...a, condition: 'LP' }));
     expect(offerKey(a)).not.toBe(offerKey({ ...a, language: 'JA' }));
     expect(offerKey(a)).not.toBe(offerKey({ ...a, foil: true }));
+
+    // a trader's offers all link their Telegram
+    const seller = {
+        name: 'Seller',
+        username: 'seller',
+        list: 'https://manabox.app/decks/a',
+        listTitle: null,
+        updatedAt: 0,
+        printing: 'C21'
+    };
+    const t = offer('Sol Ring', null, {
+        shop: 'traders',
+        url: 'https://t.me/seller',
+        seller
+    });
+    expect(offerKey(t)).not.toBe(offerKey({ ...t, name: 'Daze' }));
+    expect(offerKey(t)).not.toBe(
+        offerKey({ ...t, seller: { ...seller, printing: 'CMM' } })
+    );
+    expect(offerKey(t)).not.toBe(
+        offerKey({
+            ...t,
+            seller: { ...seller, list: 'https://manabox.app/decks/b' }
+        })
+    );
 });
 
 describe('isNotFound', () => {

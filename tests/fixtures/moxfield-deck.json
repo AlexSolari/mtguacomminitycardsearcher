@@ -1,0 +1,3563 @@
+{
+  "name": "Commander Tier List - [cEDH]",
+  "lastUpdatedAtUtc": "2026-09-14T22:39:01.717Z",
+  "boards": {
+    "mainboard": {
+      "count": 250,
+      "cards": {
+        "EgDRZ": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Kroxa, Titan of Death's Hunger",
+            "set": "thb",
+            "cn": "221",
+            "scryfall_id": "cee0459b-9aac-4d2f-abe4-4d5fedde7eb8",
+            "prices": {
+              "usd": 2.5,
+              "usd_foil": 3.25
+            }
+          }
+        },
+        "EJ5d8": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Heliod, Sun-Crowned",
+            "set": "sld",
+            "cn": "214",
+            "scryfall_id": "1aae46bb-15d3-4049-9eae-86c6c5b5dcff",
+            "prices": {
+              "usd": 25.87,
+              "usd_foil": 30.92
+            }
+          }
+        },
+        "Y8PPa": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Anje Falkenrath",
+            "set": "c19",
+            "cn": "37",
+            "scryfall_id": "913dd06f-ed2f-4128-9c9d-9cd0d8a55425",
+            "prices": {
+              "usd_foil": 0.93
+            }
+          }
+        },
+        "E6Q47": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Chulane, Teller of Tales",
+            "set": "eld",
+            "cn": "326",
+            "scryfall_id": "83f43730-1c1f-4150-8771-d901c54bedc4",
+            "prices": {
+              "usd": 5.32,
+              "usd_foil": 6.19
+            }
+          }
+        },
+        "YnW0N": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Emry, Lurker of the Loch",
+            "set": "eld",
+            "cn": "342",
+            "scryfall_id": "157f343d-8583-4827-a77d-d916e6a5caa1",
+            "prices": {
+              "usd": 7.32,
+              "usd_foil": 25.73
+            }
+          }
+        },
+        "kpxoB": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Kenrith, the Returned King",
+            "set": "eld",
+            "cn": "303",
+            "scryfall_id": "56c1227e-bea7-47cb-bbec-389a3d585af5",
+            "prices": {
+              "usd": 1.21,
+              "usd_foil": 2.03
+            }
+          }
+        },
+        "kqANe": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Korvold, Fae-Cursed King",
+            "set": "eld",
+            "cn": "329",
+            "scryfall_id": "92ea1575-eb64-43b5-b604-c6e23054f228",
+            "prices": {
+              "usd": 3.8,
+              "usd_foil": 3.66
+            }
+          }
+        },
+        "LGprZ": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Animar, Soul of Elements",
+            "set": "a25",
+            "cn": "196",
+            "scryfall_id": "1df98d4a-0f11-4064-a113-54ab14b9b3eb",
+            "prices": {
+              "usd": 20.29,
+              "usd_foil": 84.27
+            }
+          }
+        },
+        "EP6Gp": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Krenko, Mob Boss",
+            "set": "m13",
+            "cn": "138",
+            "scryfall_id": "aa078518-0ce2-4c6f-9061-aa7e22ed7493",
+            "prices": {
+              "usd": 3.12,
+              "usd_foil": 3.53
+            }
+          }
+        },
+        "YjjJz": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Selvala, Heart of the Wilds",
+            "set": "cn2",
+            "cn": "70",
+            "scryfall_id": "99a3e619-fbdb-406c-9f21-eb582cb878c0",
+            "prices": {
+              "usd": 5.91,
+              "usd_foil": 84.99
+            }
+          }
+        },
+        "kObQW": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Tatyova, Benthic Druid",
+            "set": "dom",
+            "cn": "206",
+            "scryfall_id": "93657aaa-7a0f-49ad-b026-6f79b3bd6768",
+            "prices": {
+              "usd": 0.23,
+              "usd_foil": 0.76
+            }
+          }
+        },
+        "EQy64": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Teferi, Temporal Archmage",
+            "set": "pz1",
+            "cn": "34",
+            "scryfall_id": "e9e80ea3-46db-4bb2-96f7-7a0aa113972f",
+            "prices": {}
+          }
+        },
+        "Yxmly": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "The Gitrog Monster",
+            "set": "sld",
+            "cn": "1051",
+            "scryfall_id": "5f569425-465f-42a8-ae4e-7e98d70cc2af",
+            "prices": {
+              "usd": 23.91,
+              "usd_foil": 28.19
+            }
+          }
+        },
+        "YMrBe": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Yuriko, the Tiger's Shadow",
+            "set": "pl22",
+            "cn": "4",
+            "scryfall_id": "b08bd0ff-663d-4a1c-bf48-0042720c2485",
+            "prices": {
+              "usd_foil": 59.92
+            }
+          }
+        },
+        "k9z4A": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Captain Sisay",
+            "set": "inv",
+            "cn": "237",
+            "scryfall_id": "d24d441c-f37f-44fe-8a93-f5c89df807e4",
+            "prices": {
+              "usd": 13.12,
+              "usd_foil": 177.5
+            }
+          }
+        },
+        "LD0dz": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Narset, Enlightened Master",
+            "set": "ktk",
+            "cn": "190",
+            "scryfall_id": "f210adb7-b389-4672-a3eb-0ced9bfe190c",
+            "prices": {
+              "usd": 0.44,
+              "usd_foil": 4.15
+            }
+          }
+        },
+        "EJrnB": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Kethis, the Hidden Hand",
+            "set": "m20",
+            "cn": "211",
+            "scryfall_id": "fe28de73-76f3-4a9e-a020-dbe5921b9be5",
+            "prices": {
+              "usd": 3.49,
+              "usd_foil": 6.41
+            }
+          }
+        },
+        "EPKln": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Kykar, Wind's Fury",
+            "set": "m20",
+            "cn": "212",
+            "scryfall_id": "594cb7dc-ea88-4909-ab40-1d40fecc9817",
+            "prices": {
+              "usd": 0.82,
+              "usd_foil": 1.57
+            }
+          }
+        },
+        "Lwm4m": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Yarok, the Desecrated",
+            "set": "m20",
+            "cn": "220",
+            "scryfall_id": "a1001d43-e11b-4e5e-acd4-4a50ef89977f",
+            "prices": {
+              "usd": 1.19,
+              "usd_foil": 5.54
+            }
+          }
+        },
+        "EWJyD": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Ishai, Ojutai Dragonspeaker",
+            "set": "c16",
+            "cn": "33",
+            "scryfall_id": "e2f04b83-da9d-4bb1-99ce-2ff78503c635",
+            "prices": {
+              "usd_foil": 6.03
+            }
+          }
+        },
+        "LD0nb": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Ikra Shidiqi, the Usurper",
+            "set": "cm2",
+            "cn": "11",
+            "scryfall_id": "8f2abcc3-dc33-4b9d-a372-1d936e954f94",
+            "prices": {
+              "usd_foil": 1.86
+            }
+          }
+        },
+        "L4K0O": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Akiri, Line-Slinger",
+            "set": "c16",
+            "cn": "26",
+            "scryfall_id": "3b951e0c-a4dd-4a20-87c6-eaa947e33aa4",
+            "prices": {
+              "usd_foil": 4.2
+            }
+          }
+        },
+        "EbO50": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Bruse Tarl, Boorish Herder",
+            "set": "c16",
+            "cn": "30",
+            "scryfall_id": "125b552b-45ea-4e0b-94a9-8131c97a04c0",
+            "prices": {
+              "usd_foil": 4.38
+            }
+          }
+        },
+        "EWAOy": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Breya, Etherium Shaper",
+            "set": "c16",
+            "cn": "29",
+            "scryfall_id": "8b585ce8-77a3-4755-8aa6-aee83724bbab",
+            "prices": {
+              "usd_foil": 3.14
+            }
+          }
+        },
+        "E5ylb": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Edgar Markov",
+            "set": "c17",
+            "cn": "36",
+            "scryfall_id": "8d94b8ec-ecda-43c8-a60e-1ba33e6a54a4",
+            "prices": {
+              "usd_foil": 42.32
+            }
+          }
+        },
+        "YlVPy": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Inalla, Archmage Ritualist",
+            "set": "c17",
+            "cn": "38",
+            "scryfall_id": "7c6e803a-451c-4aa6-97a2-400077f32c47",
+            "prices": {
+              "usd_foil": 3.89
+            }
+          }
+        },
+        "LVxAO": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Kess, Dissident Mage",
+            "set": "mh1",
+            "cn": "206",
+            "scryfall_id": "3651483f-6077-4b4e-b2c7-9d57f22c65dc",
+            "prices": {
+              "usd": 3.36,
+              "usd_foil": 11.4
+            }
+          }
+        },
+        "E12Qm": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Kraum, Ludevic's Opus",
+            "set": "c16",
+            "cn": "34",
+            "scryfall_id": "557fcd17-6cb3-414a-b2b1-ea9ae32e5aec",
+            "prices": {
+              "usd_foil": 8.68
+            }
+          }
+        },
+        "LwBPQ": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Sidar Kondo of Jamuraa",
+            "set": "c16",
+            "cn": "42",
+            "scryfall_id": "19d2671c-39bd-4dd7-ac97-9cdf5c2cb149",
+            "prices": {
+              "usd_foil": 1.08
+            }
+          }
+        },
+        "EgVRr": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Silas Renn, Seeker Adept",
+            "set": "c16",
+            "cn": "43",
+            "scryfall_id": "4e3fe912-1374-47c7-b73f-89ef55c479c1",
+            "prices": {
+              "usd_foil": 11.47
+            }
+          }
+        },
+        "Ydg7G": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Tana, the Bloodsower",
+            "set": "c16",
+            "cn": "45",
+            "scryfall_id": "a3d8d64f-a403-42a7-881b-4f70e9fe15a2",
+            "prices": {
+              "usd_foil": 4.98
+            }
+          }
+        },
+        "Erzxb": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Thrasios, Triton Hero",
+            "set": "c16",
+            "cn": "46",
+            "scryfall_id": "21e27b91-c7f1-4709-aa0d-8b5d81b22a0a",
+            "prices": {
+              "usd_foil": 27.65
+            }
+          }
+        },
+        "YvzR3": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Vial Smasher the Fierce",
+            "set": "c16",
+            "cn": "49",
+            "scryfall_id": "722b1e02-2268-4e02-8d09-9b337da2a844",
+            "prices": {
+              "usd_foil": 5.63
+            }
+          }
+        },
+        "kOjQn": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Tymna the Weaver",
+            "set": "c16",
+            "cn": "48",
+            "scryfall_id": "bc7cbe9b-324e-42b8-94e2-36e91cb32163",
+            "prices": {
+              "usd_foil": 30.23
+            }
+          }
+        },
+        "k9ABA": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Yidris, Maelstrom Wielder",
+            "set": "c16",
+            "cn": "50",
+            "scryfall_id": "c219dd22-433c-4f6a-a0c4-fae12239291c",
+            "prices": {
+              "usd_foil": 10.21
+            }
+          }
+        },
+        "kpzw0": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Yennett, Cryptic Sovereign",
+            "set": "c18",
+            "cn": "51",
+            "scryfall_id": "fb51b2a8-035c-44e6-92db-2e2385066470",
+            "prices": {
+              "usd_foil": 0.96
+            }
+          }
+        },
+        "Y26R4": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Atla Palani, Nest Tender",
+            "set": "c19",
+            "cn": "38",
+            "scryfall_id": "f6aa473b-85cd-431d-844b-218368fe955e",
+            "prices": {
+              "usd_foil": 1.38
+            }
+          }
+        },
+        "Ydg3x": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Elsha of the Infinite",
+            "set": "c19",
+            "cn": "40",
+            "scryfall_id": "3b977c0b-07a1-4d16-9fdd-fc0563e0b68e",
+            "prices": {
+              "usd_foil": 0.42
+            }
+          }
+        },
+        "EWAxV": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "K'rrik, Son of Yawgmoth",
+            "set": "pj21",
+            "cn": "2",
+            "scryfall_id": "a2dc6a50-2a7e-4366-82a7-3c5b5aa2cca6",
+            "prices": {
+              "usd_foil": 44.84
+            }
+          }
+        },
+        "k7M3j": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Azami, Lady of Scrolls",
+            "set": "chk",
+            "cn": "52",
+            "scryfall_id": "15ea91b1-f2ff-4b99-8148-333aa27ea8cd",
+            "prices": {
+              "usd": 1.22,
+              "usd_foil": 37.3
+            }
+          }
+        },
+        "LKlVg": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Godo, Bandit Warlord",
+            "set": "2xm",
+            "cn": "128",
+            "scryfall_id": "123d1368-fbbe-48f8-9b44-d51946529322",
+            "prices": {
+              "usd": 1.1,
+              "usd_foil": 1.57
+            }
+          }
+        },
+        "Ebwp7": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Kaalia of the Vast",
+            "set": "2xm",
+            "cn": "354",
+            "scryfall_id": "86f670f9-c5b7-4eb0-a7d0-d16513fadf74",
+            "prices": {
+              "usd": 35.7,
+              "usd_foil": 38.18
+            }
+          }
+        },
+        "EWxqx": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Derevi, Empyrial Tactician",
+            "set": "cma",
+            "cn": "176",
+            "scryfall_id": "3a1d0dad-18a8-489e-ac11-08f64b72fda4",
+            "prices": {
+              "usd_foil": 6.77
+            }
+          }
+        },
+        "EgvZx": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Jeleva, Nephalia's Scourge",
+            "set": "oc13",
+            "cn": "194",
+            "scryfall_id": "230fe340-b422-45a6-9d1c-8beb28026212",
+            "prices": {
+              "usd_foil": 1.11
+            }
+          }
+        },
+        "EZg7m": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Prossh, Skyraider of Kher",
+            "set": "a25",
+            "cn": "214",
+            "scryfall_id": "889c1a0f-7df2-4497-8058-04358173d7e8",
+            "prices": {
+              "usd": 0.41,
+              "usd_foil": 6.01
+            }
+          }
+        },
+        "YeXJR": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Najeela, the Blade-Blossom",
+            "set": "bbd",
+            "cn": "62",
+            "scryfall_id": "2cb1d1da-6077-46b5-8c63-39882b8016f2",
+            "prices": {
+              "usd": 5.94,
+              "usd_foil": 32.77
+            }
+          }
+        },
+        "Lzoaw": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Zur the Enchanter",
+            "set": "csp",
+            "cn": "135",
+            "scryfall_id": "4b1255e9-c0b8-4757-a857-b27a99dd4930",
+            "prices": {
+              "usd": 2.22,
+              "usd_foil": 71.97
+            }
+          }
+        },
+        "LDX6W": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Tasigur, the Golden Fang",
+            "set": "puma",
+            "cn": "U13",
+            "scryfall_id": "87e58c1d-a3b7-4752-928b-168ec0d8f154",
+            "prices": {
+              "usd_foil": 7.14
+            }
+          }
+        },
+        "kqN9z": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Prime Speaker Vannifar",
+            "set": "rna",
+            "cn": "195",
+            "scryfall_id": "84abfc59-10a7-4cb5-9cdd-81797116c810",
+            "prices": {
+              "usd": 8.17,
+              "usd_foil": 32.85
+            }
+          }
+        },
+        "EW9qb": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Niv-Mizzet, Parun",
+            "set": "grn",
+            "cn": "192",
+            "scryfall_id": "6f3d2dc5-7b9d-4af6-9f3b-4de90fbf63c9",
+            "prices": {
+              "usd": 5.44,
+              "usd_foil": 9.46
+            }
+          }
+        },
+        "EPolp": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Rashmi, Eternities Crafter",
+            "set": "pkld",
+            "cn": "184s",
+            "scryfall_id": "de743408-7d72-4f42-9dfe-040dc96269b6",
+            "prices": {
+              "usd_foil": 19.5
+            }
+          }
+        },
+        "YnQ6A": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Yisan, the Wanderer Bard",
+            "set": "sld",
+            "cn": "1196",
+            "scryfall_id": "43dc5127-b6d1-45e4-b434-0841eb46e4e9",
+            "prices": {
+              "usd_foil": 4.82
+            }
+          }
+        },
+        "kyQoX": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Arcum Dagsson",
+            "set": "csp",
+            "cn": "27",
+            "scryfall_id": "dd9d3ce7-53db-4808-88bc-03c120211f81",
+            "prices": {
+              "usd": 16.51,
+              "usd_foil": 121.31
+            }
+          }
+        },
+        "L4Mv9": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Momir Vig, Simic Visionary",
+            "set": "v16",
+            "cn": "9",
+            "scryfall_id": "f9c7ed7d-3783-4be1-bd69-1019baf5e264",
+            "prices": {
+              "usd_foil": 1.03
+            }
+          }
+        },
+        "Lm2Nx": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Sisay, Weatherlight Captain",
+            "set": "mh1",
+            "cn": "29",
+            "scryfall_id": "5a293c45-1e73-4527-be2f-2dcd5c47b610",
+            "prices": {
+              "usd": 2.4,
+              "usd_foil": 10.9
+            }
+          }
+        },
+        "YjeOv": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "The First Sliver",
+            "set": "mh1",
+            "cn": "200",
+            "scryfall_id": "06d4fbe1-8a2f-4958-bb85-1a1e5f1e8d87",
+            "prices": {
+              "usd": 33.95,
+              "usd_foil": 67.16
+            }
+          }
+        },
+        "Lw6nw": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Urza, Lord High Artificer",
+            "set": "h1r",
+            "cn": "11",
+            "scryfall_id": "86d744cd-225c-4279-898a-858dc316cf7f",
+            "prices": {
+              "usd_foil": 27.09,
+              "usd_etched": 19.84
+            }
+          }
+        },
+        "Er2dR": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Brallin, Skyshark Rider",
+            "set": "c20",
+            "cn": "4",
+            "scryfall_id": "9b4fdcd5-5346-46a8-b1a4-84ddb74089e0",
+            "prices": {
+              "usd": 9.19,
+              "usd_foil": 4.32
+            }
+          }
+        },
+        "YjeKZ": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Cazur, Ruthless Stalker",
+            "set": "c20",
+            "cn": "5",
+            "scryfall_id": "d5e857aa-06b7-4bce-b56d-6f6be5cfc77b",
+            "prices": {
+              "usd": 0.37,
+              "usd_foil": 0.44
+            }
+          }
+        },
+        "Yx4BG": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Haldan, Avid Arcanist",
+            "set": "c20",
+            "cn": "2",
+            "scryfall_id": "16a86a35-f7e5-434d-bf44-61ae7cb0f98b",
+            "prices": {
+              "usd": 0.66,
+              "usd_foil": 0.43
+            }
+          }
+        },
+        "YjelZ": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Kalamax, the Stormsire",
+            "set": "c20",
+            "cn": "9",
+            "scryfall_id": "f990cd78-2165-446f-a116-ae55d7a0f00d",
+            "prices": {
+              "usd": 0.59,
+              "usd_foil": 0.62
+            }
+          }
+        },
+        "k9737": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Pako, Arcane Retriever",
+            "set": "c20",
+            "cn": "13",
+            "scryfall_id": "066c8f63-52e6-475e-8d27-6ee37e92fc05",
+            "prices": {
+              "usd": 1.1,
+              "usd_foil": 0.7
+            }
+          }
+        },
+        "Yn69B": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Shabraz, the Skyshark",
+            "set": "c20",
+            "cn": "14",
+            "scryfall_id": "9955d172-0b24-4c61-9dee-c935a1f26da2",
+            "prices": {
+              "usd": 4.87,
+              "usd_foil": 2.38
+            }
+          }
+        },
+        "YdjxX": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Tayam, Luminous Enigma",
+            "set": "c20",
+            "cn": "16",
+            "scryfall_id": "05b837a2-5773-4340-87f9-b4d6a43deb27",
+            "prices": {
+              "usd": 3.54,
+              "usd_foil": 2.01
+            }
+          }
+        },
+        "Er2jn": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Ukkima, Stalking Shadow",
+            "set": "c20",
+            "cn": "17",
+            "scryfall_id": "c44cfa67-6276-4d23-9f25-a0576bfe1d25",
+            "prices": {
+              "usd": 0.43,
+              "usd_foil": 0.46
+            }
+          }
+        },
+        "Lz6B4": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Xyris, the Writhing Storm",
+            "set": "c20",
+            "cn": "18",
+            "scryfall_id": "447db519-7825-4330-99e7-a2429e1f6b2e",
+            "prices": {
+              "usd": 1.81,
+              "usd_foil": 3.08
+            }
+          }
+        },
+        "Ye3MP": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Hapatra, Vizier of Poisons",
+            "set": "akh",
+            "cn": "199",
+            "scryfall_id": "56fbbcc9-db23-4902-b0f7-cea78a2a36af",
+            "prices": {
+              "usd": 0.41,
+              "usd_foil": 7.1
+            }
+          }
+        },
+        "Lm0RR": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Edric, Spymaster of Trest",
+            "set": "cns",
+            "cn": "187",
+            "scryfall_id": "0029955b-32a5-4dd8-8a8c-5c80cdfd13aa",
+            "prices": {
+              "usd": 2.71,
+              "usd_foil": 14.61
+            }
+          }
+        },
+        "E6Xzp": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Grenzo, Dungeon Warden",
+            "set": "tsr",
+            "cn": "378",
+            "scryfall_id": "43dba110-0319-4c64-8a96-539627e315ad",
+            "prices": {
+              "usd": 0.64,
+              "usd_foil": 14.78
+            }
+          }
+        },
+        "LmnlW": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Mizzix of the Izmagnus",
+            "set": "pj21",
+            "cn": "8",
+            "scryfall_id": "edd5eedf-4065-4ed0-805a-de47e5d98ac9",
+            "prices": {
+              "usd_foil": 7.22
+            }
+          }
+        },
+        "YnJpB": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Kinnan, Bonder Prodigy",
+            "set": "iko",
+            "cn": "338",
+            "scryfall_id": "532746e2-f822-4920-ab31-94e0c8baaa84",
+            "prices": {
+              "usd": 27.78,
+              "usd_foil": 166.79
+            }
+          }
+        },
+        "YN02J": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Rielle, the Everwise",
+            "set": "iko",
+            "cn": "342",
+            "scryfall_id": "6cbe5ae7-5c50-476f-9022-cfb61ced107b",
+            "prices": {
+              "usd": 5.89,
+              "usd_foil": 16.61
+            }
+          }
+        },
+        "LVg63": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Winota, Joiner of Forces",
+            "set": "piko",
+            "cn": "216p",
+            "scryfall_id": "d0ede0eb-122e-449f-a2c1-41d33d5e6cbf",
+            "prices": {
+              "usd": 5.24,
+              "usd_foil": 7.51
+            }
+          }
+        },
+        "Y8paA": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Zirda, the Dawnwaker",
+            "set": "iko",
+            "cn": "360",
+            "scryfall_id": "ff7301bd-05db-436b-8a49-5840c4cb9995",
+            "prices": {
+              "usd": 3.9,
+              "usd_foil": 8.06
+            }
+          }
+        },
+        "ky5Gr": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Jhoira, Weatherlight Captain",
+            "set": "sld",
+            "cn": "1276",
+            "scryfall_id": "6c275f66-32dd-4f40-9b6e-f4423c8e7ec1",
+            "prices": {
+              "usd_foil": 17.32
+            }
+          }
+        },
+        "E5Wx2": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Scion of the Ur-Dragon",
+            "set": "tsp",
+            "cn": "246",
+            "scryfall_id": "efb6f85b-60e9-4191-b557-ec952b7f22fc",
+            "prices": {
+              "usd": 8.25,
+              "usd_foil": 95.9
+            }
+          }
+        },
+        "kOarr": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Thada Adel, Acquisitor",
+            "set": "wwk",
+            "cn": "40",
+            "scryfall_id": "3bfcbeab-7a1e-4dcf-99bf-98f42c2b6a6f",
+            "prices": {
+              "usd": 10.02,
+              "usd_foil": 40.48
+            }
+          }
+        },
+        "kA2e5": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Sidisi, Brood Tyrant",
+            "set": "ktk",
+            "cn": "199",
+            "scryfall_id": "ffa2b070-952e-4242-83bb-3e73135ceeeb",
+            "prices": {
+              "usd": 0.98,
+              "usd_foil": 7.82
+            }
+          }
+        },
+        "Lwaow": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Marwyn, the Nurturer",
+            "set": "dom",
+            "cn": "172",
+            "scryfall_id": "251613c0-2e72-4bd1-b3b5-69602b07b6f9",
+            "prices": {
+              "usd": 6.28,
+              "usd_foil": 9.47
+            }
+          }
+        },
+        "Yx0oG": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Teshar, Ancestor's Apostle",
+            "set": "dom",
+            "cn": "36",
+            "scryfall_id": "f6d115b4-51d5-4898-b56c-2729aa428018",
+            "prices": {
+              "usd": 0.35,
+              "usd_foil": 1.57
+            }
+          }
+        },
+        "YjPrZ": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Yeva, Nature's Herald",
+            "set": "m13",
+            "cn": "197",
+            "scryfall_id": "80acb6dc-a9bd-4f12-9025-623416bdfc32",
+            "prices": {
+              "usd": 0.95,
+              "usd_foil": 1.69
+            }
+          }
+        },
+        "Lm3B0": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Halana, Kessig Ranger",
+            "set": "cmr",
+            "cn": "231",
+            "scryfall_id": "6bee6eb2-2708-4596-86ad-40eea88dbb6b",
+            "prices": {
+              "usd": 0.32,
+              "usd_foil": 0.45
+            }
+          }
+        },
+        "LVpX8": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Omnath, Locus of Creation",
+            "set": "znr",
+            "cn": "312",
+            "scryfall_id": "9b5bc5d7-c0f8-4632-adb7-dd3b75a3d87d",
+            "prices": {
+              "usd": 3.73,
+              "usd_foil": 5.54
+            }
+          }
+        },
+        "E1b8x": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Tazri, Beacon of Unity",
+            "set": "znr",
+            "cn": "324",
+            "scryfall_id": "8e4c1ab6-a67e-4258-8156-de21ccb2277d",
+            "prices": {
+              "usd": 0.47,
+              "usd_foil": 0.96
+            }
+          }
+        },
+        "LDZdl": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Yasharn, Implacable Earth",
+            "set": "znr",
+            "cn": "371",
+            "scryfall_id": "0c59fa96-9bf1-41e2-b687-87704d2ec3a7",
+            "prices": {
+              "usd": 0.87,
+              "usd_foil": 0.93
+            }
+          }
+        },
+        "Yx35Q": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Krark, the Thumbless",
+            "set": "sld",
+            "cn": "1543★",
+            "scryfall_id": "fd6994d7-e47f-4634-b8fe-4de02e2c9cba",
+            "prices": {
+              "usd_foil": 14.75
+            }
+          }
+        },
+        "Ebmq9": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Tevesh Szat, Doom of Fools",
+            "set": "sld",
+            "cn": "1199",
+            "scryfall_id": "0affc8ed-9ba1-47fe-aa81-8fde61345bfc",
+            "prices": {
+              "usd": 24.34,
+              "usd_foil": 36.12
+            }
+          }
+        },
+        "E5Do2": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Breeches, Brazen Plunderer",
+            "set": "cmr",
+            "cn": "165",
+            "scryfall_id": "83e8fe2e-ec6c-47fc-85c0-6eec185ecdce",
+            "prices": {
+              "usd": 0.33,
+              "usd_foil": 0.3
+            }
+          }
+        },
+        "E6xjo": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Kodama of the East Tree",
+            "set": "cmr",
+            "cn": "239",
+            "scryfall_id": "af5105ee-09e2-4344-ab39-00f0e9034c47",
+            "prices": {
+              "usd": 4.56,
+              "usd_foil": 6.24
+            }
+          }
+        },
+        "YB58v": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Malcolm, Keen-Eyed Navigator",
+            "set": "cmr",
+            "cn": "79",
+            "scryfall_id": "bbc3bbda-a4bc-4302-a3fc-b1c89f0f5461",
+            "prices": {
+              "usd": 0.3,
+              "usd_foil": 0.41
+            }
+          }
+        },
+        "kpOq0": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Kediss, Emberclaw Familiar",
+            "set": "cmr",
+            "cn": "188",
+            "scryfall_id": "f606ebf1-483d-4331-b16a-9fb6f591a39f",
+            "prices": {
+              "usd": 5.46,
+              "usd_foil": 8.42
+            }
+          }
+        },
+        "Yx3q9": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Dargo, the Shipwrecker",
+            "set": "cmr",
+            "cn": "172",
+            "scryfall_id": "5cd87cf8-4d5d-4aba-8dfa-800b1fb3799b",
+            "prices": {
+              "usd": 0.27,
+              "usd_foil": 0.27
+            }
+          }
+        },
+        "kAr4A": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Jeska, Thrice Reborn",
+            "set": "sld",
+            "cn": "1201",
+            "scryfall_id": "864d028f-b57f-4f68-9694-c5a2bd7295b9",
+            "prices": {
+              "usd": 34.76,
+              "usd_foil": 56.17
+            }
+          }
+        },
+        "YdlZG": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Rograkh, Son of Rohgahh",
+            "set": "cmr",
+            "cn": "197",
+            "scryfall_id": "a4fab67f-00c2-4125-9262-d21a29411797",
+            "prices": {
+              "usd": 2.35,
+              "usd_foil": 6.74
+            }
+          }
+        },
+        "EZW7D": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Ardenn, Intrepid Archaeologist",
+            "set": "cmr",
+            "cn": "10",
+            "scryfall_id": "728b802c-969b-4865-b7a0-871c585d097a",
+            "prices": {
+              "usd": 2.64,
+              "usd_foil": 4.4
+            }
+          }
+        },
+        "EJwMm": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Armix, Filigree Thrasher",
+            "set": "cmr",
+            "cn": "108",
+            "scryfall_id": "d5f69e24-6b5c-4a9a-af5b-1ce88efdc0aa",
+            "prices": {
+              "usd": 0.35,
+              "usd_foil": 0.26
+            }
+          }
+        },
+        "E6xrQ": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Sakashima of a Thousand Faces",
+            "set": "sld",
+            "cn": "1541★",
+            "scryfall_id": "9fd31cfd-725c-4900-bc43-1971f2d01e58",
+            "prices": {
+              "usd_foil": 22.31
+            }
+          }
+        },
+        "L4Wvg": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Aesi, Tyrant of Gyre Strait",
+            "set": "cmr",
+            "cn": "365",
+            "scryfall_id": "d607b003-6b48-429c-a7fd-45b8dd1bb4f9",
+            "prices": {
+              "usd_foil": 10.65
+            }
+          }
+        },
+        "EZWvB": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Magda, Brazen Outlaw",
+            "set": "khm",
+            "cn": "312",
+            "scryfall_id": "ab551f0e-7a9c-4c99-b199-042ab018dd9a",
+            "prices": {
+              "usd": 9.57,
+              "usd_foil": 35.35
+            }
+          }
+        },
+        "ErO37": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Koll, the Forgemaster",
+            "set": "khm",
+            "cn": "325",
+            "scryfall_id": "37533179-8e58-40bc-af16-0d2c58b773ba",
+            "prices": {
+              "usd": 0.25,
+              "usd_foil": 0.36
+            }
+          }
+        },
+        "L4WwN": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Varragoth, Bloodsky Sire",
+            "set": "khm",
+            "cn": "309",
+            "scryfall_id": "6656a371-639f-4e4b-889f-4ee0bc085030",
+            "prices": {
+              "usd": 3.82,
+              "usd_foil": 6.68
+            }
+          }
+        },
+        "kAr10": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Esika, God of the Tree // The Prismatic Bridge",
+            "set": "khm",
+            "cn": "314",
+            "scryfall_id": "ced8571a-24e1-45be-8698-3314b663940a",
+            "prices": {
+              "usd": 18.58,
+              "usd_foil": 22.73
+            }
+          }
+        },
+        "LwD8K": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Birgi, God of Storytelling // Harnfel, Horn of Bounty",
+            "set": "khm",
+            "cn": "311",
+            "scryfall_id": "54dccbc0-528c-4e99-a6db-f2373978fe5f",
+            "prices": {
+              "usd": 24.68,
+              "usd_foil": 46.14
+            }
+          }
+        },
+        "LDl9x": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Orvar, the All-Form",
+            "set": "khm",
+            "cn": "305",
+            "scryfall_id": "9d700064-1fda-4de0-9576-17a3faa5f04c",
+            "prices": {
+              "usd": 2.66,
+              "usd_foil": 7.87
+            }
+          }
+        },
+        "kaMox": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Codie, Vociferous Codex",
+            "set": "stx",
+            "cn": "253",
+            "scryfall_id": "ea476ee1-67d9-4dd8-a5ac-f68a155eb18b",
+            "prices": {
+              "usd": 0.34,
+              "usd_foil": 0.38
+            }
+          }
+        },
+        "EJgp8": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Extus, Oriq Overlord // Awaken the Blood Avatar",
+            "set": "stx",
+            "cn": "323",
+            "scryfall_id": "786156ce-544c-4aa4-8381-756042d0bcda",
+            "prices": {
+              "usd": 5.45,
+              "usd_foil": 9.25
+            }
+          }
+        },
+        "kXwMM": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Dina, Soul Steeper",
+            "set": "stx",
+            "cn": "178",
+            "scryfall_id": "9cd2b567-0cf7-4441-b3ce-e31141dd91c8",
+            "prices": {
+              "usd": 0.25,
+              "usd_foil": 0.28
+            }
+          }
+        },
+        "EPw6l": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Rionya, Fire Dancer",
+            "set": "prm",
+            "cn": "90100",
+            "scryfall_id": "d95787a6-7f41-4011-b7d6-48e715224280",
+            "prices": {}
+          }
+        },
+        "kpNa4": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Tiamat",
+            "set": "afr",
+            "cn": "298",
+            "scryfall_id": "492fe79b-7af2-4911-8497-cbee8d529d18",
+            "prices": {
+              "usd": 27.94,
+              "usd_foil": 62.8
+            }
+          }
+        },
+        "Yo1vZ": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Chatterfang, Squirrel General",
+            "set": "mh2",
+            "cn": "316",
+            "scryfall_id": "57b819b7-c193-446d-b7cf-75a09e1d58a4",
+            "prices": {
+              "usd": 23.1,
+              "usd_foil": 45.38
+            }
+          }
+        },
+        "k9y7a": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Grist, the Hunger Tide",
+            "set": "mh2",
+            "cn": "306",
+            "scryfall_id": "808a3770-057a-4985-ba5c-870d7b1cd527",
+            "prices": {
+              "usd": 6.05,
+              "usd_foil": 15.17
+            }
+          }
+        },
+        "LRw0d": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Lonis, Cryptozoologist",
+            "set": "mh2",
+            "cn": "204",
+            "scryfall_id": "5dfd08da-6717-49ee-94ba-2562224f5baa",
+            "prices": {
+              "usd": 0.33,
+              "usd_foil": 0.8
+            }
+          }
+        },
+        "Y2Oe4": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Sythis, Harvest's Hand",
+            "set": "sld",
+            "cn": "1963",
+            "scryfall_id": "2832a541-bd8d-4793-abb4-3d76f0df257c",
+            "prices": {
+              "usd_foil": 13.72
+            }
+          }
+        },
+        "LDlxM": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Oswald Fiddlebender",
+            "set": "afr",
+            "cn": "304",
+            "scryfall_id": "853c9db7-504e-4dfb-8067-abd2a36f6a1a",
+            "prices": {
+              "usd": 1.98,
+              "usd_foil": 3.05
+            }
+          }
+        },
+        "EJg0B": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Sefris of the Hidden Ways",
+            "set": "afc",
+            "cn": "3",
+            "scryfall_id": "d30255f6-e058-476a-b377-2ee4c9178ed1",
+            "prices": {
+              "usd_foil": 0.55
+            }
+          }
+        },
+        "Yd15a": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Prosper, Tome-Bound",
+            "set": "afc",
+            "cn": "2",
+            "scryfall_id": "d743336e-d5c7-4053-a23d-92ec7581f74e",
+            "prices": {
+              "usd_foil": 6.64
+            }
+          }
+        },
+        "EPwOn": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Minsc, Beloved Ranger",
+            "set": "pafr",
+            "cn": "227p",
+            "scryfall_id": "d3f13dd5-894f-4a64-896b-dd76c7a6c237",
+            "prices": {
+              "usd": 1.16,
+              "usd_foil": 1.41
+            }
+          }
+        },
+        "YxxDQ": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Old Stickfingers",
+            "set": "mid",
+            "cn": "321",
+            "scryfall_id": "d3a0dc21-c202-4cef-9e67-26b9dd24d565",
+            "prices": {
+              "usd": 0.34,
+              "usd_foil": 1.06
+            }
+          }
+        },
+        "Lm1Vz": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Florian, Voldaren Scion",
+            "set": "mid",
+            "cn": "223",
+            "scryfall_id": "53289e69-74da-46d2-91c2-a11378ba76ef",
+            "prices": {
+              "usd": 0.32,
+              "usd_foil": 2.11
+            }
+          }
+        },
+        "Ebzo8": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Grolnok, the Omnivore",
+            "set": "vow",
+            "cn": "238",
+            "scryfall_id": "7aaba76b-9cec-4c2b-b0eb-8f44201f6422",
+            "prices": {
+              "usd": 0.49,
+              "usd_foil": 0.62
+            }
+          }
+        },
+        "YByvG": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Toxrill, the Corrosive",
+            "set": "vow",
+            "cn": "321",
+            "scryfall_id": "78808d46-a3a7-4598-bddf-a302977808fb",
+            "prices": {
+              "usd": 17.7,
+              "usd_foil": 17.11
+            }
+          }
+        },
+        "kazR2": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Satoru Umezawa",
+            "set": "neo",
+            "cn": "234",
+            "scryfall_id": "8887f26d-b097-4fbc-9c48-bdc656409a32",
+            "prices": {
+              "usd": 0.48,
+              "usd_foil": 0.77
+            }
+          }
+        },
+        "YxVQV": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Ao, the Dawn Sky",
+            "set": "neo",
+            "cn": "406",
+            "scryfall_id": "5d7d1c2d-d3be-4647-a260-15ce85e69eea",
+            "prices": {
+              "usd": 5.98,
+              "usd_foil": 6.84
+            }
+          }
+        },
+        "kO2A4": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Tameshi, Reality Architect",
+            "set": "neo",
+            "cn": "375",
+            "scryfall_id": "91c0467d-bc7b-4233-8ac1-adb9d88344fb",
+            "prices": {
+              "usd": 0.66,
+              "usd_foil": 2.99
+            }
+          }
+        },
+        "LzrRK": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Light-Paws, Emperor's Voice",
+            "set": "neo",
+            "cn": "367",
+            "scryfall_id": "76614523-e51a-44ff-83ad-5be9e322697a",
+            "prices": {
+              "usd": 5.43,
+              "usd_foil": 14.11
+            }
+          }
+        },
+        "EZzDX": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Hinata, Dawn-Crowned",
+            "set": "neo",
+            "cn": "222",
+            "scryfall_id": "f25aff90-56fd-4f70-bb3b-cabf2900c391",
+            "prices": {
+              "usd": 0.31,
+              "usd_foil": 0.36
+            }
+          }
+        },
+        "LDDJ9": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Yoshimaru, Ever Faithful",
+            "set": "sld",
+            "cn": "794",
+            "scryfall_id": "f15c8803-f33a-4530-9882-bff1bf810c19",
+            "prices": {
+              "usd_foil": 58.56
+            }
+          }
+        },
+        "YxVxQ": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Shorikai, Genesis Engine",
+            "set": "nec",
+            "cn": "4",
+            "scryfall_id": "969ac7dd-f3aa-4888-9ff0-d16a31b5e7a9",
+            "prices": {
+              "usd": 3.22,
+              "usd_foil": 5.2
+            }
+          }
+        },
+        "LmgBz": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Minsc & Boo, Timeless Heroes",
+            "set": "clb",
+            "cn": "363",
+            "scryfall_id": "e308b016-5611-450c-a2ea-906647d1b7e3",
+            "prices": {
+              "usd": 7.04,
+              "usd_foil": 12.68
+            }
+          }
+        },
+        "kAgoe": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Jetmir, Nexus of Revels",
+            "set": "snc",
+            "cn": "193",
+            "scryfall_id": "f9c69d75-651f-4b75-b65d-79999d2069f6",
+            "prices": {
+              "usd": 10.27,
+              "usd_foil": 13.18
+            }
+          }
+        },
+        "EJPDR": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Raffine, Scheming Seer",
+            "set": "snc",
+            "cn": "213",
+            "scryfall_id": "716a44b4-f6b0-4f14-a270-6442aed3251f",
+            "prices": {
+              "usd": 9,
+              "usd_foil": 7.66
+            }
+          }
+        },
+        "LwlM9": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Anhelo, the Painter",
+            "set": "ncc",
+            "cn": "100",
+            "scryfall_id": "59569e25-0992-46ae-99a0-b558c4a10361",
+            "prices": {
+              "usd": 1.1,
+              "usd_foil": 1.52
+            }
+          }
+        },
+        "kpAMp": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Falco Spara, Pactweaver",
+            "set": "snc",
+            "cn": "186",
+            "scryfall_id": "ae25db8c-3d10-4196-b002-9d2aabd5f4de",
+            "prices": {
+              "usd": 1.79,
+              "usd_foil": 3.41
+            }
+          }
+        },
+        "kO2e0": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Evelyn, the Covetous",
+            "set": "snc",
+            "cn": "306",
+            "scryfall_id": "7abd914b-4f66-4b80-8249-86f2e77f0452",
+            "prices": {
+              "usd": 0.32,
+              "usd_foil": 0.3
+            }
+          }
+        },
+        "Lwl99": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Cormela, Glamour Thief",
+            "set": "snc",
+            "cn": "301",
+            "scryfall_id": "2b43fca7-3b37-4d40-88c8-aa178b68f75c",
+            "prices": {
+              "usd": 0.19,
+              "usd_foil": 0.18
+            }
+          }
+        },
+        "YxVXn": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Queza, Augur of Agonies",
+            "set": "snc",
+            "cn": "326",
+            "scryfall_id": "8be62891-93fa-4642-ad44-8c8695a9c960",
+            "prices": {
+              "usd": 0.23,
+              "usd_foil": 0.3
+            }
+          }
+        },
+        "E6m2O": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Rocco, Cabaretti Caterer",
+            "set": "snc",
+            "cn": "332",
+            "scryfall_id": "0cbc93cb-8df4-446f-b99f-21238355ad64",
+            "prices": {
+              "usd": 0.21,
+              "usd_foil": 0.31
+            }
+          }
+        },
+        "Lmgzq": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Tivit, Seller of Secrets",
+            "set": "ncc",
+            "cn": "109",
+            "scryfall_id": "5326a876-0c56-4368-af10-e9bbd1188d45",
+            "prices": {
+              "usd": 15.56,
+              "usd_foil": 20.75
+            }
+          }
+        },
+        "ErJeR": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Oskar, Rubbish Reclaimer",
+            "set": "pncc",
+            "cn": "77p",
+            "scryfall_id": "ac13a687-4053-494a-9198-cee65045cf36",
+            "prices": {
+              "usd_foil": 20.46
+            }
+          }
+        },
+        "YdzqX": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Abaddon the Despoiler",
+            "set": "40k",
+            "cn": "171",
+            "scryfall_id": "a78ab8fe-4499-4860-87d3-f8707398c00c",
+            "prices": {
+              "usd_foil": 1.66
+            }
+          }
+        },
+        "L4d5G": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Gale, Waterdeep Prodigy",
+            "set": "clb",
+            "cn": "72",
+            "scryfall_id": "67edf31f-ed67-4617-bf73-28a939a232a7",
+            "prices": {
+              "usd": 0.5,
+              "usd_foil": 0.51
+            }
+          }
+        },
+        "LDDQM": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Abdel Adrian, Gorion's Ward",
+            "set": "clb",
+            "cn": "2",
+            "scryfall_id": "396f9198-67b6-45d8-91b4-dc853bff9623",
+            "prices": {
+              "usd": 0.33,
+              "usd_foil": 0.29
+            }
+          }
+        },
+        "kXzZG": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Erinis, Gloom Stalker",
+            "set": "clb",
+            "cn": "407",
+            "scryfall_id": "f73d15f7-d36c-45b8-a933-dac17040c9ee",
+            "prices": {
+              "usd": 0.18,
+              "usd_foil": 0.27
+            }
+          }
+        },
+        "YxVAm": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Jan Jansen, Chaos Crafter",
+            "set": "clb",
+            "cn": "424",
+            "scryfall_id": "a40cb9ff-9f85-44e0-90b4-574814868a25",
+            "prices": {
+              "usd": 0.3,
+              "usd_foil": 0.37
+            }
+          }
+        },
+        "YnDMA": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Alaundo the Seer",
+            "set": "clb",
+            "cn": "264",
+            "scryfall_id": "b22c33bb-47fe-4334-9105-00f4b87811bd",
+            "prices": {
+              "usd": 0.18,
+              "usd_foil": 0.26
+            }
+          }
+        },
+        "YMpOw": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Hazezon, Shaper of Sand",
+            "set": "dmc",
+            "cn": "32",
+            "scryfall_id": "25869cd0-63da-4dfb-8870-221cdba276e2",
+            "prices": {
+              "usd": 0.25,
+              "usd_foil": 0.34
+            }
+          }
+        },
+        "LwNP9": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Jhoira, Ageless Innovator",
+            "set": "dmu",
+            "cn": "301",
+            "scryfall_id": "538eb568-23e7-49c6-855a-543a65fdae46",
+            "prices": {
+              "usd": 0.29,
+              "usd_foil": 0.38
+            }
+          }
+        },
+        "EZa9B": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Dihada, Binder of Wills",
+            "set": "dmc",
+            "cn": "1",
+            "scryfall_id": "ddeb54d6-a600-42b9-98df-20f8d58caed8",
+            "prices": {
+              "usd": 16.04,
+              "usd_foil": 19.61
+            }
+          }
+        },
+        "EbAda": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Braids, Arisen Nightmare",
+            "set": "dmu",
+            "cn": "329",
+            "scryfall_id": "1e20d56c-20df-4fe9-a329-df5768a180af",
+            "prices": {
+              "usd_foil": 11.96
+            }
+          }
+        },
+        "LK46P": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Jenson Carthalion, Druid Exile",
+            "set": "dmc",
+            "cn": "78",
+            "scryfall_id": "82f47335-2bf7-46c3-941b-00357e5653da",
+            "prices": {
+              "usd": 2.23,
+              "usd_foil": 2.24
+            }
+          }
+        },
+        "kax5O": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Vohar, Vodalian Desecrator",
+            "set": "dmu",
+            "cn": "325",
+            "scryfall_id": "a573c574-754a-4994-881c-ca5177727775",
+            "prices": {
+              "usd": 0.26,
+              "usd_foil": 0.23
+            }
+          }
+        },
+        "LwNRw": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Jodah, the Unifier",
+            "set": "dmu",
+            "cn": "302",
+            "scryfall_id": "416429e0-4b7e-43d1-8126-16ab679b6e39",
+            "prices": {
+              "usd": 2.86,
+              "usd_foil": 3.27
+            }
+          }
+        },
+        "EWvMG": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Magus Lucea Kane",
+            "set": "40k",
+            "cn": "7",
+            "scryfall_id": "4f86e7cc-2b6e-49d0-964e-bba0c51cc11d",
+            "prices": {
+              "usd_foil": 22.92
+            }
+          }
+        },
+        "YxN4g": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Marneus Calgar",
+            "set": "40k",
+            "cn": "8",
+            "scryfall_id": "e7517e8e-b424-4731-ba9d-6132bdefa6bf",
+            "prices": {
+              "usd_foil": 80.88
+            }
+          }
+        },
+        "EZaxm": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Slicer, Hired Muscle // Slicer, High-Speed Antagonist",
+            "set": "bot",
+            "cn": "21",
+            "scryfall_id": "a35108d8-f6c5-4474-9049-64fd7e3b1310",
+            "prices": {
+              "usd": 31.51,
+              "usd_foil": 393.23
+            }
+          }
+        },
+        "LRzGR": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Unctus, Grand Metatect",
+            "set": "one",
+            "cn": "303",
+            "scryfall_id": "d3bc001d-b20b-4d6e-b744-f4f19339f0cb",
+            "prices": {
+              "usd": 0.55,
+              "usd_foil": 0.55
+            }
+          }
+        },
+        "E0bX2": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Atraxa, Grand Unifier",
+            "set": "one",
+            "cn": "316",
+            "scryfall_id": "e51e5d02-d3d0-45e5-a589-1fe25ff5082b",
+            "prices": {
+              "usd": 22.29,
+              "usd_foil": 37.98
+            }
+          }
+        },
+        "YeBOK": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Heliod, the Radiant Dawn // Heliod, the Warped Eclipse",
+            "set": "mom",
+            "cn": "293",
+            "scryfall_id": "bfd786c2-6a2b-4f43-ba68-cbe31eeb4904",
+            "prices": {
+              "usd": 2.05,
+              "usd_foil": 2.78
+            }
+          }
+        },
+        "LGKVQ": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Omnath, Locus of All",
+            "set": "mom",
+            "cn": "313",
+            "scryfall_id": "5b998493-d2c5-48dd-8d0c-b63b6795acf6",
+            "prices": {
+              "usd": 0.44,
+              "usd_foil": 0.59
+            }
+          }
+        },
+        "kqBbJ": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Slimefoot and Squee",
+            "set": "moc",
+            "cn": "450",
+            "scryfall_id": "c6f777b0-2f35-4333-8f54-7ceeeac2ec83",
+            "prices": {
+              "usd": 8.71,
+              "usd_foil": 15.74
+            }
+          }
+        },
+        "kaBda": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Borborygmos and Fblthp",
+            "set": "mom",
+            "cn": "303",
+            "scryfall_id": "df48f1c0-b336-4c68-8d11-41bceb36c83c",
+            "prices": {
+              "usd": 0.39,
+              "usd_foil": 0.5
+            }
+          }
+        },
+        "YMnOK": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Etali, Primal Conqueror // Etali, Primal Sickness",
+            "set": "mom",
+            "cn": "137",
+            "scryfall_id": "95c14c4d-6c16-4826-8d93-d89ad04aee09",
+            "prices": {
+              "usd": 29.32,
+              "usd_foil": 30.23
+            }
+          }
+        },
+        "LD30N": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Rona, Herald of Invasion // Rona, Tolarian Obliterator",
+            "set": "mom",
+            "cn": "295",
+            "scryfall_id": "d4bb6ca5-f529-403f-bdc7-63b7e7e86753",
+            "prices": {
+              "usd": 1.21,
+              "usd_foil": 1.82
+            }
+          }
+        },
+        "YdBgG": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Shalai and Hallar",
+            "set": "moc",
+            "cn": "96",
+            "scryfall_id": "0dcb27cd-e5f1-46c6-b7cf-33fa90335459",
+            "prices": {
+              "usd": 8.58,
+              "usd_foil": 9.81
+            }
+          }
+        },
+        "kaBmO": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Nissa, Resurgent Animist",
+            "set": "mat",
+            "cn": "162",
+            "scryfall_id": "7b3f0e26-7784-452d-acc8-9f7181e0f7d5",
+            "prices": {
+              "usd": 27.63,
+              "usd_foil": 45.01
+            }
+          }
+        },
+        "LGKZ6": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Ob Nixilis, Captive Kingpin",
+            "set": "mat",
+            "cn": "176",
+            "scryfall_id": "7f613db0-3303-4d54-a060-1bd8b37a208f",
+            "prices": {
+              "usd": 20.02,
+              "usd_foil": 26.74
+            }
+          }
+        },
+        "EW5Wr": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Narset, Enlightened Exile",
+            "set": "mat",
+            "cn": "173",
+            "scryfall_id": "8487e81a-bb02-4d5c-86bb-fe626fa91c27",
+            "prices": {
+              "usd": 9.81,
+              "usd_foil": 16.79
+            }
+          }
+        },
+        "ErBgR": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Zhulodok, Void Gorger",
+            "set": "cmm",
+            "cn": "752",
+            "scryfall_id": "b59ba1ee-8080-4f3e-a9a0-fa7b8b049e34",
+            "prices": {
+              "usd": 56.17,
+              "usd_foil": 97.64
+            }
+          }
+        },
+        "LwZaK": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Sauron, the Dark Lord",
+            "set": "ltr",
+            "cn": "744",
+            "scryfall_id": "3766383d-6e3d-472c-ac7b-f3521ee214af",
+            "prices": {
+              "usd": 509.71,
+              "usd_foil": 941.48
+            }
+          }
+        },
+        "LR7eK": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Lord of the Nazgûl",
+            "set": "ltc",
+            "cn": "467",
+            "scryfall_id": "a13343e9-b6bb-421c-8ba5-fe3c6794dca0",
+            "prices": {
+              "usd": 33.08,
+              "usd_foil": 95.55
+            }
+          }
+        },
+        "kAo9J": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Talion, the Kindly Lord",
+            "set": "woe",
+            "cn": "301",
+            "scryfall_id": "bb1f05ef-7607-4a63-a710-18d0061ec982",
+            "prices": {
+              "usd": 8.55,
+              "usd_foil": 24.3
+            }
+          }
+        },
+        "ErBGo": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "River Song",
+            "set": "who",
+            "cn": "547",
+            "scryfall_id": "1705e68d-4649-4c51-b34a-2e18498b72f2",
+            "prices": {
+              "usd": 0.83,
+              "usd_foil": 2.95
+            }
+          }
+        },
+        "kpB74": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Ellivere of the Wild Court",
+            "set": "woc",
+            "cn": "36",
+            "scryfall_id": "d478a7ac-805d-484f-87da-737c0e08e0ee",
+            "prices": {
+              "usd": 2.32,
+              "usd_foil": 2.64
+            }
+          }
+        },
+        "EW5jx": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Rowan, Scion of War",
+            "set": "woe",
+            "cn": "300",
+            "scryfall_id": "844e29e9-e870-4433-ad63-0ff918a3e41a",
+            "prices": {
+              "usd": 2.41,
+              "usd_foil": 9.68
+            }
+          }
+        },
+        "L4xrP": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Ojer Axonil, Deepest Might // Temple of Power",
+            "set": "lci",
+            "cn": "158",
+            "scryfall_id": "50f8e2b6-98c7-4f28-bb39-e1fbe841f1ee",
+            "prices": {
+              "usd": 25.13,
+              "usd_foil": 26.24
+            }
+          }
+        },
+        "LwZJw": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "The Sixth Doctor",
+            "set": "who",
+            "cn": "1148",
+            "scryfall_id": "c7be3c60-cd96-49d2-bc4f-8072c981e456",
+            "prices": {
+              "usd_foil": 25.75
+            }
+          }
+        },
+        "kANXD": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Saheeli, the Sun's Brilliance",
+            "set": "lci",
+            "cn": "308",
+            "scryfall_id": "7a16ca40-2210-4f94-bfb1-960b34a7d98e",
+            "prices": {
+              "usd": 1.01,
+              "usd_foil": 1.65
+            }
+          }
+        },
+        "E6NgN": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Pantlaza, Sun-Favored",
+            "set": "lcc",
+            "cn": "20",
+            "scryfall_id": "5f7045c1-839b-4cc7-a97d-c098edcd770c",
+            "prices": {
+              "usd": 18.73,
+              "usd_foil": 57.38
+            }
+          }
+        },
+        "EZXQb": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Tetzin, Gnome Champion // The Golden-Gear Colossus",
+            "set": "lcc",
+            "cn": "31",
+            "scryfall_id": "53b2e955-0106-4c28-8897-bcdafd96195f",
+            "prices": {
+              "usd": 0.37,
+              "usd_foil": 0.53
+            }
+          }
+        },
+        "LmXa3": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "The Fourteenth Doctor",
+            "set": "sld",
+            "cn": "1583",
+            "scryfall_id": "8b8a78cf-ee6c-4852-9651-eeaa634daaa1",
+            "prices": {
+              "usd": 99.9,
+              "usd_foil": 106.82
+            }
+          }
+        },
+        "Y8NWQ": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "The Master, Transcendent",
+            "set": "pip",
+            "cn": "419",
+            "scryfall_id": "811876c4-ca77-4fc0-9c05-690da35949ac",
+            "prices": {
+              "usd": 2.71,
+              "usd_foil": 2.18
+            }
+          }
+        },
+        "kyM9r": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Lumra, Bellow of the Woods",
+            "set": "blb",
+            "cn": "343",
+            "scryfall_id": "8487cfce-2b73-4082-a1f2-dea263811516",
+            "prices": {
+              "usd_foil": 957.05
+            }
+          }
+        },
+        "EJN28": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Ezio Auditore da Firenze",
+            "set": "acr",
+            "cn": "113",
+            "scryfall_id": "f7b4c94f-a38a-461c-9bb8-aadc587a1ae6",
+            "prices": {
+              "usd": 22.17,
+              "usd_foil": 41.15
+            }
+          }
+        },
+        "EZX4P": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Stella Lee, Wild Card",
+            "set": "otc",
+            "cn": "3",
+            "scryfall_id": "2a8a7696-b5d9-4378-9d5c-2c9007e4df63",
+            "prices": {
+              "usd": 4.7,
+              "usd_foil": 4.49
+            }
+          }
+        },
+        "YB9bV": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Rakdos, the Muscle",
+            "set": "otj",
+            "cn": "297",
+            "scryfall_id": "b85635e0-fb5b-42ea-8a30-d67922cbca95",
+            "prices": {
+              "usd": 3.69,
+              "usd_foil": 9.01
+            }
+          }
+        },
+        "EJNqM": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Loot, the Key to Everything",
+            "set": "big",
+            "cn": "62",
+            "scryfall_id": "0d18fa57-fab9-48f6-b80a-d03fb89d2683",
+            "prices": {
+              "usd_foil": 40.95
+            }
+          }
+        },
+        "LmXrz": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Ulalek, Fused Atrocity",
+            "set": "m3c",
+            "cn": "16",
+            "scryfall_id": "5edd2be5-7923-4488-9e27-c366873b2322",
+            "prices": {
+              "usd": 2.6,
+              "usd_foil": 4.31
+            }
+          }
+        },
+        "kaX3d": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Ral, Monsoon Mage // Ral, Leyline Prodigy",
+            "set": "mh3",
+            "cn": "471",
+            "scryfall_id": "f5befad9-00b4-4589-a11c-951d2f5cb9cd",
+            "prices": {
+              "usd_foil": 81.66
+            }
+          }
+        },
+        "LRgAd": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "The Necrobloom",
+            "set": "mh3",
+            "cn": "378",
+            "scryfall_id": "90c5c8e0-0744-4bd3-a5a1-ca71c287569b",
+            "prices": {
+              "usd": 1.36,
+              "usd_foil": 6.46
+            }
+          }
+        },
+        "EbXWa": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Ashling, Flame Dancer",
+            "set": "mh3",
+            "cn": "367",
+            "scryfall_id": "95089b00-b159-4c95-952d-bc29e463a1e7",
+            "prices": {
+              "usd": 10.51,
+              "usd_foil": 37.97
+            }
+          }
+        },
+        "LRep8": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Glarb, Calamity's Augur",
+            "set": "blb",
+            "cn": "331",
+            "scryfall_id": "b6fab12e-0f81-4728-9a35-4dc896ba3744",
+            "prices": {
+              "usd": 7.07,
+              "usd_foil": 19.48
+            }
+          }
+        },
+        "kOebm": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Baylen, the Haymaker",
+            "set": "blb",
+            "cn": "345",
+            "scryfall_id": "0b511524-e628-41d4-b0dc-d98961d4e9e1",
+            "prices": {
+              "usd_foil": 410.4
+            }
+          }
+        },
+        "E6KNQ": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "The Master of Keys",
+            "set": "dsc",
+            "cn": "4",
+            "scryfall_id": "3545341b-dacc-4ac8-976e-39754a62bbc3",
+            "prices": {
+              "usd": 2.26,
+              "usd_foil": 0.92
+            }
+          }
+        },
+        "LVeZ8": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Storm, Force of Nature",
+            "set": "sld",
+            "cn": "1742",
+            "scryfall_id": "6af7766e-7438-4128-a1f2-8b3b3ba3c650",
+            "prices": {
+              "usd": 15.87
+            }
+          }
+        },
+        "Y20dK": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Iron Man, Titan of Innovation",
+            "set": "sld",
+            "cn": "1731",
+            "scryfall_id": "7542b1d1-e34d-46dc-af24-1b718034c0e4",
+            "prices": {
+              "usd": 15.87
+            }
+          }
+        },
+        "kOeZm": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Niv-Mizzet, Visionary",
+            "set": "fdn",
+            "cn": "411",
+            "scryfall_id": "53c07579-1567-4e3f-a28a-ca7f106fd1dc",
+            "prices": {
+              "usd_foil": 131.66
+            }
+          }
+        },
+        "LG739": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Loot, the Pathfinder",
+            "set": "dft",
+            "cn": "414",
+            "scryfall_id": "89fba04a-20ab-40eb-9edf-89fdd03bfb7e",
+            "prices": {
+              "usd_foil": 107.43
+            }
+          }
+        },
+        "ErXZM": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Hashaton, Scarab's Fist",
+            "set": "drc",
+            "cn": "1",
+            "scryfall_id": "02645651-cd55-4bd0-8a4d-fa257270a0e0",
+            "prices": {
+              "usd": 1.24,
+              "usd_foil": 0.64
+            }
+          }
+        },
+        "kpXR4": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Ketramose, the New Dawn",
+            "set": "dft",
+            "cn": "350",
+            "scryfall_id": "3c8a81bf-f63c-40ca-a4da-db68df3f3e1a",
+            "prices": {
+              "usd": 3.55,
+              "usd_foil": 6.64
+            }
+          }
+        },
+        "Yd2K3": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Y'shtola, Night's Blessed",
+            "set": "fic",
+            "cn": "207",
+            "scryfall_id": "514ad860-dff2-45f2-ad5c-77c776c1cf74",
+            "prices": {
+              "usd": 172.68,
+              "usd_foil": 333.99
+            }
+          }
+        },
+        "Y8vqQ": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Celes, Rune Knight",
+            "set": "fic",
+            "cn": "209",
+            "scryfall_id": "f1c9e178-24ec-41cb-a6e2-9e9222dec4c2",
+            "prices": {
+              "usd_foil": 227.16
+            }
+          }
+        },
+        "k70bj": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Kefka, Court Mage // Kefka, Ruler of Ruin",
+            "set": "fin",
+            "cn": "322",
+            "scryfall_id": "0cadfe0e-9cdf-4e64-b143-f996c76bf93b",
+            "prices": {
+              "usd": 37.19,
+              "usd_foil": 87.93
+            }
+          }
+        },
+        "E5gPM": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Noctis, Prince of Lucis",
+            "set": "fin",
+            "cn": "546",
+            "scryfall_id": "49543cd4-d976-4d3b-a7d2-6acfbb28b1b5",
+            "prices": {
+              "usd_foil": 44.82
+            }
+          }
+        },
+        "E63mR": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Terra, Magical Adept // Esper Terra",
+            "set": "fin",
+            "cn": "323",
+            "scryfall_id": "0cf789e7-045c-4ad1-abc3-23eabda54f02",
+            "prices": {
+              "usd": 33.17,
+              "usd_foil": 116.44
+            }
+          }
+        },
+        "L3oJ6": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Vivi Ornitier",
+            "set": "fin",
+            "cn": "321",
+            "scryfall_id": "ada6aeb6-8c9f-4498-9326-b4da0fcb19a3",
+            "prices": {
+              "usd": 80.36,
+              "usd_foil": 184.7
+            }
+          }
+        },
+        "Ego7r": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "The Wandering Minstrel",
+            "set": "fin",
+            "cn": "548",
+            "scryfall_id": "fe9cd860-1b4e-48ec-be30-e0ec4ca75e26",
+            "prices": {
+              "usd_foil": 31.2
+            }
+          }
+        },
+        "LzX86": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Avatar Aang // Aang, Master of Elements",
+            "set": "tla",
+            "cn": "308",
+            "scryfall_id": "257928ba-27ae-4a11-ae41-76dfcd626ed4",
+            "prices": {
+              "usd": 16.3,
+              "usd_foil": 19.17
+            }
+          }
+        },
+        "YBn1P": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Tannuk, Memorial Ensign",
+            "set": "eoe",
+            "cn": "233",
+            "scryfall_id": "52498b7b-0389-4e7b-b29f-7ac86aab9229",
+            "prices": {
+              "usd": 0.97,
+              "usd_foil": 1.29
+            }
+          }
+        },
+        "YNjRM": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Shadow the Hedgehog",
+            "set": "sld",
+            "cn": "2086",
+            "scryfall_id": "6c184959-a1e5-40d7-8faa-99310c4156ef",
+            "prices": {
+              "usd": 5.48
+            }
+          }
+        },
+        "YvXeZ": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Sami, Wildcat Captain",
+            "set": "eoe",
+            "cn": "301",
+            "scryfall_id": "968fb6d4-f4b9-4c8d-b296-fea002a8c003",
+            "prices": {
+              "usd": 5.6,
+              "usd_foil": 10.37
+            }
+          }
+        },
+        "Lm4MB": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Mm'menon, the Right Hand",
+            "set": "eoe",
+            "cn": "290",
+            "scryfall_id": "53bd9149-e157-4f0b-becf-0b64f47dbad3",
+            "prices": {
+              "usd": 2.03,
+              "usd_foil": 3.31
+            }
+          }
+        },
+        "k943g": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Gwenom, Remorseless",
+            "set": "spm",
+            "cn": "286",
+            "scryfall_id": "a5b191f5-f01b-4d6c-8363-19591c61e6cc",
+            "prices": {
+              "usd_foil": 3.07
+            }
+          }
+        },
+        "Yn82A": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Katara, Waterbending Master",
+            "set": "tle",
+            "cn": "180",
+            "scryfall_id": "02d07692-9a18-434a-876f-7311349178c2",
+            "prices": {
+              "usd": 9.8,
+              "usd_foil": 13.3
+            }
+          }
+        },
+        "Yd2xa": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "The Cabbage Merchant",
+            "set": "tle",
+            "cn": "203",
+            "scryfall_id": "65ffb473-0a11-44c2-9311-f39d69eef713",
+            "prices": {
+              "usd": 33.2,
+              "usd_foil": 33.92
+            }
+          }
+        },
+        "YopWW": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Lady Octopus, Inspired Inventor",
+            "set": "spm",
+            "cn": "252",
+            "scryfall_id": "13c85292-7dc8-4824-8e7f-189ab9420af8",
+            "prices": {
+              "usd": 0.95,
+              "usd_foil": 1.62
+            }
+          }
+        },
+        "Y2mNj": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Jaws, Relentless Predator",
+            "set": "sld",
+            "cn": "2175",
+            "scryfall_id": "c6d16a9e-98c0-46e0-987c-f0de0915a204",
+            "prices": {
+              "usd": 161.29
+            }
+          }
+        },
+        "LD1vX": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Michelangelo, the Heart",
+            "set": "tmc",
+            "cn": "5",
+            "scryfall_id": "bac2d744-db65-4b56-8634-c87fd00c090e",
+            "prices": {
+              "usd": 2.82,
+              "usd_foil": 0.77
+            }
+          }
+        },
+        "kAzQw": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Leonardo, the Balance",
+            "set": "tmc",
+            "cn": "1",
+            "scryfall_id": "72e637db-7112-406f-809b-0eda248488b5",
+            "prices": {
+              "usd": 1.53,
+              "usd_foil": 0.62
+            }
+          }
+        },
+        "Y85M7": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Aang, at the Crossroads // Aang, Destined Savior",
+            "set": "tla",
+            "cn": "304",
+            "scryfall_id": "ea886239-c58f-4291-bd32-ed306ae1d6de",
+            "prices": {
+              "usd": 6.59,
+              "usd_foil": 8.58
+            }
+          }
+        },
+        "kOgOK": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Fire Lord Azula",
+            "set": "tla",
+            "cn": "313",
+            "scryfall_id": "281b8979-aefc-4fe7-a130-3638cdc0b1dd",
+            "prices": {
+              "usd": 13.9,
+              "usd_foil": 19.59
+            }
+          }
+        },
+        "YvpzV": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Monk Gyatso",
+            "set": "tle",
+            "cn": "173",
+            "scryfall_id": "2c19acaa-29c2-4c73-a323-88051dba1bae",
+            "prices": {
+              "usd": 7.43,
+              "usd_foil": 7.7
+            }
+          }
+        },
+        "LK1yP": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Super-Skrull",
+            "set": "msh",
+            "cn": "409",
+            "scryfall_id": "625d95ac-41c5-4b42-b479-52446bb39465",
+            "prices": {
+              "usd": 0.67,
+              "usd_foil": 1
+            }
+          }
+        },
+        "Yvp1q": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Ashling, the Limitless",
+            "set": "ecc",
+            "cn": "1",
+            "scryfall_id": "5924c01f-2815-4e37-b700-3ba6cc81e0e4",
+            "prices": {
+              "usd": 0.39,
+              "usd_foil": 0.36
+            }
+          }
+        },
+        "E1PG4": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "The Reaper, King No More",
+            "set": "ecc",
+            "cn": "4",
+            "scryfall_id": "d2119f3f-27d2-4d43-a5ef-35c1b73d182a",
+            "prices": {
+              "usd": 0.59,
+              "usd_foil": 0.38
+            }
+          }
+        },
+        "Ydp1X": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Brigid, Clachan's Heart // Brigid, Doun's Mind",
+            "set": "ecl",
+            "cn": "285",
+            "scryfall_id": "887002ae-794b-427c-9f98-e909b22313d9",
+            "prices": {
+              "usd": 1.55,
+              "usd_foil": 6.03
+            }
+          }
+        },
+        "Ylq16": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Maralen, Fae Ascendant",
+            "set": "ecl",
+            "cn": "376",
+            "scryfall_id": "4b1ace1f-84ec-499d-8a52-c0ad26a70d77",
+            "prices": {
+              "usd": 2.2,
+              "usd_foil": 5.3
+            }
+          }
+        },
+        "YvpZ8": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Raph & Mikey, Troublemakers",
+            "set": "tmt",
+            "cn": "250",
+            "scryfall_id": "20882daf-a2ae-40ec-a363-8d564a2f3b2a",
+            "prices": {
+              "usd": 4.86,
+              "usd_foil": 10.01
+            }
+          }
+        },
+        "E0dBm": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Prismari, the Inspiration",
+            "set": "sos",
+            "cn": "285",
+            "scryfall_id": "472a4348-a1cc-4fb7-a801-9ac1d0f3eb05",
+            "prices": {
+              "usd": 9.17,
+              "usd_foil": 17.33
+            }
+          }
+        },
+        "k9oxa": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Witherbloom, the Balancer",
+            "set": "sos",
+            "cn": "288",
+            "scryfall_id": "cc22696c-a9ef-48b7-a74a-7dd0a9c3d1bb",
+            "prices": {
+              "usd": 8.89,
+              "usd_foil": 18.15
+            }
+          }
+        },
+        "EW1jx": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Gorma, the Gullet",
+            "set": "soc",
+            "cn": "3",
+            "scryfall_id": "86f97dd8-8647-4938-aee0-690bb715f88b",
+            "prices": {
+              "usd": 1.41,
+              "usd_foil": 0.52
+            }
+          }
+        },
+        "LmoeK": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "The Unbeatable Squirrel Girl",
+            "set": "msh",
+            "cn": "371",
+            "scryfall_id": "ef518e5b-7942-4e66-aee0-a1c2aa1f9754",
+            "prices": {
+              "usd": 5.86,
+              "usd_foil": 10.17
+            }
+          }
+        },
+        "Y89gA": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "King T'Challa // Black Panther, Hope Enduring",
+            "set": "msh",
+            "cn": "399",
+            "scryfall_id": "d1d8391c-dacc-4f21-a40e-5ca53a787f0d",
+            "prices": {
+              "usd_foil": 45.43
+            }
+          }
+        },
+        "Lwb2G": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Nick Fury, Agent of S.H.I.E.L.D.",
+            "set": "msh",
+            "cn": "389",
+            "scryfall_id": "89f7008c-762b-45c3-8ddb-d02ce1b37ebc",
+            "prices": {
+              "usd_foil": 28.15
+            }
+          }
+        },
+        "EP5jn": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Doctor Doom, Unrivaled",
+            "set": "msc",
+            "cn": "654",
+            "scryfall_id": "2973e855-fe93-41a1-a62e-4699ef2c3d1d",
+            "prices": {
+              "usd": 43.59,
+              "usd_foil": 58.59
+            }
+          }
+        },
+        "EZB9b": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Shang-Chi, Master of Kung Fu",
+            "set": "msh",
+            "cn": "396",
+            "scryfall_id": "b367d034-ae08-4b08-b090-39a6d4f79dc2",
+            "prices": {
+              "usd_foil": 72.16
+            }
+          }
+        },
+        "Lmoa3": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Crystal, Inhuman Princess",
+            "set": "msc",
+            "cn": "80",
+            "scryfall_id": "1e9aec49-08d7-4fc8-87dd-69ab8910688a",
+            "prices": {
+              "usd": 0.42
+            }
+          }
+        },
+        "EJmV5": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Smaug the Impenetrable",
+            "set": "hoc",
+            "cn": "9",
+            "scryfall_id": "55872bce-08ce-4d4f-8951-9fa230f3e160",
+            "prices": {
+              "usd": 14.55,
+              "usd_foil": 14.4
+            }
+          }
+        },
+        "YddD3": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Bard, King of Dale",
+            "set": "hob",
+            "cn": "280",
+            "scryfall_id": "f7c75c32-a24f-46e5-9128-2df9a2ec11f9",
+            "prices": {
+              "usd_foil": 88.24
+            }
+          }
+        },
+        "Yl57e": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Thranduil, the Elvenking",
+            "set": "hob",
+            "cn": "282",
+            "scryfall_id": "49539856-989e-4f95-8e67-9cff4408cd87",
+            "prices": {
+              "usd_foil": 34.38
+            }
+          }
+        },
+        "EP5M9": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "The Great Goblin",
+            "set": "hob",
+            "cn": "201",
+            "scryfall_id": "720ae752-c3a7-4bc0-bc0f-a9772bea3960",
+            "prices": {
+              "usd": 2.62,
+              "usd_foil": 3.6
+            }
+          }
+        },
+        "LK7wo": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Smaug, Wicked Worm",
+            "set": "hob",
+            "cn": "281",
+            "scryfall_id": "5091e2bd-247d-4a1d-adf4-6e66324ee20b",
+            "prices": {
+              "usd_foil": 47.17
+            }
+          }
+        },
+        "YewQR": {
+          "quantity": 1,
+          "finish": "nonFoil",
+          "card": {
+            "name": "Sophina, Spearsage Deserter",
+            "set": "slx",
+            "cn": "7",
+            "scryfall_id": "e0a64924-068e-483f-91a6-d450b67b3c75",
+            "prices": {
+              "usd": 0.37
+            }
+          }
+        },
+        "Lwl89": {
+          "quantity": 1,
+          "finish": "nonFoil",
+          "card": {
+            "name": "Cecily, Haunted Mage",
+            "set": "slx",
+            "cn": "3",
+            "scryfall_id": "a09ffd51-8ea4-40a6-b64e-58f3acfee533",
+            "prices": {
+              "usd": 0.4
+            }
+          }
+        },
+        "LRoyv": {
+          "quantity": 1,
+          "finish": "nonFoil",
+          "card": {
+            "name": "Othelm, Sigardian Outcast",
+            "set": "slx",
+            "cn": "6",
+            "scryfall_id": "b867fb22-4f2a-47aa-9432-1bcc5e731947",
+            "prices": {
+              "usd": 0.4
+            }
+          }
+        },
+        "LGn3x": {
+          "quantity": 1,
+          "finish": "nonFoil",
+          "card": {
+            "name": "Bjorna, Nightfall Alchemist",
+            "set": "slx",
+            "cn": "2",
+            "scryfall_id": "83b0b716-bcb0-4044-b64a-354e3cbbd563",
+            "prices": {
+              "usd": 0.33
+            }
+          }
+        },
+        "kqnVr": {
+          "quantity": 1,
+          "finish": "nonFoil",
+          "card": {
+            "name": "Wernog, Rider's Chaplain",
+            "set": "slx",
+            "cn": "8",
+            "scryfall_id": "39491011-bdf6-4e61-8534-fe26c1571f8f",
+            "prices": {
+              "usd": 0.95
+            }
+          }
+        },
+        "EgQ46": {
+          "quantity": 1,
+          "finish": "nonFoil",
+          "card": {
+            "name": "Elmar, Ulvenwald Informant",
+            "set": "slx",
+            "cn": "4",
+            "scryfall_id": "95d197b3-fc56-43a2-981f-b5b905222b5c",
+            "prices": {
+              "usd": 0.43
+            }
+          }
+        },
+        "YxMOP": {
+          "quantity": 1,
+          "finish": "nonFoil",
+          "card": {
+            "name": "Francisco, Fowl Marauder",
+            "set": "lcc",
+            "cn": "49",
+            "scryfall_id": "a1ca8ed4-7a98-43c1-ae00-3641ab070825",
+            "prices": {
+              "usd": 1.22
+            }
+          }
+        },
+        "E135A": {
+          "quantity": 1,
+          "finish": "nonFoil",
+          "card": {
+            "name": "Flubs, the Fool",
+            "set": "blc",
+            "cn": "356",
+            "scryfall_id": "41e58eb8-e5b9-4ef6-be1f-00e28cebb998",
+            "prices": {
+              "usd": 2.81,
+              "usd_foil": 9.24
+            }
+          }
+        },
+        "k9Dj1": {
+          "quantity": 1,
+          "finish": "nonFoil",
+          "card": {
+            "name": "Plagon, Lord of the Beach",
+            "set": "j25",
+            "cn": "37",
+            "scryfall_id": "7f8a6bfe-6033-4f6b-ab45-6b553f8b51a1",
+            "prices": {
+              "usd": 1.06
+            }
+          }
+        }
+      }
+    },
+    "sideboard": {
+      "count": 0,
+      "cards": {}
+    },
+    "maybeboard": {
+      "count": 6,
+      "cards": {
+        "Eb9v0": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Wilhelt, the Rotcleaver",
+            "set": "mic",
+            "cn": "2",
+            "scryfall_id": "2501a911-d072-436d-ae3b-a5164e3b30aa",
+            "prices": {
+              "usd": 9.55,
+              "usd_foil": 13.56
+            }
+          }
+        },
+        "YlX2N": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Eladamri, Korvecdal",
+            "set": "mh3",
+            "cn": "423",
+            "scryfall_id": "89e17861-e0e6-4660-8705-6c71f10d1f19",
+            "prices": {
+              "usd": 10.86,
+              "usd_foil": 18.41
+            }
+          }
+        },
+        "ky9ab": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Valgavoth, Harrower of Souls",
+            "set": "dsc",
+            "cn": "6",
+            "scryfall_id": "8d7c1f6c-af45-4449-8cf8-e13830b3df8a",
+            "prices": {
+              "usd": 27.22,
+              "usd_foil": 27.88
+            }
+          }
+        },
+        "LGoKx": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Kona, Rescue Beastie",
+            "set": "dsk",
+            "cn": "358",
+            "scryfall_id": "bf256f95-d184-4ea9-9039-fc64f461d9b3",
+            "prices": {
+              "usd": 3.05,
+              "usd_foil": 5.66
+            }
+          }
+        },
+        "YM4ZX": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Tinybones, Bauble Burglar",
+            "set": "fdn",
+            "cn": "324",
+            "scryfall_id": "daf8d5d4-b52d-42c7-aa56-c104a539133c",
+            "prices": {
+              "usd": 7.93,
+              "usd_foil": 14.32
+            }
+          }
+        },
+        "kapVa": {
+          "quantity": 1,
+          "finish": "foil",
+          "card": {
+            "name": "Sanar, Unfinished Genius // Wild Idea",
+            "set": "sos",
+            "cn": "223",
+            "scryfall_id": "173157aa-712d-44f2-89ba-dd2511a07f26",
+            "prices": {
+              "usd": 0.31,
+              "usd_foil": 0.31
+            }
+          }
+        }
+      }
+    },
+    "commanders": {
+      "count": 0,
+      "cards": {}
+    },
+    "companions": {
+      "count": 0,
+      "cards": {}
+    },
+    "signatureSpells": {
+      "count": 0,
+      "cards": {}
+    },
+    "attractions": {
+      "count": 0,
+      "cards": {}
+    },
+    "stickers": {
+      "count": 0,
+      "cards": {}
+    },
+    "contraptions": {
+      "count": 0,
+      "cards": {}
+    },
+    "planes": {
+      "count": 0,
+      "cards": {}
+    },
+    "schemes": {
+      "count": 0,
+      "cards": {}
+    },
+    "tokens": {
+      "count": 0,
+      "cards": {}
+    }
+  }
+}
