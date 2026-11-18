@@ -19,6 +19,19 @@ export const BIDS: PluralForms = {
     few: 'ставки',
     many: 'ставок'
 };
+// A search refused for going over the server's limit (HTTP 429), shown after "Не вдалося виконати пошук: ".
+// `retryAfter` is the response's Retry-After header, in seconds.
+export function tooManySearches(retryAfter: string | null) {
+    const seconds = Number(retryAfter);
+    if (!Number.isFinite(seconds) || seconds <= 0)
+        return 'забагато пошуків, спробуйте трохи пізніше';
+    const wait =
+        seconds < 90
+            ? `${Math.ceil(seconds)} с`
+            : `${Math.ceil(seconds / 60)} хв`;
+    return `забагато пошуків, спробуйте ще раз за ${wait}`;
+}
+
 // genitive, as in "з 3 файлів" / "з 2 файлів" — after "з" every count takes the genitive plural except 1 ("з 1 файлу")
 export const FILES: PluralForms = {
     one: 'файлу',

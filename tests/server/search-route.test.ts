@@ -6,8 +6,10 @@ import { CachedCardSearcher } from '@/server/cached-card-searcher';
 import type { CardSearcher } from '@/server/card-searcher';
 import { CardSearchService } from '@/server/card-search-service';
 import { InFlightLimiter } from '@/server/in-flight-limiter';
+import { RateLimiter } from '@/server/rate-limiter';
 import {
     clientId,
+    clientKey,
     MAX_CARDS_PER_REQUEST,
     MAX_NAME_LENGTH,
     searchHandler
@@ -608,6 +610,188 @@ describe('clientId', () => {
 
     test('with neither, a shared fallback', () => {
         expect(clientId(req(), undefined)).toBe('unknown');
+    });
+
+    test('an IPv6 client is its /64', () => {
+        expect(clientId(req('2001:db8:1:2:aaaa::1'), undefined)).toBe(
+            '2001:db8:1:2::/64'
+        );
+        expect(clientId(req(), '2001:db8:1:2:bbbb::2')).toBe(
+            '2001:db8:1:2::/64'
+        );
+    });
+});
+
+describe('clientKey', () => {
+    test('an IPv4 address is kept', () => {
+        expect(clientKey('1.2.3.4')).toBe('1.2.3.4');
+    });
+
+    test('an IPv6 address becomes its /64, however it is written', () => {
+        for (const address of [
+            '2001:0db8:0001:0002:0000:0000:0000:0001',
+            '2001:DB8:1:2::1',
+            '2001:db8:1:2:ffff:ffff:ffff:ffff',
+            '2001:db8:1:2::1%eth0'
+        ])
+            expect(clientKey(address), address).toBe('2001:db8:1:2::/64');
+        expect(clientKey('::1')).toBe('0:0:0:0::/64');
+        expect(clientKey('2001:db8::')).toBe('2001:db8:0:0::/64');
+    });
+
+    test('an IPv4-mapped address is its IPv4', () => {
+        expect(clientKey('::ffff:1.2.3.4')).toBe('1.2.3.4');
+    });
+
+    test("what doesn't parse as IPv6 is kept as it is", () => {
+        for (const address of [
+            '1::2::3',
+            '1:2:3:4:5:6:7:8::9',
+            '1:2:3',
+            '2001:db8:zz::1',
+            '64:ff9b::1.2.3.4'
+        ])
+            expect(clientKey(address)).toBe(address);
+    });
+});
+
+describe('searchHandler client limits', () => {
+    const clientLimits = (capacity: number, maxPendingCards = 1000) => ({
+        rate: new RateLimiter([{ capacity, refillMs: 60_000 }]),
+        maxPendingCards
+    });
+
+    test('a client over its rate gets a 429 with Retry-After, and nothing is searched', async () => {
+        const cardSearch = fakeSearch();
+        const handle = searchHandler(
+            cardSearch,
+            limits(),
+            undefined,
+            undefined,
+            clientLimits(3)
+        );
+        await (await handle(post({ cards: ['Sol Ring', 'Daze'] }), 'a')).text();
+        const res = await handle(
+            post({ cards: ['Brainstorm', 'Ponder'] }),
+            'a'
+        );
+        expect(res.status).toBe(429);
+        // one token left; the second comes back in 20 s
+        expect(res.headers.get('Retry-After')).toBe('20');
+        expect(await res.json()).toEqual({
+            error: 'Too many searches',
+            retryAfter: 20
+        });
+        expect(cardSearch.searched).toEqual(['Sol Ring', 'Daze']);
+        expect(logs.at(-1)).toMatchObject({
+            message: 'search refused',
+            reason: 'rate',
+            count: 2
+        });
+        expect(requestSpans().at(-1)!.attributes).toMatchObject({
+            'http.response.status_code': 429
+        });
+
+        // another client has its own
+        const other = await handle(post({ cards: ['Ponder'] }), 'b');
+        expect(other.status).toBe(200);
+    });
+
+    test('names that are skipped cost nothing', async () => {
+        const handle = searchHandler(
+            fakeSearch(),
+            limits(),
+            undefined,
+            undefined,
+            clientLimits(1)
+        );
+        for (let i = 0; i < 3; i++) {
+            const res = await handle(post({ cards: ['!!!', ''] }), 'a');
+            expect(res.status).toBe(200);
+            await res.text();
+        }
+        expect((await handle(post({ cards: ['Sol Ring'] }), 'a')).status).toBe(
+            200
+        );
+    });
+
+    test('a client with too many cards still pending is turned away until they finish', async () => {
+        const gate = Promise.withResolvers<void>();
+        const searched: string[] = [];
+        const handle = searchHandler(
+            {
+                search: async (card: string) => {
+                    searched.push(card);
+                    await gate.promise;
+                    return result(card);
+                }
+            },
+            limits(),
+            undefined,
+            undefined,
+            clientLimits(1000, 3)
+        );
+        const first = await handle(post({ cards: ['Sol Ring', 'Daze'] }), 'a');
+        const refused = await handle(
+            post({ cards: ['Brainstorm', 'Ponder'] }),
+            'a'
+        );
+        expect(refused.status).toBe(429);
+        expect(refused.headers.get('Retry-After')).toBe('1');
+        expect(logs.at(-1)).toMatchObject({ reason: 'pending' });
+        // one more fits
+        const third = await handle(post({ cards: ['Ponder'] }), 'a');
+        expect(third.status).toBe(200);
+
+        gate.resolve();
+        await Promise.all([first.text(), third.text()]);
+        const after = await handle(
+            post({ cards: ['Brainstorm', 'Ponder'] }),
+            'a'
+        );
+        expect(after.status).toBe(200);
+        await after.text();
+        expect(searched).toEqual([
+            'Sol Ring',
+            'Daze',
+            'Ponder',
+            'Brainstorm',
+            'Ponder'
+        ]);
+    });
+
+    test('a cancelled search stops counting as pending', async () => {
+        const handle = searchHandler(
+            {
+                search: (card: string, signal?: AbortSignal) =>
+                    new Promise<SearchResult>((_, reject) =>
+                        signal!.addEventListener('abort', () =>
+                            reject(signal!.reason)
+                        )
+                    )
+            },
+            limits(),
+            undefined,
+            undefined,
+            clientLimits(1000, 2)
+        );
+        const controller = new AbortController();
+        const first = await handle(
+            post(
+                { cards: ['Sol Ring', 'Daze'] },
+                { signal: controller.signal }
+            ),
+            'a'
+        );
+        expect((await handle(post({ cards: ['Ponder'] }), 'a')).status).toBe(
+            429
+        );
+        controller.abort();
+        await first.text().catch(() => {});
+        await Bun.sleep(0);
+        expect((await handle(post({ cards: ['Ponder'] }), 'a')).status).toBe(
+            200
+        );
     });
 });
 

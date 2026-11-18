@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { CARDS, FILES, plural } from '@/i18n';
+import { CARDS, FILES, plural, tooManySearches } from '@/i18n';
 
 test.each([
     [1, '1 карта'],
@@ -11,6 +11,17 @@ test.each([
     [25, '25 карт']
 ])('plural(%p, CARDS)', (n, expected) => {
     expect(plural(n, CARDS)).toBe(expected);
+});
+
+test.each([
+    ['20', 'забагато пошуків, спробуйте ще раз за 20 с'],
+    ['89.5', 'забагато пошуків, спробуйте ще раз за 90 с'],
+    ['90', 'забагато пошуків, спробуйте ще раз за 2 хв'],
+    ['600', 'забагато пошуків, спробуйте ще раз за 10 хв'],
+    [null, 'забагато пошуків, спробуйте трохи пізніше'],
+    ['soon', 'забагато пошуків, спробуйте трохи пізніше']
+])('tooManySearches(%p)', (retryAfter, expected) => {
+    expect(tooManySearches(retryAfter)).toBe(expected);
 });
 
 test('FILES is genitive: "з 1 файлу", "з 2 файлів"', () => {

@@ -12,7 +12,11 @@
 //
 // Server-only: it writes to process.stdout / process.stderr.
 
-import { captureException, captureMessage } from '@sentry/node-core/light';
+import {
+    captureException,
+    captureMessage,
+    isInitialized
+} from '@sentry/node-core/light';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 export type LogFormat = 'json' | 'pretty';
@@ -184,6 +188,7 @@ function log(level: LogLevel, message: string, fields: LogFields = {}) {
 // its stack; the message and the other fields go along as context. A no-op until instrumentation.ts initializes
 // Sentry (SENTRY_DSN set), so tests and dev send nothing.
 function reportToSentry(message: string, fields: LogFields) {
+    if (!isInitialized() || !sentryAllows(message)) return;
     const error = Object.values(fields).find((value) => value instanceof Error);
     const context = {
         message,
@@ -202,6 +207,26 @@ function reportToSentry(message: string, fields: LogFields) {
         });
     } else
         captureMessage(message, { level: 'error', contexts: { log: context } });
+}
+
+// Error events reported per message per minute. One cause (a shop down, a shared budget spent by a flood of
+// searches) fails every card searched, each its own error record, and Sentry bills per event. The first few show
+// the problem; the rest are still in the log.
+export const SENTRY_EVENTS_PER_MINUTE = 10;
+const sentryWindows = new Map<string, { start: number; count: number }>();
+
+function sentryAllows(message: string, now = Date.now()) {
+    const window = sentryWindows.get(message);
+    if (!window || now - window.start >= 60_000) {
+        sentryWindows.set(message, { start: now, count: 1 });
+        return true;
+    }
+    return ++window.count <= SENTRY_EVENTS_PER_MINUTE;
+}
+
+// Forgets the reports counted so far, so each test starts with a fresh allowance.
+export function resetSentryThrottle() {
+    sentryWindows.clear();
 }
 
 // Keep `message` a fixed string ("shop search failed") and put what varies in `fields` ({ shop, card, error }),

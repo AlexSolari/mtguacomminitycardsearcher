@@ -4,6 +4,7 @@ import {
     beforeAll,
     describe,
     expect,
+    setSystemTime,
     spyOn,
     test
 } from 'bun:test';
@@ -13,6 +14,8 @@ import {
     formatJson,
     formatPretty,
     logger,
+    resetSentryThrottle,
+    SENTRY_EVENTS_PER_MINUTE,
     serializeError,
     writeSink,
     type LogRecord
@@ -246,7 +249,7 @@ describe('configFromEnv', () => {
 });
 
 describe('Sentry reporting', () => {
-    captureLogs();
+    const logs = captureLogs();
     const events: ErrorEvent[] = [];
 
     // Events are recorded and dropped in beforeSend, so nothing leaves the process.
@@ -262,6 +265,8 @@ describe('Sentry reporting', () => {
     });
     afterEach(() => {
         events.length = 0;
+        resetSentryThrottle();
+        setSystemTime();
     });
     afterAll(() => Sentry.close());
 
@@ -300,6 +305,28 @@ describe('Sentry reporting', () => {
         expect(events.map((e) => [e.message, e.level])).toEqual([
             ['card search failed', 'error']
         ]);
+    });
+
+    test('reports at most SENTRY_EVENTS_PER_MINUTE per message a minute; every record is still logged', async () => {
+        setSystemTime(new Date('2026-01-01T00:00:00Z'));
+        for (let i = 0; i < SENTRY_EVENTS_PER_MINUTE + 5; i++)
+            logger.error('card search failed', { card: `Card ${i}` });
+        logger.error('request failed'); // another message has its own count
+        await Sentry.flush();
+        expect(events.map((e) => e.message)).toEqual([
+            ...Array<string>(SENTRY_EVENTS_PER_MINUTE).fill(
+                'card search failed'
+            ),
+            'request failed'
+        ]);
+        expect(logs).toHaveLength(SENTRY_EVENTS_PER_MINUTE + 6);
+
+        // a minute on, a new allowance
+        events.length = 0;
+        setSystemTime(new Date('2026-01-01T00:01:00Z'));
+        logger.error('card search failed', { card: 'Sol Ring' });
+        await Sentry.flush();
+        expect(events).toHaveLength(1);
     });
 
     test('lower levels are not reported', async () => {

@@ -5,6 +5,7 @@ import type { ShopLimit } from './card-search-service';
 import type { InFlightLimiter } from './in-flight-limiter';
 import { logger } from './logger';
 import type { NameResolver, ResolvedName } from './name-resolver';
+import { RateLimiter, tooManyRequests, type Bucket } from './rate-limiter';
 import { endSpan, requestContext, tracer } from './tracing';
 import { VisitorIds } from './visitor-id';
 
@@ -52,13 +53,56 @@ const URGENT_MAX = 2;
 // Batched shops (see CardSearcher) get a much higher cap: the more of a list they get at once, the fewer requests.
 export type ShopLimits = { shops: InFlightLimiter; batched: InFlightLimiter };
 
+// Cards one client may search over time (see RateLimiter), cached or not: a few whole lists in a row, then about
+// one every 20 s, and 3000 an hour. Searching made-up names misses every cache and spends the budgets all users
+// share, so a script has to be held to what a person editing a list does.
+export const SEARCH_BUCKETS: Bucket[] = [
+    { capacity: 300, refillMs: 60_000 },
+    { capacity: 3000, refillMs: 3_600_000 }
+];
+// Cards one client may have accepted and not yet finished, across its requests. InFlightLimiter holds the rest of a
+// list back, but would queue any number of them; a new search cancels the last, so a person needs about one list.
+export const MAX_PENDING_CARDS = 3 * MAX_CARDS_PER_REQUEST;
+
+export type ClientLimits = { rate: RateLimiter; maxPendingCards: number };
+
 // Behind a proxy (Railway) every connection comes from the proxy, so the client is the address the proxy
 // appended last to X-Forwarded-For. Earlier entries are whatever the client sent, so they can't be trusted.
 // `peer` is the connection's own address, used when there's no proxy.
+// The limits are per client, so an IPv6 client is its /64 (see clientKey).
 export function clientId(req: Request, peer: string | undefined) {
     const forwarded = req.headers.get('x-forwarded-for');
     const last = forwarded?.split(',').at(-1)?.trim();
-    return last || peer || 'unknown';
+    return clientKey(last || peer || 'unknown');
+}
+
+// An IPv6 address's first 64 bits: an ISP hands each customer a /64 (or more), so its owner can pick a new address
+// in it for every request, and limits keyed on the whole address wouldn't hold. An IPv4-mapped address is its IPv4;
+// anything that doesn't parse is kept as it is.
+export function clientKey(address: string): string {
+    if (!address.includes(':')) return address;
+    const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/i.exec(address);
+    if (mapped) return mapped[1]!;
+    const parts = address.replace(/%.*$/, '').toLowerCase().split('::');
+    if (parts.length > 2) return address;
+    const head = parts[0] ? parts[0].split(':') : [];
+    const tail = parts[1] ? parts[1].split(':') : [];
+    // `::` stands for at least one group of zeros
+    if (parts.length === 2 && head.length + tail.length > 7) return address;
+    const groups =
+        parts.length === 2
+            ? [
+                  ...head,
+                  ...Array<string>(8 - head.length - tail.length).fill('0'),
+                  ...tail
+              ]
+            : head;
+    if (groups.length !== 8 || !groups.every((g) => /^[0-9a-f]{1,4}$/.test(g)))
+        return address;
+    return `${groups
+        .slice(0, 4)
+        .map((g) => parseInt(g, 16).toString(16))
+        .join(':')}::/64`;
 }
 
 // POST /api/search {cards: string[]} → NDJSON, one SearchUpdate per line. Each card gets a line every time one of
@@ -69,14 +113,27 @@ export function clientId(req: Request, peer: string | undefined) {
 // The names go through `names` first, so a misspelled or shortened name ("overlord balemurk") is searched under
 // the card's real name; the result's `card` is then that name, and `typed` keeps what was sent.
 // A name that can't be a card (see isSearchableName) isn't searched; it gets an empty result at once.
+// A client over its limits (see ClientLimits) gets a 429 with Retry-After, and nothing is searched.
 export function searchHandler(
     cardSearch: CardSearch,
     limits: ShopLimits,
     names: NameResolver = {
         resolve: async (card) => ({ name: card, fullName: card })
     },
-    visitors = new VisitorIds()
+    visitors = new VisitorIds(),
+    clientLimits: ClientLimits = {
+        rate: new RateLimiter(SEARCH_BUCKETS),
+        maxPendingCards: MAX_PENDING_CARDS
+    }
 ) {
+    // per client, the cards accepted and not yet finished; a client is dropped at 0
+    const pending = new Map<string, number>();
+    const release = (client: string, count: number) => {
+        const left = (pending.get(client) ?? 0) - count;
+        if (left > 0) pending.set(client, left);
+        else pending.delete(client);
+    };
+
     const respond = async (
         req: Request,
         client: string,
@@ -145,63 +202,38 @@ export function searchHandler(
                 { status: 400 }
             );
         }
+        // pending first: a request turned away for it shouldn't also spend the client's tokens
+        const busy = (pending.get(client) ?? 0) + cards.length;
+        const taken =
+            busy > clientLimits.maxPendingCards
+                ? ({ ok: false, retryAfterMs: 1000 } as const)
+                : clientLimits.rate.take(client, cards.length);
+        if (!taken.ok) {
+            const retryAfter = Math.ceil(taken.retryAfterMs / 1000);
+            // the visitor id on the span tells which client; the IP is never logged
+            logger.warn('search refused', {
+                reason:
+                    busy > clientLimits.maxPendingCards ? 'pending' : 'rate',
+                count: cards.length,
+                retryAfter
+            });
+            span.setAttribute('search.refused_retry_after', retryAfter);
+            endSpan(span, { status: 429 });
+            return tooManyRequests(taken.retryAfterMs, {
+                error: 'Too many searches',
+                retryAfter
+            });
+        }
+        pending.set(client, busy);
 
         const encoder = new TextEncoder();
         const stream = new ReadableStream<Uint8Array>({
             async start(controller) {
-                const send = (update: SearchUpdate) => {
-                    if (req.signal.aborted) return;
-                    try {
-                        controller.enqueue(
-                            encoder.encode(JSON.stringify(update) + '\n')
-                        );
-                    } catch {
-                        // the client went away mid-write; the abort cancels the rest
-                    }
-                };
-                for (const { card, index } of skipped)
-                    send({ index, result: { card, links: [], errors: [] } });
-                const resolved = names.resolveAll
-                    ? names.resolveAll(cards, req.signal)
-                    : cards.map((card) => names.resolve(card, req.signal));
-                await Promise.all(
-                    searched.map(async ({ card, index }, i) => {
-                        try {
-                            const result = await searchCard(
-                                card,
-                                resolved[i]!,
-                                (partial) => send({ index, result: partial })
-                            );
-                            send({ index, result });
-                        } catch (err) {
-                            if (req.signal.aborted) return;
-                            const message = (err as Error).message;
-                            // the status line is long gone, so the failure is reported as the card's result
-                            logger.error('card search failed', {
-                                card,
-                                error: err
-                            });
-                            span.addEvent('card search failed', {
-                                card,
-                                'exception.message': message
-                            });
-                            span.setStatus({ code: SpanStatusCode.ERROR });
-                            send({
-                                index,
-                                result: {
-                                    card,
-                                    links: [],
-                                    errors: [{ message }]
-                                }
-                            });
-                        }
-                    })
-                );
-                endSpan(span, { status: 200, signal: req.signal });
+                // the cards are pending until the search ends, finished or cancelled
                 try {
-                    controller.close();
-                } catch {
-                    // already cancelled by the client
+                    await streamResults(controller);
+                } finally {
+                    release(client, cards.length);
                 }
             }
         });
@@ -211,6 +243,66 @@ export function searchHandler(
                 'Cache-Control': 'no-store'
             }
         });
+
+        // a function declaration, so it's hoisted: `start` runs while the stream is being constructed
+        async function streamResults(
+            controller: ReadableStreamDefaultController<Uint8Array>
+        ) {
+            const send = (update: SearchUpdate) => {
+                if (req.signal.aborted) return;
+                try {
+                    controller.enqueue(
+                        encoder.encode(JSON.stringify(update) + '\n')
+                    );
+                } catch {
+                    // the client went away mid-write; the abort cancels the rest
+                }
+            };
+            for (const { card, index } of skipped)
+                send({ index, result: { card, links: [], errors: [] } });
+            const resolved = names.resolveAll
+                ? names.resolveAll(cards, req.signal)
+                : cards.map((card) => names.resolve(card, req.signal));
+            await Promise.all(
+                searched.map(async ({ card, index }, i) => {
+                    try {
+                        const result = await searchCard(
+                            card,
+                            resolved[i]!,
+                            (partial) => send({ index, result: partial })
+                        );
+                        send({ index, result });
+                    } catch (err) {
+                        if (req.signal.aborted) return;
+                        const message = (err as Error).message;
+                        // the status line is long gone, so the failure is reported as the card's result
+                        logger.error('card search failed', {
+                            card,
+                            error: err
+                        });
+                        span.addEvent('card search failed', {
+                            card,
+                            'exception.message': message
+                        });
+                        span.setStatus({ code: SpanStatusCode.ERROR });
+                        send({
+                            index,
+                            result: {
+                                card,
+                                links: [],
+                                errors: [{ message }]
+                            }
+                        });
+                    }
+                })
+            );
+            endSpan(span, { status: 200, signal: req.signal });
+            try {
+                controller.close();
+            } catch {
+                // already cancelled by the client
+            }
+        }
     };
 
     // The span covers the whole search, so it ends when the stream does (see `start` above), not when the Response

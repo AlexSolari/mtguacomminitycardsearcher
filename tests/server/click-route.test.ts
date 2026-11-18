@@ -6,6 +6,7 @@ import {
     MAX_CLICK_BYTES,
     parseClick
 } from '@/server/click-route';
+import { RateLimiter } from '@/server/rate-limiter';
 import { VisitorIds } from '@/server/visitor-id';
 import { captureLogs } from './capture-logs';
 import { captureSpans } from './capture-spans';
@@ -106,6 +107,22 @@ describe('clickHandler', () => {
         lying.headers.set('content-length', '10');
         expect((await handle(lying, '1.2.3.4')).status).toBe(400);
         expect(spans()).toHaveLength(0);
+    });
+
+    test('a client over its rate gets a 429 and records nothing more', async () => {
+        const handle = clickHandler(
+            visitors(),
+            new RateLimiter([{ capacity: 2, refillMs: 60_000 }])
+        );
+        expect((await handle(post(CLICK), '1.2.3.4')).status).toBe(204);
+        expect((await handle(post(CLICK), '1.2.3.4')).status).toBe(204);
+        const refused = await handle(post(CLICK), '1.2.3.4');
+        expect(refused.status).toBe(429);
+        expect(refused.headers.get('Retry-After')).toBe('30');
+        expect(spans()).toHaveLength(2);
+        // a bad click is refused before it costs a token
+        expect((await handle(post('nope'), '5.6.7.8')).status).toBe(400);
+        expect((await handle(post(CLICK), '5.6.7.8')).status).toBe(204);
     });
 
     test('a body that cannot be read is a 400', async () => {

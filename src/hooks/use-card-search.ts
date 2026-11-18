@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CardEntry } from '@/decklist';
+import { tooManySearches } from '@/i18n';
 import type { SearchResult, SearchUpdate } from '@/search-result';
 
 // One entry per searched card, in list order. The whole list goes in one request (or a few, for a long list), and
@@ -74,6 +75,9 @@ async function searchCards(
             body: JSON.stringify({ cards }),
             signal
         });
+        // over the server's per-visitor limit (SEARCH_BUCKETS in search-route.ts)
+        if (res.status === 429)
+            throw new Error(tooManySearches(res.headers.get('Retry-After')));
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         await readUpdates(res, ({ index, result }) => {
             last[index] = result;

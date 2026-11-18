@@ -4,10 +4,18 @@ import { SHOP_INFO, type ShopId } from '../shops';
 import { requestContext, tracer } from './tracing';
 import type { VisitorIds } from './visitor-id';
 import { logger } from './logger';
+import { RateLimiter, tooManyRequests, type Bucket } from './rate-limiter';
 
 // A click is a few short fields; anything bigger isn't from our frontend.
 export const MAX_CLICK_BYTES = 1024;
 const MAX_CARD_LENGTH = 200;
+
+// Clicks one client may record over time. A person opens a few offers a minute; each click is a span, and Sentry
+// counts every span against the plan's quota, so a script posting clicks would otherwise spend it (and skew counts).
+export const CLICK_BUCKETS: Bucket[] = [
+    { capacity: 30, refillMs: 60_000 },
+    { capacity: 300, refillMs: 3_600_000 }
+];
 
 const GROUPS = new Set<OfferGroup>([
     'exact',
@@ -54,14 +62,20 @@ export function parseClick(text: string): OfferClick | null {
 // POST /api/click {OfferClick} → 204, sent by the frontend (sendBeacon) when someone opens an offer. Each click is
 // one `offer click` span, so the dashboard can break clicks down by shop, card, group and view, and count distinct
 // `visitor.id`s per day. It's only recorded as a span: with tracing off, clicks go nowhere.
-// Anyone can post here, so the numbers can be inflated by hand; nothing else depends on them.
-export function clickHandler(visitors: VisitorIds) {
+// Anyone can post here, so the numbers can be inflated by hand; nothing else depends on them. A client over
+// CLICK_BUCKETS gets a 429 and nothing is recorded (the frontend's sendBeacon ignores the answer).
+export function clickHandler(
+    visitors: VisitorIds,
+    rate = new RateLimiter(CLICK_BUCKETS)
+) {
     return async (req: Request, client: string): Promise<Response> => {
         const length = Number(req.headers.get('content-length') ?? 0);
         const text =
             length > MAX_CLICK_BYTES ? '' : await req.text().catch(() => '');
         const click = text.length > MAX_CLICK_BYTES ? null : parseClick(text);
         if (!click) return new Response(null, { status: 400 });
+        const taken = rate.take(client);
+        if (!taken.ok) return tooManyRequests(taken.retryAfterMs);
 
         const attributes: Attributes = {
             'click.shop': click.shop,
