@@ -79,16 +79,24 @@ export function splitMatches(r: SearchResult): Split {
 // up to its stock. Offers without a stock figure count as plenty; offers without a price are skipped.
 // "від" prices count as-is, so the cost is a lower bound. `copies < count` = the shops don't have enough.
 export function cheapestCopies(offers: CardResult[], count: number) {
+    const { cost, copies } = allocateCopies(offers, count);
+    return { cost, copies };
+}
+
+// cheapestCopies, with which offers it took and how many of each (for the order plan).
+export function allocateCopies(offers: CardResult[], count: number) {
     let cost = 0;
     let copies = 0;
+    const picks: { offer: CardResult; qty: number }[] = [];
     for (const o of offers) {
         if (copies >= count) break;
         if (o.price === null) continue;
         const take = Math.min(count - copies, o.stock ?? Infinity);
         cost += take * o.price;
         copies += take;
+        picks.push({ offer: o, qty: take });
     }
-    return { cost, copies };
+    return { cost, copies, picks };
 }
 
 // Nothing to show for the card: no offers, no shop failed (a failure shows a "check manually" tile), and no shop

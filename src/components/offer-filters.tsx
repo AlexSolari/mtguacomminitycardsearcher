@@ -1,5 +1,12 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { Check, ChevronDown, Languages, Store, X } from 'lucide-react';
+import {
+    Check,
+    ChevronDown,
+    ClipboardList,
+    Languages,
+    Store,
+    X
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
     isFiltering,
@@ -19,18 +26,21 @@ const FOIL_OPTIONS: { value: FoilFilter; label: string }[] = [
     { value: 'foil', label: 'Foil' }
 ];
 
-// The bar above the results: finish, language and shop. `languages` and `shops` are what the results have, with
-// offer counts, so the choices fit the search.
+// The bar above the results and the order plan: finish, language and shop. `languages` and `shops` are what the
+// results have, with counts, so the choices fit the search. With `onPlan`, the shop menu carries the button that
+// opens the order plan: the shops ticked are the ones it orders from.
 export function OfferFilters({
     filters,
     onChange,
     languages,
-    shops
+    shops,
+    onPlan
 }: {
     filters: Filters;
     onChange: (f: Filters) => void;
     languages: [string, number][];
     shops: [ShopId, number][];
+    onPlan?: () => void;
 }) {
     const set = (patch: Partial<Filters>) => onChange({ ...filters, ...patch });
     // A hidden language the current results lack stays in the menu, so it can be shown again.
@@ -74,18 +84,31 @@ export function OfferFilters({
                 />
             )}
 
-            <CheckMenu
-                label='Магазини'
-                icon={Store}
-                items={shops.map(([shop, count]) => ({
-                    id: shop,
-                    label: SHOP_INFO[shop].label,
-                    icon: SHOP_INFO[shop].icon,
-                    count
-                }))}
-                hidden={filters.hiddenShops}
-                onChange={(hiddenShops) => set({ hiddenShops })}
-            />
+            <div className='flex'>
+                <CheckMenu
+                    label='Магазини'
+                    icon={Store}
+                    items={shops.map(([shop, count]) => ({
+                        id: shop,
+                        label: SHOP_INFO[shop].label,
+                        icon: SHOP_INFO[shop].icon,
+                        count
+                    }))}
+                    hidden={filters.hiddenShops}
+                    onChange={(hiddenShops) => set({ hiddenShops })}
+                    joined={!!onPlan}
+                />
+                {onPlan && (
+                    <button
+                        type='button'
+                        onClick={onPlan}
+                        className='inline-flex items-center gap-1.5 rounded-r-lg border border-primary/50 bg-primary-fill px-3 py-1.5 text-xs font-medium text-primary-foreground shadow transition hover:brightness-110'
+                    >
+                        <ClipboardList className='size-3.5' />
+                        Розподіл по магазинах
+                    </button>
+                )}
+            </div>
 
             {isFiltering(filters) && (
                 <button
@@ -101,20 +124,22 @@ export function OfferFilters({
     );
 }
 
-// A button opening a checklist (checked = shown), with each item's offer count; closes on a click outside or
-// Escape. The button reads "shown/total" while anything is hidden.
+// A button opening a checklist (checked = shown), with each item's count; closes on a click outside or Escape.
+// The button reads "shown/total" while anything is hidden. `joined`: a button follows it, attached on the right.
 function CheckMenu<T extends string>({
     label,
     icon: Icon,
     items,
     hidden,
-    onChange
+    onChange,
+    joined
 }: {
     label: string;
     icon: typeof Store;
     items: { id: T; label: string; icon?: string; count: number }[];
     hidden: T[];
     onChange: (hidden: T[]) => void;
+    joined?: boolean;
 }) {
     const [open, setOpen] = useState(false);
     const root = useRef<HTMLDivElement>(null);
@@ -158,6 +183,7 @@ function CheckMenu<T extends string>({
                 className={cn(
                     group,
                     'gap-1.5 px-3 py-1.5 text-xs font-medium transition',
+                    joined && 'rounded-r-none border-r-0',
                     hidden.length
                         ? 'border-primary/50 text-primary'
                         : 'text-muted-foreground hover:text-foreground'

@@ -36,8 +36,12 @@ export function App() {
     const mainRef = useRef<HTMLElement>(null);
     const startSearch = (toSearch: CardEntry[] = cards) => {
         if (!search(toSearch)) return;
-        // the search goes into the address bar, so copying it shares the search
-        history.replaceState(null, '', searchQuery(toSearch));
+        // the search goes into the address bar, so copying it shares the search; the hash (#plan) stays
+        history.replaceState(
+            history.state,
+            '',
+            searchQuery(toSearch) + location.hash
+        );
         setListCollapsed(true);
         requestAnimationFrame(() =>
             mainRef.current?.scrollIntoView({

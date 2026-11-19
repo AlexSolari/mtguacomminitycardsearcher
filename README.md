@@ -35,6 +35,9 @@ A shop redesign can break its parser. If one shop stops returning results, that'
 - **Grid or table view**, remembered per browser.
 - **Filters**: foil or non-foil, and which languages and shops to show (traders' lists among them), remembered per browser. They apply to the results and the summary without searching again.
   An offer that doesn't say its language or finish is kept: Kartoteka and traders' lists give no language, and some shops leave out the foil flag on regular cards.
+- **Order plan** ("Розподіл по магазинах", next to the shop filter): which shop to buy each card from, among the shops ticked, with the foil and language filters applied. One block per shop with its cards, links and subtotal, and what leaving that shop out would cost.
+  Delivery isn't counted yet; instead, a table gives the cheapest plan for each number of shops (every combination is tried), so the trade-off between price and number of orders is visible. Traders who have cards of the list are listed under it, outside the totals.
+  It's a view of the search page (`#plan`), so it needs no second search, and Back returns to the results.
 - **Summary**: how many cards have an exact match, the number of offers, the cheapest total and which shops failed.
   The total counts exact matches only, for the quantity in the list, within each shop's stock. Cards with no exact match or too few copies are listed separately.
 - Results for each card appear as soon as each shop answers; there's no waiting for the whole list or the slowest shop.

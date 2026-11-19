@@ -91,6 +91,15 @@ describe('clickHandler', () => {
         });
     });
 
+    test('a click in the order plan is recorded with its view', async () => {
+        const res = await clickHandler(visitors())(
+            post({ ...CLICK, view: 'plan', best: false }),
+            '1.2.3.4'
+        );
+        expect(res.status).toBe(204);
+        expect(spans()[0]!.attributes).toMatchObject({ 'click.view': 'plan' });
+    });
+
     test('a bad click is a 400 and records nothing', async () => {
         const handle = clickHandler(visitors());
         for (const body of [

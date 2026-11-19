@@ -25,7 +25,7 @@ const GROUPS = new Set<OfferGroup>([
     'art',
     'manual'
 ]);
-const VIEWS = new Set<OfferClick['view']>(['grid', 'table']);
+const VIEWS = new Set<OfferClick['view']>(['grid', 'table', 'plan']);
 
 // The click, if every field is what the frontend sends; otherwise null.
 export function parseClick(text: string): OfferClick | null {

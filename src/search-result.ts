@@ -68,7 +68,7 @@ export type OfferClick = {
     shop: ShopId;
     card: string; // the card searched (SearchResult.card), not the shop's title for the listing
     group: OfferGroup;
-    view: 'grid' | 'table';
+    view: 'grid' | 'table' | 'plan'; // 'plan': the order planner
     best: boolean; // had the best-price badge
     price: number | null; // UAH, as shown; null for a manual check or a trader's offer
 };
