@@ -6,7 +6,7 @@ import type { InFlightLimiter } from './in-flight-limiter';
 import { logger } from './logger';
 import type { NameResolver, ResolvedName } from './name-resolver';
 import { RateLimiter, tooManyRequests, type Bucket } from './rate-limiter';
-import { endSpan, requestContext, tracer } from './tracing';
+import { countOnSpan, endSpan, requestContext, tracer } from './tracing';
 import { VisitorIds } from './visitor-id';
 
 // The frontend sends its whole list at once, in requests of up to this many cards.
@@ -153,14 +153,23 @@ export function searchHandler(
             const { name, fullName, foundBy } = await resolved;
             const withTyped = (result: SearchResult) =>
                 name === card ? result : { ...result, typed: card };
-            // separate messages, so how many corrections still cost a Scryfall request can be counted
-            if (name !== card)
+            // separate messages, so how many corrections still cost a Scryfall request can be counted. The span
+            // counts them too, since a count of Scryfall's request spans would also take in the traders' list
+            // prices, lookups that found nothing, and collection requests that place many names at once.
+            if (name !== card) {
+                countOnSpan(
+                    span,
+                    foundBy === 'index'
+                        ? 'search.names_corrected_index'
+                        : 'search.names_corrected_scryfall'
+                );
                 logger.info(
                     foundBy === 'index'
                         ? 'name corrected locally'
                         : 'name corrected via scryfall',
                     { typed: card, card: name }
                 );
+            }
             return withTyped(
                 await cardSearch.search(
                     name,

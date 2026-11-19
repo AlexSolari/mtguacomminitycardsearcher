@@ -519,6 +519,39 @@ describe('searchHandler spans', () => {
         });
     });
 
+    test('the span counts name corrections by source', async () => {
+        const handle = searchHandler(fakeSearch(), limits(), {
+            resolve: async (card) =>
+                card.startsWith('typo')
+                    ? { name: 'Daze', fullName: 'Daze', foundBy: 'scryfall' }
+                    : card === 'sol rin'
+                      ? {
+                            name: 'Sol Ring',
+                            fullName: 'Sol Ring',
+                            foundBy: 'index'
+                        }
+                      : { name: card, fullName: card }
+        });
+        await (
+            await handle(
+                post({ cards: ['typo 1', 'typo 2', 'sol rin', 'Opt'] }),
+                'a'
+            )
+        ).text();
+        expect(requestSpans()[0]!.attributes).toMatchObject({
+            'search.names_corrected_index': 1,
+            'search.names_corrected_scryfall': 2
+        });
+    });
+
+    test('a search with nothing corrected has no correction counts', async () => {
+        const handle = searchHandler(fakeSearch(), limits());
+        await (await handle(post({ cards: ['Opt'] }), 'a')).text();
+        const { attributes } = requestSpans()[0]!;
+        expect(attributes['search.names_corrected_index']).toBeUndefined();
+        expect(attributes['search.names_corrected_scryfall']).toBeUndefined();
+    });
+
     test('too many cards ends the span with a 400', async () => {
         const handle = searchHandler(fakeSearch(), limits());
         const cards = Array.from(

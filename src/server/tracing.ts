@@ -79,7 +79,10 @@ const counts = new WeakMap<Span, Record<string, number>>();
 
 export function countOnActiveSpan(attribute: string): void {
     const span = trace.getActiveSpan();
-    if (!span) return;
+    if (span) countOnSpan(span, attribute);
+}
+
+export function countOnSpan(span: Span, attribute: string): void {
     let spanCounts = counts.get(span);
     if (!spanCounts) counts.set(span, (spanCounts = {}));
     spanCounts[attribute] = (spanCounts[attribute] ?? 0) + 1;
