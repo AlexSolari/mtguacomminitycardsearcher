@@ -1,7 +1,7 @@
 // The order planner: which shop to buy each card from, for the shops the user would order from. Browser-only, pure.
 // No delivery cost yet, so the cheapest plan simply takes each card's cheapest copies; what weighs against spreading
 // an order over many shops is shown instead as the best plan for each number of shops (planOptions).
-import { allocateCopies, splitMatches } from './results';
+import { allocateCopies, mergeSameCard, splitMatches } from './results';
 import type { CardResult, SearchResult } from './search-result';
 import type { ShopId } from './shops';
 
@@ -9,10 +9,11 @@ import type { ShopId } from './shops';
 // total (auctions and traders' offers never count).
 export type PlanCard = { card: string; count: number; offers: CardResult[] };
 
+// One per card: entries for the same card are merged (mergeSameCard), so its offers' stock is shared out once.
 export function planCards(
     entries: { count: number; result: SearchResult | null; card: string }[]
 ): PlanCard[] {
-    return entries.map((e) => ({
+    return mergeSameCard(entries).map((e) => ({
         card: e.result?.card ?? e.card,
         count: e.count,
         offers: e.result
@@ -151,10 +152,11 @@ export type TraderMatch = {
     cards: { card: string; offers: CardResult[] }[];
 };
 export function traderMatches(
-    entries: { result: SearchResult | null }[]
+    entries: { count: number; result: SearchResult | null; card: string }[]
 ): TraderMatch[] {
     const traders = new Map<string, TraderMatch>();
-    for (const { result } of entries) {
+    // each card once, so a card on two lines of the list doesn't list its offers twice
+    for (const { result } of mergeSameCard(entries)) {
         if (!result) continue;
         for (const offer of splitMatches(result).traders) {
             const { username, name } = offer.seller!;

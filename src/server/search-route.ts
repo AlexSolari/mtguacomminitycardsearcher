@@ -184,10 +184,10 @@ export function searchHandler(
         const body = (await req.json().catch(() => null)) as {
             cards?: unknown[];
         } | null;
+        const entries = Array.isArray(body?.cards) ? body.cards : [];
         // each card keeps its index in the request, which its lines carry
-        const sent = (Array.isArray(body?.cards) ? body.cards : []).flatMap(
-            (c, index) =>
-                typeof c === 'string' ? [{ card: c.trim(), index }] : []
+        const sent = entries.flatMap((c, index) =>
+            typeof c === 'string' ? [{ card: c.trim(), index }] : []
         );
         const skipped = sent.filter((c) => !isSearchableName(c.card));
         const searched = sent.filter((c) => isSearchableName(c.card));
@@ -204,7 +204,9 @@ export function searchHandler(
             'search.card_count': cards.length,
             'visitor.id': visitors.id(client, req.headers.get('user-agent'))
         });
-        if (cards.length > MAX_CARDS_PER_REQUEST) {
+        // Counted before skipping: skipped names cost no tokens, so they'd otherwise make a request of any length.
+        // The frontend never sends more entries than this, searchable or not.
+        if (entries.length > MAX_CARDS_PER_REQUEST) {
             endSpan(span, { status: 400 });
             return Response.json(
                 { error: `Too many cards (max ${MAX_CARDS_PER_REQUEST})` },

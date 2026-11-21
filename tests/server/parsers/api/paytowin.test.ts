@@ -58,6 +58,74 @@ describe('paytowin', () => {
         ]);
     });
 
+    test('prices go through toPrice: 0, strings and junk are never a price', () => {
+        const [bidZero, stringPrices, junkBid] = parsePaytowin({
+            items: [
+                { ...lot, current_high_uah: 0 },
+                {
+                    ...lot,
+                    starting_price_uah: '250.50',
+                    current_high_uah: '300',
+                    buy_now_uah: '900'
+                },
+                { ...lot, current_high_uah: 'soon', buy_now_uah: 0 }
+            ]
+        });
+        expect(bidZero).toMatchObject({
+            price: 200,
+            auction: { currentBid: null, startingPrice: 200 }
+        });
+        expect(stringPrices).toMatchObject({
+            price: 300,
+            auction: { currentBid: 300, startingPrice: 250.5, buyNow: 900 }
+        });
+        expect(junkBid).toMatchObject({
+            price: 200,
+            auction: { currentBid: null, buyNow: null }
+        });
+    });
+
+    test('malformed lots are skipped, not the whole response', () => {
+        const results = parsePaytowin({
+            items: [
+                null,
+                'lot',
+                { ...lot, id: undefined },
+                { ...lot, id: 'free', starting_price_uah: 0 },
+                { ...lot, id: 'unpriced', starting_price_uah: null },
+                { ...lot, id: 'ok' }
+            ]
+        });
+        expect(results.map((r) => r.url)).toEqual([
+            'https://paytowin.club/a/ok'
+        ]);
+        expect(parsePaytowin({ items: 'nope' })).toEqual([]);
+        expect(parsePaytowin(null)).toEqual([]);
+    });
+
+    test('odd field values fall back rather than leak through', () => {
+        const [r] = parsePaytowin({
+            items: [
+                {
+                    ...lot,
+                    title: 42,
+                    condition: 'constructor',
+                    language: 7,
+                    bid_count: -3,
+                    end_time: null,
+                    photos: [{ urls: { medium: 5, thumb: 'https://t' } }]
+                }
+            ]
+        });
+        expect(r).toMatchObject({
+            name: '',
+            image: 'https://t',
+            auction: { bids: 0, endsAt: '' }
+        });
+        expect(r!.condition).toBeUndefined();
+        expect(r!.language).toBeUndefined();
+    });
+
     test('no photo → no image; ended lots are skipped', () => {
         const results = parsePaytowin({
             items: [

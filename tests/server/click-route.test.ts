@@ -133,6 +133,13 @@ describe('clickHandler', () => {
         const lying = post(big);
         lying.headers.set('content-length', '10');
         expect((await handle(lying, '1.2.3.4')).status).toBe(400);
+        // chunked: no length header at all
+        const chunked = new Request('http://localhost/api/click', {
+            method: 'POST',
+            body: new Blob([big]).stream()
+        });
+        expect(chunked.headers.get('content-length')).toBeNull();
+        expect((await handle(chunked, '1.2.3.4')).status).toBe(400);
         expect(spans()).toHaveLength(0);
     });
 

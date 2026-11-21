@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import {
     cheapestCopies,
     isNotFound,
+    mergeSameCard,
     offerKey,
     sellerUah,
     splitMatches
@@ -206,5 +207,47 @@ describe('isNotFound', () => {
         expect(
             isNotFound({ ...result('Sol Ring', []), pending: ['carton'] })
         ).toBe(false);
+    });
+});
+
+describe('mergeSameCard', () => {
+    const giant = result('Bonecrusher Giant // Stomp', []);
+
+    test('entries whose searches found the same card are one, their counts added, at the first line', () => {
+        const merged = mergeSameCard([
+            { card: 'Bonecrusher Giant', count: 1, result: giant },
+            { card: 'Shock', count: 4, result: result('Shock', []) },
+            { card: 'bonecrusher giant // stomp', count: 2, result: giant }
+        ]);
+        expect(merged).toEqual([
+            { card: 'Bonecrusher Giant', count: 3, result: giant },
+            { card: 'Shock', count: 4, result: result('Shock', []) }
+        ]);
+    });
+
+    test('before its result is in, an entry is keyed by its name as typed', () => {
+        const merged = mergeSameCard([
+            { card: 'Opt', count: 1, result: null },
+            { card: 'OPT', count: 1, result: null },
+            { card: 'Bonecrusher Giant', count: 1, result: null },
+            { card: 'Bonecrusher Giant // Stomp', count: 1, result: giant }
+        ]);
+        expect(merged.map((e) => [e.card, e.count])).toEqual([
+            ['Opt', 2],
+            ['Bonecrusher Giant', 1],
+            ['Bonecrusher Giant // Stomp', 1]
+        ]);
+    });
+
+    test("a finished result stands in for one that's still pending", () => {
+        const pending = { ...giant, pending: ['carton' as const] };
+        const [merged] = mergeSameCard([
+            { card: 'Bonecrusher Giant', count: 1, result: pending },
+            { card: 'Bonecrusher Giant // Stomp', count: 1, result: giant }
+        ]);
+        expect(merged!.result).toBe(giant);
+        // a lone entry is passed through as it is
+        const lone = { card: 'Opt', count: 1, result: pending };
+        expect(mergeSameCard([lone])[0]).toBe(lone);
     });
 });

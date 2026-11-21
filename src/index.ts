@@ -131,6 +131,10 @@ const server = serve({
     // a row (CartOn's next pages and offer lists). The shop timeouts are what bound a search; this only mustn't cut in first.
     idleTimeout: 120,
 
+    // Far above any real request (a search of 100 names is ~15 KB, other bodies a few KB); Bun's default is 128 MB.
+    // Each route also caps what it reads itself.
+    maxRequestBodySize: 1024 * 1024,
+
     routes: {
         // Serve index.html for all unmatched routes.
         '/*': index,

@@ -182,6 +182,23 @@ describe('searchHandler', () => {
         expect(cardSearch.searched).toEqual([]);
     });
 
+    test('names that would be skipped still count toward the limit', async () => {
+        const cardSearch = fakeSearch();
+        const handle = searchHandler(cardSearch, limits());
+        const cards = [
+            'Sol Ring',
+            ...Array<string>(MAX_CARDS_PER_REQUEST).fill('!!!')
+        ];
+        expect((await handle(post({ cards }), 'a')).status).toBe(400);
+        expect(cardSearch.searched).toEqual([]);
+        // and so do entries that aren't names at all
+        const junk = [
+            'Sol Ring',
+            ...Array<number>(MAX_CARDS_PER_REQUEST).fill(1)
+        ];
+        expect((await handle(post({ cards: junk }), 'a')).status).toBe(400);
+    });
+
     test("a client's cards take turns at each shop; a batched shop gets them all at once", async () => {
         const carton = slowShop('carton');
         const citadel = slowShop('citadel');

@@ -1,7 +1,7 @@
 import { AlertTriangle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CARDS, plural } from '@/i18n';
-import { cheapestCopies, splitMatches } from '@/results';
+import { cheapestCopies, mergeSameCard, splitMatches } from '@/results';
 import { SHOP_INFO, type ShopId } from '@/shops';
 import { isComplete, type SearchEntry } from '@/hooks/use-card-search';
 import { formatPrice } from '@/components/offer-parts';
@@ -51,7 +51,9 @@ export function SearchSummary({
     const short: { card: string; copies: number; count: number }[] = [];
     // shop → number of cards whose search failed there
     const failedShops = new Map<ShopId, number>();
-    for (const entry of entries) {
+    // a card on two lines of the list is one card, wanted as many times as both say
+    const cards = mergeSameCard(entries);
+    for (const entry of cards) {
         const { card, count, result } = entry;
         if (!result) continue;
         const complete = isComplete(entry);
@@ -71,12 +73,12 @@ export function SearchSummary({
         total += cost;
         if (complete && copies < count) short.push({ card, copies, count });
     }
-    const remaining = entries.length - finished;
+    const remaining = cards.length - finished;
 
     return (
         <div className='flex flex-col gap-4 rounded-2xl border bg-card/60 p-5 backdrop-blur animate-in fade-in duration-500'>
             <div className='grid grid-cols-3 gap-4'>
-                <Stat label='Знайдено' value={`${found} / ${entries.length}`} />
+                <Stat label='Знайдено' value={`${found} / ${cards.length}`} />
                 <Stat label='Пропозиції' value={offers} />
                 <Stat
                     label='Мінімальна сума'
@@ -94,7 +96,7 @@ export function SearchSummary({
                         <div
                             className='h-full rounded-full bg-primary transition-[width] duration-500 ease-out'
                             style={{
-                                width: `${(finished / entries.length) * 100}%`
+                                width: `${(finished / cards.length) * 100}%`
                             }}
                         />
                     </div>

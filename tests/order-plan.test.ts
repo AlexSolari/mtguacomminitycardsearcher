@@ -50,6 +50,30 @@ describe('allocateCopies', () => {
 });
 
 describe('planCards', () => {
+    test("two lines that resolve to one card are one card: its stock isn't bought twice", () => {
+        // an Arena export's front face and an MTGO export's full name, both corrected to the same card
+        const giant = result('Bonecrusher Giant // Stomp', [
+            offer('gin', 'Bonecrusher Giant // Stomp', 50, { stock: 1 }),
+            offer('carton', 'Bonecrusher Giant // Stomp', 80, { stock: 1 })
+        ]);
+        const cards = planCards([
+            { card: 'Bonecrusher Giant', count: 1, result: giant },
+            { card: 'Shock', count: 1, result: result('Shock', []) },
+            { card: 'Bonecrusher Giant // Stomp', count: 2, result: giant }
+        ]);
+        expect(cards.map((c) => [c.card, c.count])).toEqual([
+            ['Bonecrusher Giant // Stomp', 3],
+            ['Shock', 1]
+        ]);
+        const plan = planOrder(cards, all('gin', 'carton'));
+        // two copies in stock, bought once each; the third is short
+        expect(plan.total).toBe(130);
+        expect(plan.short).toEqual([
+            { card: 'Bonecrusher Giant // Stomp', copies: 2, count: 3 },
+            { card: 'Shock', copies: 0, count: 1 }
+        ]);
+    });
+
     test("each card's exact matches with a price, cheapest first; auctions, traders, fuzzy matches and pending cards bring none", () => {
         const cards = planCards([
             {
@@ -205,6 +229,8 @@ describe('traderMatches', () => {
     test('groups traders’ offers by trader and card, the trader with the most cards first', () => {
         const matches = traderMatches([
             {
+                card: 'Opt',
+                count: 1,
                 result: result('Opt', [
                     offer('gin', 'Opt', 10),
                     traderOffer('bob', 'Opt', 0.2),
@@ -212,8 +238,12 @@ describe('traderMatches', () => {
                     traderOffer('ann', 'Opt', 0.3)
                 ])
             },
-            { result: null },
-            { result: result('Shock', [traderOffer('ann', 'Shock', 0.5)]) }
+            { card: 'Daze', count: 1, result: null },
+            {
+                card: 'Shock',
+                count: 1,
+                result: result('Shock', [traderOffer('ann', 'Shock', 0.5)])
+            }
         ]);
         expect(
             matches.map((t) => [
@@ -236,9 +266,22 @@ describe('traderMatches', () => {
         ]);
     });
 
+    test('a card on two lines of the list lists its offers once', () => {
+        const opt = result('Opt', [traderOffer('ann', 'Opt', 0.1)]);
+        const matches = traderMatches([
+            { card: 'opt', count: 1, result: opt },
+            { card: 'Opt', count: 2, result: opt }
+        ]);
+        expect(matches[0]!.cards).toEqual([
+            { card: 'Opt', offers: [opt.links[0]!] }
+        ]);
+    });
+
     test('ties go by username', () => {
         const matches = traderMatches([
             {
+                card: 'Opt',
+                count: 1,
                 result: result('Opt', [
                     traderOffer('zed', 'Opt', 1),
                     traderOffer('amy', 'Opt', 2)

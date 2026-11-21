@@ -5,6 +5,7 @@ import { requestContext, tracer } from './tracing';
 import type { VisitorIds } from './visitor-id';
 import { logger } from './logger';
 import { RateLimiter, tooManyRequests, type Bucket } from './rate-limiter';
+import { readText } from './read-body';
 
 // A click is a few short fields; anything bigger isn't from our frontend.
 export const MAX_CLICK_BYTES = 1024;
@@ -70,10 +71,8 @@ export function clickHandler(
     rate = new RateLimiter(CLICK_BUCKETS)
 ) {
     return async (req: Request, client: string): Promise<Response> => {
-        const length = Number(req.headers.get('content-length') ?? 0);
-        const text =
-            length > MAX_CLICK_BYTES ? '' : await req.text().catch(() => '');
-        const click = text.length > MAX_CLICK_BYTES ? null : parseClick(text);
+        const text = await readText(req, MAX_CLICK_BYTES);
+        const click = text === null ? null : parseClick(text);
         if (!click) return new Response(null, { status: 400 });
         const taken = rate.take(client);
         if (!taken.ok) return tooManyRequests(taken.retryAfterMs);

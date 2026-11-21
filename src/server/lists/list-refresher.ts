@@ -10,9 +10,12 @@ import { isNight, NIGHT, NIGHT_TICK, nextSlot } from './night-schedule';
 // A list is read once a night, at its slot (night-schedule.ts): Scryfall's prices change daily, and traders keep
 // their lists up to date at the source.
 const DAY_MS = 24 * 60 * 60_000;
-// After a read, the next is the list's slot at least this much later: tomorrow night's for a read at its slot, and
-// tonight's for one in the day (an approval, a moderator's refresh).
+// After a read at night, the next is the list's slot at least this much later: tomorrow night's, even for a read
+// before its slot tonight. After one in the day (an approval, a moderator's refresh), it's the next slot: tonight's.
 export const MIN_GAP_MS = 12 * 60 * 60_000;
+
+export const nextRead = (listId: number, readAt: number) =>
+    nextSlot(listId, isNight(readAt) ? readAt + MIN_GAP_MS : readAt);
 // After a failure the list is tried again after an hour, then 2, 4, 8, 16, and from then on daily; a retry that
 // would fall in the day waits for the list's slot instead.
 const FIRST_RETRY_MS = 60 * 60_000;
@@ -64,24 +67,37 @@ export class ListRefresher {
 
     // Reads the lists that are due: every one (the night's check), or only `ids` (just approved, or a moderator's
     // refresh), whatever the hour. Called while a pass is going, they're read in another pass right after.
+    // Never rejects: its callers (the cron job, an approval's route) don't wait for it.
     run(ids?: number[]): Promise<void> {
         this.wanted =
             ids === undefined || this.wanted === 'all'
                 ? 'all'
                 : new Set([...(this.wanted ?? []), ...ids]);
-        // started a tick later, so `running` is set before any of it runs: a run() from inside it joins this one
-        this.running ??= Promise.resolve()
-            .then(async () => {
-                while (this.wanted) {
-                    const wanted = this.wanted;
-                    this.wanted = null;
+        this.running ??= this.passes();
+        return this.running;
+    }
+
+    private async passes() {
+        // a tick later, so `running` is set before any of it runs: a run() from inside it joins this one
+        await Promise.resolve();
+        try {
+            while (this.wanted) {
+                const wanted = this.wanted;
+                this.wanted = null;
+                try {
                     await (wanted === 'all'
                         ? this.refreshDue()
                         : this.refreshLists(wanted));
+                } catch (error) {
+                    // the database, most likely (a failed read is handled in refresh); the lists stay due for the
+                    // next pass, and any asked for meanwhile are still read
+                    logger.error('list refresh pass failed', { error });
                 }
-            })
-            .finally(() => (this.running = null));
-        return this.running;
+            }
+        } finally {
+            // in the same tick as the loop's last check, so a run() can't slip in between and be left unread
+            this.running = null;
+        }
     }
 
     private async refreshDue() {
@@ -120,7 +136,7 @@ export class ListRefresher {
                 list.id,
                 { ...read, cards: priced },
                 this.now(),
-                nextSlot(list.id, this.now() + MIN_GAP_MS)
+                nextRead(list.id, this.now())
             );
             logger.info('list refreshed', {
                 list: list.id,

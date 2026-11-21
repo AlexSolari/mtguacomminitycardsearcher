@@ -1,5 +1,5 @@
 // How a card's offers are grouped and priced, for the result sections and the summary. Browser-only, pure.
-import { isArtSeries, isExactMatch } from './matching';
+import { isArtSeries, isExactMatch, normalize } from './matching';
 import type { CardResult, SearchResult } from './search-result';
 
 // React key for an offer. The URL alone isn't unique: Nerdik lists one printing's offers at different
@@ -81,6 +81,35 @@ export function splitMatches(r: SearchResult): Split {
 export function cheapestCopies(offers: CardResult[], count: number) {
     const { cost, copies } = allocateCopies(offers, count);
     return { cost, copies };
+}
+
+// A list's entries with those for the same card merged, their counts added up. Two lines can name one card
+// ("Bonecrusher Giant" and "Bonecrusher Giant // Stomp" both resolve to it), and buying for each on its own would
+// count the same copies twice. An entry is keyed by the card its search found, or its name as typed until then. The
+// merged entry keeps the first one's fields and result, unless that result is still pending and a later one isn't
+// (they're the same card's offers either way). Entries keep their order, at their first line.
+export function mergeSameCard<
+    T extends { card: string; count: number; result: SearchResult | null }
+>(entries: T[]): T[] {
+    const merged = new Map<string, T>();
+    for (const e of entries) {
+        const key = normalize(e.result?.card ?? e.card);
+        const seen = merged.get(key);
+        if (!seen) {
+            merged.set(key, e);
+            continue;
+        }
+        const pending = (r: SearchResult | null) => !!r?.pending?.length;
+        merged.set(key, {
+            ...seen,
+            count: seen.count + e.count,
+            result:
+                pending(seen.result) && !pending(e.result)
+                    ? e.result
+                    : seen.result
+        });
+    }
+    return [...merged.values()];
 }
 
 // cheapestCopies, with which offers it took and how many of each (for the order plan).

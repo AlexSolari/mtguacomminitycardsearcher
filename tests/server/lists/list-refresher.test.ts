@@ -265,7 +265,8 @@ describe('ListRefresher', () => {
         await refresher.run([b, pending.id, 999]);
         expect(read).toEqual(['abc']);
         // read in the day, so next tonight, at its slot
-        expect(lists.get(b)?.nextFetchAt).toBe(nextSlot(b, DAY + MIN_GAP_MS));
+        expect(lists.get(b)?.nextFetchAt).toBe(nextSlot(b, DAY));
+        expect(lists.get(b)!.nextFetchAt! - DAY).toBeLessThan(17 * HOUR);
         expect(isNight(lists.get(b)!.nextFetchAt!)).toBe(true);
         // b isn't due any more: asking again reads nothing
         await refresher.run([b]);
@@ -274,6 +275,69 @@ describe('ListRefresher', () => {
         await refresher.run();
         expect(read).toEqual(['abc', '1']);
         expect(lists.get(a)?.fetchedAt).toBe(DAY);
+    });
+
+    test('a list read late in the evening is read again that night, not the next', async () => {
+        // 23:30 and 01:59 in Kyiv: the night's slots are a few hours away, less than MIN_GAP_MS
+        for (const at of [
+            Date.UTC(2026, 10, 17, 21, 30),
+            Date.UTC(2026, 10, 17, 23, 59)
+        ]) {
+            const id = approve({ source: 'manabox', ref: String(at) });
+            pages.set(String(at), () => ({ cards: [] }));
+            now = at;
+            await refresher.run([id]);
+            const next = lists.get(id)!.nextFetchAt!;
+            expect(isNight(next)).toBe(true);
+            expect(next - at).toBeLessThan(8 * HOUR);
+        }
+    });
+
+    test('a list read at night before its slot waits for tomorrow night', async () => {
+        const id = approve(goldfish);
+        pages.set('1', () => ({ cards: [] }));
+        now = NIGHT; // 03:00
+        await refresher.run([id]);
+        const next = lists.get(id)!.nextFetchAt!;
+        expect(next - NIGHT).toBeGreaterThanOrEqual(MIN_GAP_MS);
+        expect(next - NIGHT).toBeLessThan(28 * HOUR);
+    });
+
+    test("a pass that fails is logged, doesn't reject, and doesn't stop lists asked for meanwhile", async () => {
+        const a = approve(goldfish);
+        const b = approve(manabox);
+        pages.set('1', () => ({ cards: [] }));
+        pages.set('abc', () => ({ cards: [] }));
+        const due = lists.due.bind(lists);
+        lists.due = () => {
+            void refresher.run([b]); // asked for while the failing pass runs
+            throw new Error('database is locked');
+        };
+        await refresher.run(); // resolves
+        expect(read).toEqual(['abc']);
+        expect(logs).toContainEqual(
+            expect.objectContaining({
+                level: 'error',
+                message: 'list refresh pass failed'
+            })
+        );
+        // the next pass runs as usual
+        lists.due = due;
+        await refresher.run();
+        expect(read).toEqual(['abc', '1']);
+        expect(lists.get(a)?.fetchedAt).toBe(now);
+    });
+
+    test('a failure while recording a failure is caught too', async () => {
+        approve(goldfish); // no page: the read fails
+        lists.saveFailure = () => {
+            throw new Error('disk full');
+        };
+        await refresher.run();
+        expect(logs.at(-1)).toMatchObject({
+            level: 'error',
+            message: 'list refresh pass failed'
+        });
     });
 
     test("run(ids) leaves a banned user's lists unread", async () => {

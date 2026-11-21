@@ -12,6 +12,7 @@ import type { ListStore, ReviewedList, TraderList } from './db/list-store';
 import type { SellerRow, User, UserStore } from './db/user-store';
 import { findListLinks, LIST_SOURCES, parseListLink } from './lists/list-link';
 import { logger } from './logger';
+import { readText } from './read-body';
 
 // Traders' lists and their moderation:
 //   GET    /api/lists                    → MyLists
@@ -49,8 +50,8 @@ async function readJson(
 ): Promise<Record<string, unknown> | null> {
     if (!req.headers.get('content-type')?.startsWith('application/json'))
         return null;
-    const text = await req.text();
-    if (text.length > maxBytes) return null;
+    const text = await readText(req, maxBytes);
+    if (text === null) return null;
     try {
         const body = JSON.parse(text);
         return typeof body === 'object' && body !== null && !Array.isArray(body)
