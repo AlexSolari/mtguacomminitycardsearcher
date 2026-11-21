@@ -175,7 +175,8 @@ export function OrderPlanner({
                 </div>
             )}
 
-            {traders.length > 0 && (
+            {/* "Гравці" hidden in the results is hidden here too: the plan shares their filters */}
+            {traders.length > 0 && !filters.hiddenShops.includes('traders') && (
                 <TradersBlock traders={traders} shortCards={shortCards} />
             )}
         </div>

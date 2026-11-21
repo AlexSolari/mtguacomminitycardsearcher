@@ -2,7 +2,9 @@
 import plugin from 'bun-plugin-tailwind';
 import { existsSync } from 'fs';
 import { rm } from 'fs/promises';
+import { homedir } from 'os';
 import path from 'path';
+import { unsafeOutdir } from './scripts/build-outdir';
 
 if (process.argv.includes('--help') || process.argv.includes('-h')) {
     console.log(`
@@ -113,7 +115,18 @@ const formatFileSize = (bytes: number): string => {
 console.log('\n🚀 Starting build process...\n');
 
 const cliConfig = parseArgs();
-const outdir = cliConfig.outdir || path.join(process.cwd(), 'dist');
+if (cliConfig.outdir !== undefined && typeof cliConfig.outdir !== 'string') {
+    console.error('❌ --outdir needs a path, e.g. --outdir=dist');
+    process.exit(1);
+}
+const outdir = path.resolve(cliConfig.outdir || 'dist');
+
+// the outdir is deleted before building, so a typo mustn't point it at the project
+const unsafe = unsafeOutdir(outdir, import.meta.dir, homedir());
+if (unsafe) {
+    console.error(`❌ Refusing to build into ${outdir}: ${unsafe}.`);
+    process.exit(1);
+}
 
 if (existsSync(outdir)) {
     console.log(`🗑️ Cleaning previous build at ${outdir}`);

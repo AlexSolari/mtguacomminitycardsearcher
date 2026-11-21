@@ -1,5 +1,5 @@
 // Against a local server, never the real shops.
-import { afterAll, beforeEach, describe, expect, test } from 'bun:test';
+import { afterAll, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import { SpanKind, SpanStatusCode } from '@opentelemetry/api';
 import { ShopUnavailableError } from '@/server/circuit-breaker';
 import {
@@ -64,15 +64,31 @@ describe('ShopClient', () => {
     });
 
     test('spaces request starts, in call order', async () => {
-        const client = new ShopClient(base, { intervalMs: 50 });
-        await client.fetchHtml('/warm-up'); // the first connection's setup would skew the first gap
-        hits.length = 0;
-        await Promise.all(
-            ['/a', '/b', '/c', '/d'].map((p) => client.fetchHtml(p))
-        );
+        const client = new ShopClient(base, { intervalMs: 100 });
+        // Timed where the client starts each request, not where the server gets it: under load the server can see
+        // a late request and then an on-time one closer together than the client sent them.
+        const starts: number[] = [];
+        const realFetch = globalThis.fetch;
+        const spy = spyOn(globalThis, 'fetch').mockImplementation(((
+            ...args: Parameters<typeof fetch>
+        ) => {
+            starts.push(performance.now());
+            return realFetch(...args);
+        }) as typeof fetch);
+        try {
+            await Promise.all(
+                ['/a', '/b', '/c', '/d'].map((p) => client.fetchHtml(p))
+            );
+        } finally {
+            spy.mockRestore();
+        }
         expect(paths()).toEqual(['/a', '/b', '/c', '/d']);
-        for (let i = 1; i < hits.length; i++)
-            expect(hits[i]!.at - hits[i - 1]!.at).toBeGreaterThanOrEqual(45);
+        expect(starts).toHaveLength(4);
+        // The queue spaces the slots it grants; a GC pause or a busy event loop between a slot and its fetch can
+        // still delay one start by a few ms, bringing the next (on time) closer. The slack allows for that, and
+        // still fails if the spacing is lost (gaps of ~0) or halved.
+        for (let i = 1; i < starts.length; i++)
+            expect(starts[i]! - starts[i - 1]!).toBeGreaterThanOrEqual(80);
     });
 
     test('HTTP errors keep their status', async () => {

@@ -14,6 +14,7 @@ import { useAccount } from '@/hooks/use-account';
 import { LISTS, plural } from '@/i18n';
 import { cn } from '@/lib/utils';
 import {
+    ApiError,
     fetchQueue,
     fetchSellers,
     refreshLists,
@@ -26,6 +27,15 @@ import {
 const MAX_RESULTS = 50;
 // Typing pauses this long before the search is sent.
 const SEARCH_DELAY_MS = 250;
+
+// An expired session (401) reloads the page, which then offers to sign in again, as /lists does; anything else is
+// the server's fault, for the caller to show. Only a 401: on a 403 /me would still say "moderator", and the reload
+// would loop.
+function reloadIfSignedOut(err: unknown): boolean {
+    if (!(err instanceof ApiError && err.status === 401)) return false;
+    location.reload();
+    return true;
+}
 
 // The lists in one state, or the sellers.
 type Tab = ListStatus | 'sellers';
@@ -75,22 +85,28 @@ function Moderation() {
     const [text, setText] = useState('');
     const [query, setQuery] = useState('');
 
+    const fail = (err: unknown) => {
+        if (!reloadIfSignedOut(err)) setError(SERVER_ERROR);
+    };
+
     useEffect(() => {
         const timer = setTimeout(() => setQuery(text.trim()), SEARCH_DELAY_MS);
         return () => clearTimeout(timer);
     }, [text]);
 
     useEffect(() => {
+        // a new load: an earlier one's error (or a failed action's) no longer applies
+        setError(null);
         if (tab === 'sellers') return;
         let live = true;
         setLists(undefined);
         setSelected(new Set());
         (query ? searchLists(query) : fetchQueue(tab))
             .then((l) => live && setLists(l))
-            .catch(() => {
+            .catch((err) => {
                 if (!live) return;
                 setLists(null);
-                setError(SERVER_ERROR);
+                fail(err);
             });
         return () => {
             live = false;
@@ -105,8 +121,8 @@ function Moderation() {
         try {
             setDone((await action()) ?? null);
             setReloads((n) => n + 1);
-        } catch {
-            setError(SERVER_ERROR);
+        } catch (err) {
+            fail(err);
         } finally {
             setBusy(false);
         }
@@ -327,7 +343,9 @@ function Sellers({
         setSellers(undefined);
         fetchSellers(query)
             .then((s) => live && setSellers(s))
-            .catch(() => live && setSellers(null));
+            .catch((err) => {
+                if (live && !reloadIfSignedOut(err)) setSellers(null);
+            });
         return () => {
             live = false;
         };

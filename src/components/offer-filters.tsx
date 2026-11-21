@@ -164,13 +164,17 @@ function CheckMenu<T extends string>({
         };
     }, [open]);
 
+    // Only this menu's items count, and the rest stay hidden whatever is picked here: the order plan's shop menu
+    // shares the filters with the results' but leaves out "Гравці", whose hiding isn't this menu's to show or undo.
+    const hiddenHere = hidden.filter((h) => items.some((i) => i.id === h));
+    const hiddenElsewhere = hidden.filter((h) => !hiddenHere.includes(h));
     const toggle = (id: T) =>
         onChange(
             hidden.includes(id)
                 ? hidden.filter((h) => h !== id)
                 : [...hidden, id]
         );
-    const shown = items.filter((i) => !hidden.includes(i.id)).length;
+    const shown = items.length - hiddenHere.length;
 
     return (
         <div ref={root} className='relative'>
@@ -184,14 +188,14 @@ function CheckMenu<T extends string>({
                     group,
                     'gap-1.5 px-3 py-1.5 text-xs font-medium transition',
                     joined && 'rounded-r-none border-r-0',
-                    hidden.length
+                    hiddenHere.length
                         ? 'border-primary/50 text-primary'
                         : 'text-muted-foreground hover:text-foreground'
                 )}
             >
                 <Icon className='size-3.5' />
                 {label}
-                {hidden.length > 0 && (
+                {hiddenHere.length > 0 && (
                     <span className='tabular-nums'>
                         {shown}/{items.length}
                     </span>
@@ -250,10 +254,10 @@ function CheckMenu<T extends string>({
                             </button>
                         );
                     })}
-                    {hidden.length > 0 && (
+                    {hiddenHere.length > 0 && (
                         <button
                             type='button'
-                            onClick={() => onChange([])}
+                            onClick={() => onChange(hiddenElsewhere)}
                             className='mt-1 rounded-md border-t px-2 py-1.5 text-xs text-muted-foreground transition hover:bg-accent hover:text-foreground'
                         >
                             Показати всі

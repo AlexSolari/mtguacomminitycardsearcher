@@ -63,19 +63,22 @@ const NO_LINKS =
 export function ListsPage() {
     const auth = useAccount();
     // read once, then dropped from the address bar so a reload doesn't show it again
-    const [loginFailure] = useState(
-        () =>
-            new URLSearchParams(location.search).get(
-                'login'
-            ) as LoginFailure | null
-    );
+    // Only a reason we know: the address is anyone's to edit, and `?login=constructor` would otherwise find
+    // Object's own properties.
+    const [loginFailure] = useState(() => {
+        const reason = new URLSearchParams(location.search).get('login');
+        return reason !== null && Object.hasOwn(LOGIN_FAILURES, reason)
+            ? (reason as LoginFailure)
+            : null;
+    });
     useEffect(() => {
-        if (loginFailure) history.replaceState(null, '', location.pathname);
+        if (new URLSearchParams(location.search).has('login'))
+            history.replaceState(null, '', location.pathname);
     }, []);
 
     return (
         <PageLayout title='Списки продавців'>
-            {loginFailure && LOGIN_FAILURES[loginFailure] && (
+            {loginFailure && (
                 <Notice tone='error'>{LOGIN_FAILURES[loginFailure]}</Notice>
             )}
             {auth === undefined ? (
@@ -212,7 +215,8 @@ function TraderLists({ user }: { user: CurrentUser }) {
         setResult(null);
         try {
             const result = await submitLists(text);
-            setData({ ...data, lists: [...result.added, ...data.lists] });
+            // from the latest state, not `data` as it was before the request: a delete may have finished meanwhile
+            setData((d) => d && { ...d, lists: [...result.added, ...d.lists] });
             setText('');
             setResult(result);
         } catch (err) {
@@ -261,7 +265,10 @@ function TraderLists({ user }: { user: CurrentUser }) {
         setResult(null);
         try {
             await deleteList(id);
-            setData({ ...data, lists: data.lists.filter((l) => l.id !== id) });
+            // from the latest state: two deletes in a row mustn't bring the first list back
+            setData(
+                (d) => d && { ...d, lists: d.lists.filter((l) => l.id !== id) }
+            );
         } catch (err) {
             fail(err);
         }
