@@ -43,6 +43,11 @@ export const LISTS: PluralForms = {
     few: 'списки',
     many: 'списків'
 };
+export const SHOPS: PluralForms = {
+    one: 'магазин',
+    few: 'магазини',
+    many: 'магазинів'
+};
 // genitive, as in "не більше 10 списків" / "не більше 1 списку"
 export const LISTS_GENITIVE: PluralForms = {
     one: 'списку',

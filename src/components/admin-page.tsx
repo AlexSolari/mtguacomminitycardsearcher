@@ -155,12 +155,16 @@ function Moderation() {
                 />
             </div>
 
-            <div role='tablist' className='flex flex-wrap gap-2'>
+            {/* filters over one list rather than tabs with panels of their own, so pressed buttons, not a tablist */}
+            <div
+                role='group'
+                aria-label='Що показати'
+                className='flex flex-wrap gap-2'
+            >
                 {TABS.map((t) => (
                     <Button
                         key={t.tab}
-                        role='tab'
-                        aria-selected={current(t.tab)}
+                        aria-pressed={current(t.tab)}
                         variant={current(t.tab) ? 'default' : 'outline'}
                         size='sm'
                         onClick={() => showTab(t.tab)}

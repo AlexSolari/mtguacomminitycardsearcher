@@ -33,7 +33,6 @@ export function SiteHeader({ onTitleClick }: { onTitleClick?: () => void }) {
                             type='button'
                             onClick={onTitleClick}
                             title='Змінити список карт'
-                            aria-controls='card-list-form'
                             className={TITLE_CLASS}
                         >
                             {title}

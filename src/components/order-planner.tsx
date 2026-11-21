@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { ArrowLeft, ExternalLink, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { clickReporters } from '@/lib/report-click';
-import { CARDS, plural } from '@/i18n';
+import { CARDS, plural, SHOPS } from '@/i18n';
 import {
     filterResult,
     languageCounts,
@@ -197,15 +197,22 @@ function OptionsTable({
     wanted: number;
     onPick: (o: PlanOption) => void;
 }) {
+    // A plain table, with a real radio button per row: screen readers keep the rows' cells and headers, and the
+    // radios bring the keys of a radio group (Tab to the chosen one, arrows to move). A click anywhere on a row picks
+    // it too, for the mouse.
+    const group = useId();
     return (
         <div className={cn(panel, 'overflow-x-auto')}>
-            <table className='w-full min-w-120 text-sm' role='radiogroup'>
+            <table className='w-full min-w-120 text-sm'>
                 <caption className='px-4 pt-3 text-left text-xs text-muted-foreground'>
                     Найдешевший план для кожної кількості магазинів
                 </caption>
                 <thead>
                     <tr className='border-b text-left text-xs uppercase tracking-wider text-muted-foreground'>
-                        <th className='py-2.5 pl-4 font-medium'>Магазинів</th>
+                        <th className='py-2.5 pl-4 font-medium'>
+                            <span className='sr-only'>Вибрати</span>
+                        </th>
+                        <th className='px-3 py-2.5 font-medium'>Магазинів</th>
                         <th className='px-3 py-2.5 font-medium'>Магазини</th>
                         <th className='px-3 py-2.5 text-right font-medium'>
                             Копій
@@ -221,22 +228,23 @@ function OptionsTable({
                         return (
                             <tr
                                 key={optionKey(o)}
-                                role='radio'
-                                aria-checked={on}
-                                tabIndex={0}
                                 onClick={() => onPick(o)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' || e.key === ' ') {
-                                        e.preventDefault();
-                                        onPick(o);
-                                    }
-                                }}
                                 className={cn(
-                                    'cursor-pointer border-b transition-colors last:border-0 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                                    on && 'bg-primary/[0.09]'
+                                    'cursor-pointer border-b transition-colors last:border-0 hover:bg-primary/5 has-focus-visible:bg-primary/5',
+                                    on && 'bg-primary/9'
                                 )}
                             >
-                                <td className='py-2 pl-4 font-semibold tabular-nums'>
+                                <td className='w-0 py-2 pl-4'>
+                                    <input
+                                        type='radio'
+                                        name={group}
+                                        checked={on}
+                                        onChange={() => onPick(o)}
+                                        aria-label={`${plural(o.shops.length, SHOPS)}: ${o.shops.map((s) => SHOP_INFO[s].label).join(', ')}, ${formatPrice(o.total)}`}
+                                        className='size-4 accent-primary'
+                                    />
+                                </td>
+                                <td className='px-3 py-2 font-semibold tabular-nums'>
                                     {o.shops.length}
                                 </td>
                                 <td className='px-3 py-2'>

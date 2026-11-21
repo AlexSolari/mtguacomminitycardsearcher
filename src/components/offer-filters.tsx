@@ -144,6 +144,7 @@ function CheckMenu<T extends string>({
     const [open, setOpen] = useState(false);
     const root = useRef<HTMLDivElement>(null);
     const button = useRef<HTMLButtonElement>(null);
+    const menu = useRef<HTMLDivElement>(null);
     const menuId = useId();
 
     useEffect(() => {
@@ -158,11 +159,20 @@ function CheckMenu<T extends string>({
         };
         document.addEventListener('pointerdown', onPointer);
         document.addEventListener('keydown', onKey);
+        // opened: focus goes to its first checkbox, so the keyboard carries on inside it (Escape brings it back)
+        menu.current?.querySelector('button')?.focus();
         return () => {
             document.removeEventListener('pointerdown', onPointer);
             document.removeEventListener('keydown', onKey);
         };
     }, [open]);
+
+    // Tabbing out of the menu closes it. A blur to nothing (a click on empty space, or inside the menu's padding)
+    // is left to the click handler above, which knows where the click was.
+    const onBlur = (e: React.FocusEvent) => {
+        const next = e.relatedTarget as Node | null;
+        if (next && !root.current?.contains(next)) setOpen(false);
+    };
 
     // Only this menu's items count, and the rest stay hidden whatever is picked here: the order plan's shop menu
     // shares the filters with the results' but leaves out "Гравці", whose hiding isn't this menu's to show or undo.
@@ -177,7 +187,7 @@ function CheckMenu<T extends string>({
     const shown = items.length - hiddenHere.length;
 
     return (
-        <div ref={root} className='relative'>
+        <div ref={root} onBlur={onBlur} className='relative'>
             <button
                 ref={button}
                 type='button'
@@ -209,6 +219,7 @@ function CheckMenu<T extends string>({
             </button>
             {open && (
                 <div
+                    ref={menu}
                     id={menuId}
                     role='group'
                     aria-label={label}

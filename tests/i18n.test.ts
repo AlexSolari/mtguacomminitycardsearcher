@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { CARDS, FILES, plural, tooManySearches } from '@/i18n';
+import { CARDS, FILES, plural, SHOPS, tooManySearches } from '@/i18n';
 
 test.each([
     [1, '1 карта'],
@@ -27,4 +27,10 @@ test.each([
 test('FILES is genitive: "з 1 файлу", "з 2 файлів"', () => {
     expect(plural(1, FILES)).toBe('1 файлу');
     expect(plural(2, FILES)).toBe('2 файлів');
+});
+
+test('SHOPS: "1 магазин", "3 магазини", "5 магазинів"', () => {
+    expect(plural(1, SHOPS)).toBe('1 магазин');
+    expect(plural(3, SHOPS)).toBe('3 магазини');
+    expect(plural(5, SHOPS)).toBe('5 магазинів');
 });

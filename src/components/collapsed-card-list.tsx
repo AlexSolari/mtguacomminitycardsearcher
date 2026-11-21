@@ -14,7 +14,7 @@ export function CollapsedCardList({
         <button
             type='button'
             onClick={onExpand}
-            aria-controls='card-list-form'
+            // no aria-controls: while this bar shows, the list's form isn't on the page for it to point at
             aria-expanded={false}
             title='Змінити список карт'
             className='group flex w-full cursor-pointer items-center gap-3 rounded-2xl border bg-card/60 px-4 py-2.5 text-left shadow-2xl shadow-black/10 dark:shadow-black/30 backdrop-blur transition-colors animate-in fade-in duration-300 outline-none hover:border-primary/50 hover:bg-card/80 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50'
