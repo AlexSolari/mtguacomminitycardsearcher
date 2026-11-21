@@ -21,7 +21,7 @@ describe('kartoteka', () => {
         expect(parseKartoteka('<html></html>', base)).toEqual([]);
     });
 
-    const page = (products: object[], cards = '') =>
+    const page = (products: unknown[], cards = '') =>
         `<script>var products = ${JSON.stringify(products)},\n</script>${cards}`;
     const single = {
         article: 'TDM-128f',
@@ -74,5 +74,41 @@ describe('kartoteka', () => {
 
     test('malformed product JSON → []', () => {
         expect(parseKartoteka('var products = [{oops}],\n', base)).toEqual([]);
+    });
+
+    test('a malformed product is skipped, not the whole page', () => {
+        const results = parseKartoteka(
+            page([
+                null,
+                'Sol Ring',
+                42,
+                [],
+                { ...single, article: 7 },
+                { ...single, title: undefined },
+                { ...single, title: '   ' },
+                { ...single, title: { en: 'Twin Bolt' } },
+                { ...single, url: undefined },
+                { ...single, url: 12 },
+                { ...single, url: 'http://[' },
+                { ...single, url: '/ok/' }
+            ]),
+            base
+        );
+        expect(results.map((r) => r.url)).toEqual([
+            'https://kartoteka.in.ua/ok/'
+        ]);
+    });
+
+    test("an image path that isn't a URL leaves the result without an image", () => {
+        const card = `<div class="catalogCard j-catalog-card"><a href='/twin-bolt/'><img alt='Twin Bolt, Normal' class='catalogCard-img' src='http://['></a></div>`;
+        const [r] = parseKartoteka(page([single], card), base);
+        expect(r).toMatchObject({ name: 'Twin Bolt — TDM #128', image: null });
+    });
+
+    test('escaped slashes in the page’s JSON are links like any other', () => {
+        const raw = `<script>var products = [{"article":"FRC-21","brand_title":"Wizards of the Coast","title":"Sol Ring","price":73,"url":"https:\\/\\/kartoteka.in.ua\\/sol-ring\\/","in_stock":true}],\n</script>`;
+        expect(parseKartoteka(raw, base)[0]?.url).toBe(
+            'https://kartoteka.in.ua/sol-ring/'
+        );
     });
 });

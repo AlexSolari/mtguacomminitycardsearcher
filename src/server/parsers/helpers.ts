@@ -51,8 +51,20 @@ export const toPrice = (value: unknown): number | null => {
     return Number.isFinite(n) && n > 0 ? n : null;
 };
 
-export const abs = (base: string, path: string | undefined) =>
-    path ? new URL(decodeEntities(path), base).href : null;
+// `path` resolved against the shop's `base`; null without one, or for one that isn't a URL ("http://[" makes URL
+// throw), so one odd link from a shop can't fail the whole parse.
+export function abs(base: string, path: string | undefined): string | null {
+    if (!path) return null;
+    try {
+        return new URL(decodeEntities(path), base).href;
+    } catch {
+        return null;
+    }
+}
+
+// A field of a shop's JSON that should be a string: it, or undefined when it's anything else.
+export const asString = (value: unknown) =>
+    typeof value === 'string' ? value : undefined;
 
 // Some shops spell languages out; normalise to codes for the badge.
 const LANGUAGE_CODES: Record<string, string> = {

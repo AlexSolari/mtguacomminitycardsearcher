@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import {
     abs,
+    asString,
     capitalize,
     decodeEntities,
     isArtSeriesSet,
@@ -63,7 +64,19 @@ describe('abs', () => {
     });
     test('no path → null', () => {
         expect(abs('https://shop.ua', undefined)).toBeNull();
+        expect(abs('https://shop.ua', '')).toBeNull();
     });
+    // one odd link mustn't fail the whole parse
+    test("a path that isn't a URL → null, not a throw", () => {
+        expect(abs('https://shop.ua', 'http://[')).toBeNull();
+    });
+});
+
+test('asString: a string, or undefined for anything else', () => {
+    expect(asString('Sol Ring')).toBe('Sol Ring');
+    expect(asString('')).toBe('');
+    for (const v of [undefined, null, 42, true, {}, ['a']])
+        expect(asString(v)).toBeUndefined();
 });
 
 describe('languageCode', () => {

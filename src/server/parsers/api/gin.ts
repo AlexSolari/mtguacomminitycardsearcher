@@ -40,11 +40,13 @@ export function parseGin(
     result: GinLookupResult | undefined,
     base: string
 ): CardResult[] {
-    return (result?.offers ?? [])
-        .filter((o) => o?.name && o.url && o.quantity > 0)
-        .map((o) => {
-            return {
-                shop: 'gin' as const,
+    return (result?.offers ?? []).flatMap((o): CardResult[] => {
+        // an offer without a link (or with one that isn't a URL) is skipped, not the whole lookup
+        const url = o?.name && o.quantity > 0 ? abs(base, o.url) : null;
+        if (!url) return [];
+        return [
+            {
+                shop: 'gin',
                 // "Sol Ring — Commander Masters #1, Etched"
                 name: withEdition(
                     o.name,
@@ -53,7 +55,7 @@ export function parseGin(
                     o.finish === 'etched' && 'Etched',
                     o.signed && 'Signed'
                 ),
-                url: abs(base, o.url)!,
+                url,
                 image: abs(base, o.imageUrl ?? undefined),
                 price: toPrice(o.priceUah),
                 artSeries: isArtSeriesSet(o.setName),
@@ -62,6 +64,7 @@ export function parseGin(
                 language: languageCode(o.language),
                 // "normal" covers everything short of heavily played, so it gets no badge
                 condition: o.condition === 'heavily_played' ? 'HP' : undefined
-            };
-        });
+            }
+        ];
+    });
 }

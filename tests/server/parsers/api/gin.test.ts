@@ -95,4 +95,11 @@ describe('gin', () => {
             parse({ ...offer, quantity: 0 }, { ...offer, url: '' }, null)
         ).toEqual([]);
     });
+
+    test("an offer whose link isn't a URL is skipped, not the whole lookup", () => {
+        const results = parse({ ...offer, url: 'http://[' }, offer);
+        expect(results.map((r) => r.url)).toEqual([
+            'https://mtgin.kyiv.ua/shops/mtgin/cards/1-daze'
+        ]);
+    });
 });

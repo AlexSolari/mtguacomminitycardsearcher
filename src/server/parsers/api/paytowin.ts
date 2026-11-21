@@ -1,6 +1,6 @@
 import type { CardResult } from '../../../search-result';
 import { SHOP_INFO } from '../../../shops';
-import { languageCode, toPrice } from '../helpers';
+import { asString, languageCode, toPrice } from '../helpers';
 
 const CONDITIONS: Record<string, string> = {
     mint: 'M',
@@ -39,10 +39,8 @@ type Lot = Partial<
     >
 >;
 
-const str = (value: unknown) => (typeof value === 'string' ? value : undefined);
-
 const grade = (condition: unknown) => {
-    const c = str(condition);
+    const c = asString(condition);
     return c !== undefined && Object.hasOwn(CONDITIONS, c)
         ? CONDITIONS[c]
         : undefined;
@@ -50,7 +48,7 @@ const grade = (condition: unknown) => {
 
 function photo(photos: unknown): string | null {
     const urls = Array.isArray(photos) ? photos[0]?.urls : undefined;
-    return str(urls?.medium) ?? str(urls?.thumb) ?? null;
+    return asString(urls?.medium) ?? asString(urls?.thumb) ?? null;
 }
 
 // paytowin.club — card auctions, via the site's public JSON API (api.paytowin.club/auctions?q=…&game=magic), as
@@ -61,7 +59,8 @@ export function parsePaytowin(json: unknown): CardResult[] {
     if (!Array.isArray(items)) return [];
     return items.flatMap((item): CardResult[] => {
         const a = (item ?? {}) as Lot;
-        const id = str(a.id) ?? (typeof a.id === 'number' ? a.id : undefined);
+        const id =
+            asString(a.id) ?? (typeof a.id === 'number' ? a.id : undefined);
         const startingPrice = toPrice(a.starting_price_uah);
         // every lot has a starting price; one without isn't a lot we can show
         if (a.status !== 'live' || id === undefined || startingPrice === null)
@@ -71,19 +70,19 @@ export function parsePaytowin(json: unknown): CardResult[] {
         return [
             {
                 shop: 'paytowin',
-                name: (str(a.title) ?? '').trim(),
+                name: (asString(a.title) ?? '').trim(),
                 // the API host isn't the site: lots live at paytowin.club/a/<id>
                 url: `${SHOP_INFO.paytowin.homepage}/a/${encodeURIComponent(id)}`,
                 image: photo(a.photos),
                 price: currentBid ?? startingPrice,
                 foil: a.foil === true || undefined,
-                language: languageCode(str(a.language)),
+                language: languageCode(asString(a.language)),
                 condition: grade(a.condition),
                 auction: {
                     currentBid,
                     startingPrice,
                     buyNow: toPrice(a.buy_now_uah),
-                    endsAt: str(a.end_time) ?? '',
+                    endsAt: asString(a.end_time) ?? '',
                     bids: Number.isInteger(bids) && bids > 0 ? bids : 0
                 }
             }
