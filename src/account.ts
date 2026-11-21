@@ -20,7 +20,8 @@ export type LoginFailure =
     | 'expired' // the sign-in took too long, or was started in another browser
     | 'failed' // Telegram's answer didn't check out, or Telegram was unreachable
     | 'no-username' // the Telegram account has no username, so buyers couldn't contact it
-    | 'banned';
+    | 'banned'
+    | 'busy'; // too many sign-ins from this address in a short time (SIGN_IN_BUCKETS)
 
 // Where a list is kept.
 export type ListSource = 'mtggoldfish' | 'manabox' | 'moxfield';

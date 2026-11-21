@@ -150,17 +150,19 @@ export class ListStore {
         );
     }
 
-    // A moderator's "refresh now": makes approved lists (`ids`, or all of them) due at once, and returns the ones it
-    // moved. Lists already due are left out, so a second click while they're being read doesn't read them twice;
-    // so are banned users' lists, which wait until the ban is lifted.
+    // A moderator's "refresh now": makes approved lists (`ids`, or all of them) due at once, and returns them, for
+    // the refresher to read. That includes lists already due but not read: an approval's read lost to a restart, or
+    // a list whose owner was unbanned in the day. A list already overdue keeps its time, so it stays first in line.
+    // A second click doesn't read a list twice: the refresher checks each is still due just before reading it
+    // (dueList), and a read, or a failed one, moves it on. Banned users' lists wait until the ban is lifted.
     refreshNow(ids: number[] | 'all', now = Date.now()): number[] {
         if (ids !== 'all' && ids.length === 0) return [];
         const only =
             ids === 'all' ? '' : `AND id IN (${ids.map(() => '?').join(', ')})`;
         return this.db
             .query<{ id: number }, number[]>(
-                `UPDATE lists SET next_fetch_at = ?
-                 WHERE status = 'approved' AND next_fetch_at > ? ${only}
+                `UPDATE lists SET next_fetch_at = MIN(COALESCE(next_fetch_at, ?), ?)
+                 WHERE status = 'approved' ${only}
                    AND user_id NOT IN (SELECT id FROM users WHERE banned = 1)
                  RETURNING id`
             )

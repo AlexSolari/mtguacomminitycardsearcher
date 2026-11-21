@@ -1,6 +1,7 @@
 import type { AuthState, LoginFailure } from '../../account';
 import type { User, UserStore } from '../db/user-store';
 import { logger } from '../logger';
+import { RateLimiter, type Bucket } from '../rate-limiter';
 import type { TelegramLogin } from './telegram-login';
 import { codeChallenge, randomToken, tokenHash } from './tokens';
 
@@ -21,6 +22,15 @@ const LOGIN_MS = 10 * 60_000;
 
 // Where the user lands after signing in (the "Мої списки" page), with `?login=<reason>` when it failed.
 export const LISTS_PAGE = '/lists';
+
+// Sign-ins one client may complete over time (see RateLimiter). Each callback costs a token exchange with Telegram,
+// through one shared client and its queue, and a request that gets that far is easy to forge (any cookie of the
+// form `a.b` and any code). Without a limit, a flood would fill the queue and real sign-ins would fail. A person
+// signs in a few times a day.
+export const SIGN_IN_BUCKETS: Bucket[] = [
+    { capacity: 5, refillMs: 60_000 },
+    { capacity: 20, refillMs: 3_600_000 }
+];
 
 export function readCookie(req: Request, name: string): string | null {
     for (const part of req.headers.get('cookie')?.split(';') ?? []) {
@@ -60,7 +70,8 @@ export function authHandlers(
     users: UserStore,
     telegram: TelegramLogin | null,
     admins: Set<number>,
-    now = () => Date.now()
+    now = () => Date.now(),
+    signIns = new RateLimiter(SIGN_IN_BUCKETS, now)
 ) {
     const currentUser = (req: Request): User | null => {
         const token = readCookie(req, SESSION_COOKIE);
@@ -96,8 +107,8 @@ export function authHandlers(
 
         // The code is exchanged with the verifier from this browser's login cookie, so a code from a sign-in this
         // browser didn't start (a forged link) can't be used. Telegram's docs don't promise `state` comes back,
-        // so it's checked only when it does.
-        async callback(req: Request): Promise<Response> {
+        // so it's checked only when it does. `client` is the caller (clientKey), for SIGN_IN_BUCKETS.
+        async callback(req: Request, client: string): Promise<Response> {
             const params = new URL(req.url).searchParams;
             const [state, verifier] = (
                 readCookie(req, LOGIN_COOKIE) ?? ''
@@ -111,6 +122,15 @@ export function authHandlers(
                 (returned !== null && returned !== state)
             )
                 return failed('expired', clearLogin);
+            // just before the request to Telegram: the checks above cost nothing
+            const taken = signIns.take(client);
+            if (!taken.ok) {
+                // the client is the IP, so it's not logged (see AGENTS.md)
+                logger.warn('sign-in refused', {
+                    retryAfter: Math.ceil(taken.retryAfterMs / 1000)
+                });
+                return failed('busy', clearLogin);
+            }
 
             let identity;
             try {

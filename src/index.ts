@@ -164,7 +164,13 @@ const server = serve({
         },
 
         '/api/auth/login': { GET: () => auth.login() },
-        '/api/auth/callback': { GET: (req) => auth.callback(req) },
+        '/api/auth/callback': {
+            GET: (req, server) =>
+                auth.callback(
+                    req,
+                    clientId(req, server.requestIP(req)?.address)
+                )
+        },
         '/api/auth/me': {
             GET: (req) => auth.me(req),
             DELETE: (req) => auth.deleteAccount(req)

@@ -186,7 +186,7 @@ describe('ListStore', () => {
         expect(lists.due(1000).map((l) => l.id)).toEqual([b.id]);
     });
 
-    test('refreshNow: approved lists not already due become due now; it returns them', () => {
+    test('refreshNow: approved lists become due now, those already due included; it returns them', () => {
         const a = approved(alice); // next read at 300 + DAY
         const b = approved(bob, manabox);
         const c = approved(alice, { source: 'mtggoldfish', ref: '7' });
@@ -199,10 +199,20 @@ describe('ListStore', () => {
         expect(lists.get(b.id)?.nextFetchAt).toBe(1000);
         expect(lists.get(pending.id)?.nextFetchAt).toBeNull();
         expect(lists.due(1000).map((l) => l.id)).toEqual([b.id]);
-        // b is already due, so only the others move
-        expect(lists.refreshNow('all', 1000)).toEqual([a.id, c.id]);
-        expect(lists.refreshNow('all', 1000)).toEqual([]);
+        // b is already due and comes back too, at the time it was due: still first in line
+        expect(lists.refreshNow('all', 2000)).toEqual([a.id, b.id, c.id]);
+        expect(lists.get(b.id)?.nextFetchAt).toBe(1000);
+        expect(lists.get(a.id)?.nextFetchAt).toBe(2000);
+        expect(lists.due(2000).map((l) => l.id)).toEqual([b.id, a.id, c.id]);
         expect(lists.refreshNow([], 1000)).toEqual([]);
+    });
+
+    test("refreshNow brings back a list that's due but wasn't read (an approval's read lost to a restart)", () => {
+        const pending = lists.submit(alice.id, goldfish, 0)!;
+        lists.review(pending.id, 'approved', 500); // due at 500; the server restarts before reading it
+        expect(lists.refreshNow([pending.id], 9000)).toEqual([pending.id]);
+        expect(lists.get(pending.id)?.nextFetchAt).toBe(500);
+        expect(lists.dueList(pending.id, 9000)?.id).toBe(pending.id);
     });
 
     test("refreshNow and dueList leave banned users' lists alone", () => {

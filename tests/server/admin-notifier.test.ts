@@ -3,6 +3,8 @@ import { afterAll, beforeEach, describe, expect, test } from 'bun:test';
 import {
     AdminNotifier,
     adminNotifierConfig,
+    COOLDOWN_MS,
+    MAX_ROWS,
     isQuietHour,
     submittedMessage,
     type AdminNotifierConfig
@@ -60,6 +62,17 @@ const lists = [
 const NOON = Date.UTC(2025, 5, 1, 9, 0);
 const LATE = Date.UTC(2025, 5, 1, 20, 30);
 
+// the cooldowns' ends, run by hand
+let deferred: { run: () => void; ms: number }[] = [];
+beforeEach(() => (deferred = []));
+const runDeferred = async () => {
+    const due = deferred;
+    deferred = [];
+    for (const d of due) d.run();
+    // the message the cooldown's end sends goes through the client's queue
+    await Bun.sleep(50);
+};
+
 const notifier = (config: Partial<AdminNotifierConfig> = {}, now = NOON) =>
     new AdminNotifier(
         {
@@ -72,7 +85,8 @@ const notifier = (config: Partial<AdminNotifierConfig> = {}, now = NOON) =>
             intervalMs: 1,
             secret: TOKEN
         }),
-        () => now
+        () => now,
+        (run, ms) => void deferred.push({ run, ms })
     );
 
 describe('adminNotifierConfig', () => {
@@ -190,5 +204,76 @@ describe('AdminNotifier', () => {
     test('nothing submitted, nothing sent', async () => {
         await notifier().listsSubmitted(user, [], 0);
         expect(sent).toEqual([]);
+        expect(deferred).toEqual([]);
     });
+
+    test("a trader's later submissions wait for the cooldown, then go in one message", async () => {
+        const n = notifier();
+        await n.listsSubmitted(user, [lists[0]!], 1);
+        expect(sent).toHaveLength(1);
+        expect(deferred.map((d) => d.ms)).toEqual([COOLDOWN_MS]);
+        // two more submissions inside the cooldown: held, nothing sent
+        await n.listsSubmitted(user, [lists[1]!], 2);
+        const renamed = { ...user, displayName: 'Іван' };
+        const third = list(3, 'moxfield', 'abc');
+        await n.listsSubmitted(renamed, [third], 3);
+        expect(sent).toHaveLength(1);
+        // another trader isn't held back by this one's cooldown
+        await n.listsSubmitted({ ...user, id: 8, username: 'other' }, lists, 5);
+        expect(sent).toHaveLength(2);
+
+        sent.length = 0;
+        await runDeferred();
+        // one message for trader 7, with both held lists and the latest queue size; trader 8 had nothing held
+        expect(sent.map((s) => s.body.text)).toEqual([
+            submittedMessage(renamed, [lists[1]!, third], 3)
+        ]);
+        // which starts another cooldown; it ends with nothing held, so nothing more is sent
+        expect(deferred).toHaveLength(1);
+        sent.length = 0;
+        await runDeferred();
+        expect(sent).toEqual([]);
+        expect(deferred).toEqual([]);
+        // and the next submission goes at once again
+        await n.listsSubmitted(user, [lists[0]!], 1);
+        expect(sent).toHaveLength(1);
+    });
+
+    test('a held message links the first MAX_ROWS lists and counts the rest', async () => {
+        const n = notifier();
+        await n.listsSubmitted(user, [lists[0]!], 1);
+        // a script adding lists over and over: what's kept stays bounded
+        const many = Array.from({ length: 30 }, (_, i) =>
+            list(100 + i, 'manabox', `deck${i}`)
+        );
+        await n.listsSubmitted(user, many, 31);
+        await n.listsSubmitted(user, many, 61);
+        sent.length = 0;
+        await runDeferred();
+        const text = sent[0]!.body.text as string;
+        expect(text).toStartWith('📋 <b>Нові списки на перевірку: 60</b>');
+        expect(text.match(/^• ManaBox/gm)).toHaveLength(MAX_ROWS);
+        expect(text).toContain('• і ще 40 списків');
+        expect(text).toEndWith('Усього на перевірці: 61 список');
+        expect(logs.at(-1)).toMatchObject({
+            message: 'admins notified',
+            lists: 60
+        });
+    });
+});
+
+test('by default the cooldown is a timer that keeps nothing alive', async () => {
+    const n = new AdminNotifier(
+        {
+            botToken: TOKEN,
+            adminChatIds: [1],
+            adminUrl: 'https://cards.example/admin'
+        },
+        new ShopClient(`http://localhost:${server.port}`, {
+            intervalMs: 1,
+            secret: TOKEN
+        })
+    );
+    await n.listsSubmitted(user, lists, 2);
+    expect(sent).toHaveLength(1);
 });

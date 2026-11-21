@@ -133,15 +133,10 @@ export const CardSection = memo(function CardSection({
     count: number; // copies wanted
     hidden?: number; // offers the filters hide
 }) {
-    const { exact, auctions, traders, art, other, pricing, min } =
+    const { exact, auctions, traders, art, other, min, best } =
         splitMatches(result);
     const links = result.links;
-    // traders' offers aren't compared on price, so a lone shop offer beside them isn't "best"
-    const isBest = (link: CardResult) =>
-        links.length - traders.length > 1 &&
-        pricing.has(link) &&
-        link.price !== null &&
-        link.price === min;
+    const isBest = (link: CardResult) => best.has(link);
     const hasExact = exact.length > 0;
     // Secondary groups — fuzzy "other matches" ("The Walls of Ba Sing Se" for "Ba Sing Se") and Art Series — are
     // dimmed and start collapsed, but only when something better is shown above them; otherwise they're the result.

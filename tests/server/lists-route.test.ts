@@ -577,21 +577,22 @@ describe('lists routes', () => {
         expect(await res.json()).toEqual({ refreshed: [b.id] });
         expect(due).toEqual([b.id]);
         expect(lists.get(b.id)?.nextFetchAt).toBe(1000);
-        // b is queued already, so "all" only adds a
+        // "all" includes b, though it's due already: the refresher reads each list once, whoever asks (ListRefresher)
         res = await refresh({ all: true });
-        expect(await res.json()).toEqual({ refreshed: [a.id] });
-        expect(due).toEqual([b.id, a.id]);
-        // nothing new to queue: the refresher isn't woken
-        res = await refresh({ all: true });
-        expect(await res.json()).toEqual({ refreshed: [] });
-        expect(due).toEqual([b.id, a.id]);
+        expect(await res.json()).toEqual({ refreshed: [a.id, b.id] });
+        expect(due).toEqual([b.id, a.id, b.id]);
+        expect(lists.get(b.id)?.nextFetchAt).toBe(1000); // still first in line
         expect(
             logs.map((l) => [l.message, l.lists, l.all, l.moderator])
         ).toEqual([
             ['lists refresh requested', 1, false, mod.id],
-            ['lists refresh requested', 1, true, mod.id],
-            ['lists refresh requested', 0, true, mod.id]
+            ['lists refresh requested', 2, true, mod.id]
         ]);
+        // no approved lists asked for: the refresher isn't woken
+        due.length = 0;
+        res = await refresh({ ids: [999] });
+        expect(await res.json()).toEqual({ refreshed: [] });
+        expect(due).toEqual([]);
 
         for (const body of [
             {},

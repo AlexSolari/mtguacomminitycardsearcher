@@ -40,6 +40,9 @@ export type Split = {
     other: CardResult[];
     pricing: Set<CardResult>;
     min: number | null;
+    // The "best price" badge: the cheapest of `pricing`, only when it has two priced offers or more. A lone offer has
+    // nothing to beat; auctions, traders and the groups that don't set the price aren't competitors.
+    best: Set<CardResult>;
 };
 const splits = new WeakMap<SearchResult, Split>();
 export function splitMatches(r: SearchResult): Split {
@@ -61,6 +64,8 @@ export function splitMatches(r: SearchResult): Split {
     for (const group of [exact, auctions, art, other]) group.sort(byPrice);
     traders.sort(byUsdPrice);
     const pricing = exact.length > 0 ? exact : other.length > 0 ? other : art;
+    const min = minPrice(pricing);
+    const priced = pricing.filter((l) => l.price !== null);
 
     split = {
         exact,
@@ -69,7 +74,10 @@ export function splitMatches(r: SearchResult): Split {
         art,
         other,
         pricing: new Set(pricing),
-        min: minPrice(pricing)
+        min,
+        best: new Set(
+            priced.length > 1 ? priced.filter((l) => l.price === min) : []
+        )
     };
     splits.set(r, split);
     return split;

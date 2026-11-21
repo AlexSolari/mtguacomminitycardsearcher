@@ -6,7 +6,8 @@ import {
     LOGIN_COOKIE,
     readCookie,
     SESSION_COOKIE,
-    SESSION_MS
+    SESSION_MS,
+    SIGN_IN_BUCKETS
 } from '@/server/auth/auth-route';
 import type {
     TelegramIdentity,
@@ -16,6 +17,7 @@ import { codeChallenge, tokenHash } from '@/server/auth/tokens';
 import { openDatabase } from '@/server/db/database';
 import { ListStore } from '@/server/db/list-store';
 import { UserStore } from '@/server/db/user-store';
+import { RateLimiter } from '@/server/rate-limiter';
 import { captureLogs } from '../capture-logs';
 
 const logs = captureLogs();
@@ -54,6 +56,12 @@ const withCookies = (url: string, cookies: Record<string, string>) =>
                 .join('; ')
         }
     });
+// Telegram's redirect back, from one client (`clientKey`'s address) unless said otherwise
+const callback = (
+    auth: ReturnType<typeof authHandlers>,
+    req: Request,
+    client = '1.2.3.4'
+) => auth.callback(req, client);
 
 describe('auth routes', () => {
     let users: UserStore;
@@ -74,6 +82,21 @@ describe('auth routes', () => {
         };
     };
 
+    // A login, and the callback request Telegram's redirect back would make for it.
+    const loginRequest = async (auth: ReturnType<typeof authHandlers>) => {
+        const start = auth.login();
+        const login = cookieValue(start, LOGIN_COOKIE)!;
+        const state = new URL(start.headers.get('Location')!).searchParams.get(
+            'state'
+        )!;
+        return {
+            req: withCookies(
+                `/api/auth/callback?code=the-code&state=${state}`,
+                { [LOGIN_COOKIE]: login }
+            )
+        };
+    };
+
     // Runs a whole sign-in: login, then Telegram's redirect back with `code` (and the state, unless `state` says
     // otherwise). Returns the callback's response.
     const signIn = async (
@@ -89,7 +112,8 @@ describe('auth routes', () => {
             'state'
         )!;
         const back = state === null ? '' : `&state=${state ?? sent}`;
-        return auth.callback(
+        return callback(
+            auth,
             withCookies(`/api/auth/callback?code=${code}${back}`, {
                 [LOGIN_COOKIE]: login
             })
@@ -190,7 +214,8 @@ describe('auth routes', () => {
             { [LOGIN_COOKIE]: '.v' }
         ];
         for (const cookie of cookies) {
-            const res = await auth.callback(
+            const res = await callback(
+                auth,
                 withCookies('/api/auth/callback?code=c&state=s', cookie)
             );
             expect(res.headers.get('Location')).toBe('/lists?login=expired');
@@ -203,7 +228,8 @@ describe('auth routes', () => {
 
     test('no code (the user went back) is a cancelled sign-in', async () => {
         const { auth } = handlers();
-        const res = await auth.callback(
+        const res = await callback(
+            auth,
             withCookies('/api/auth/callback?error=access_denied', {})
         );
         expect(res.headers.get('Location')).toBe('/lists?login=cancelled');
@@ -301,12 +327,87 @@ describe('auth routes', () => {
         );
     });
 
+    test("past its limit, a client's sign-ins are turned away before reaching Telegram; others aren't", async () => {
+        const fake = fakeTelegram(() => john);
+        const auth = authHandlers(
+            users,
+            fake.telegram,
+            new Set(),
+            () => now,
+            new RateLimiter([{ capacity: 2, refillMs: 60_000 }], () => now)
+        );
+        // forged callbacks: any `a.b` cookie and any code get as far as the token exchange
+        const forged = (client = '6.6.6.6') =>
+            callback(
+                auth,
+                withCookies('/api/auth/callback?code=junk', {
+                    [LOGIN_COOKIE]: 'a.b'
+                }),
+                client
+            );
+        await forged();
+        await forged();
+        expect(fake.calls).toHaveLength(2);
+        logs.length = 0;
+        const refused = await forged();
+        expect(refused.headers.get('Location')).toBe('/lists?login=busy');
+        expect(setCookies(refused)).toEqual([
+            `${LOGIN_COOKIE}=; Path=/api/auth; Max-Age=0; HttpOnly; Secure; SameSite=Lax`
+        ]);
+        expect(fake.calls).toHaveLength(2);
+        // the address isn't logged
+        expect(logs).toEqual([
+            expect.objectContaining({
+                message: 'sign-in refused',
+                retryAfter: 30
+            })
+        ]);
+        expect(JSON.stringify(logs)).not.toContain('6.6.6.6');
+        // someone else signs in as usual
+        expect(
+            (
+                await callback(auth, (await loginRequest(auth)).req, '5.5.5.5')
+            ).headers.get('Location')
+        ).toBe('/lists');
+        // and the refused client can again once its bucket refills
+        now += 30_000;
+        await forged();
+        expect(fake.calls).toHaveLength(4);
+    });
+
+    test("callbacks that fail the free checks don't use up the client's sign-ins", async () => {
+        const fake = fakeTelegram(() => john);
+        const auth = authHandlers(
+            users,
+            fake.telegram,
+            new Set(),
+            () => now,
+            new RateLimiter([{ capacity: 1, refillMs: 60_000 }], () => now)
+        );
+        for (let i = 0; i < 5; i++)
+            await callback(auth, withCookies('/api/auth/callback?code=c', {}));
+        expect(fake.calls).toEqual([]);
+        const { req } = await loginRequest(auth);
+        expect((await callback(auth, req)).headers.get('Location')).toBe(
+            '/lists'
+        );
+    });
+
+    test('by default the limit is SIGN_IN_BUCKETS, per client', async () => {
+        const { auth, calls } = handlers();
+        const { capacity } = SIGN_IN_BUCKETS[0]!;
+        for (let i = 0; i <= capacity; i++)
+            await callback(auth, (await loginRequest(auth)).req);
+        expect(calls).toHaveLength(capacity);
+    });
+
     test('without a bot, sign-in is off: login is 503, me says so, a callback goes nowhere', async () => {
         const auth = authHandlers(users, null, new Set());
         expect(auth.login().status).toBe(503);
         expect(await me(auth)).toEqual({ user: null, loginEnabled: false });
         expect((await me(auth, 'unknown-token')).user).toBeNull();
-        const res = await auth.callback(
+        const res = await callback(
+            auth,
             withCookies('/api/auth/callback?code=c', {})
         );
         expect(res.headers.get('Location')).toBe('/lists?login=cancelled');

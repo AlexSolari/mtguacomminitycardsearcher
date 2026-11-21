@@ -63,6 +63,67 @@ describe('splitMatches', () => {
         );
         expect(split.min).toBe(40);
         expect([...split.pricing].map((l) => l.name)).toEqual(['Daze']);
+        // the only offer of the card itself: nothing to beat, so no badge
+        expect(split.best.size).toBe(0);
+    });
+
+    const lot = (price: number) =>
+        offer('Daze', price, {
+            auction: {
+                currentBid: null,
+                startingPrice: price,
+                buyNow: null,
+                endsAt: '2026-12-01T20:00:00.000Z',
+                bids: 0
+            }
+        });
+
+    test('the badge goes to the cheapest of two priced offers or more, ties included', () => {
+        const cheap = offer('Daze', 30);
+        const tie = offer('Daze — Nemesis', 30, { shop: 'gin' });
+        const split = splitMatches(
+            result('Daze', [offer('Daze', 50), tie, offer('Daze', null), cheap])
+        );
+        expect([...split.best]).toEqual([tie, cheap]);
+    });
+
+    test('a lone offer beside auctions, traders, unpriced or other groups gets no badge', () => {
+        const trader = offer('Daze', null, {
+            shop: 'traders',
+            usdPrice: 0.5,
+            seller: {
+                name: 'Ann',
+                username: 'ann',
+                list: 'https://manabox.app/decks/a',
+                listTitle: null,
+                updatedAt: 0,
+                printing: null
+            }
+        });
+        const split = splitMatches(
+            result('Daze', [
+                offer('Daze', 40),
+                lot(10),
+                lot(20),
+                trader,
+                offer('Daze', null),
+                offer('Daze — Art Series', 1, { artSeries: true }),
+                offer('School Daze', 5)
+            ])
+        );
+        expect(split.min).toBe(40);
+        expect(split.best.size).toBe(0);
+    });
+
+    test('fuzzy matches compete among themselves when they price the card', () => {
+        const a = offer('The Walls of Ba Sing Se', 100);
+        const split = splitMatches(
+            result('Ba Sing Se', [
+                offer('The Walls of Ba Sing Se', 150, { shop: 'gin' }),
+                a
+            ])
+        );
+        expect([...split.best]).toEqual([a]);
     });
 
     test('without exact matches, fuzzy matches price the card, then Art Series', () => {

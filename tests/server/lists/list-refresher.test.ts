@@ -340,6 +340,17 @@ describe('ListRefresher', () => {
         });
     });
 
+    test('a list asked for again while it is being read is read once (a moderator clicking twice)', async () => {
+        const id = approve(goldfish);
+        pages.set('1', () => {
+            lists.refreshNow([id], now); // it's due: refreshNow returns it again
+            void refresher.run([id]);
+            return { cards: [] };
+        });
+        await refresher.run([id]);
+        expect(read).toEqual(['1']);
+    });
+
     test("run(ids) leaves a banned user's lists unread", async () => {
         users.setBanned(alice.id, true);
         const id = approve(goldfish); // a moderator approves a banned user's list
