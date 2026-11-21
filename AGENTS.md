@@ -28,9 +28,9 @@ TypeScript isn't a dependency: don't use `bunx tsc`, which fetches an unrelated 
   A parser change that alters output fails its snapshot. If the change is intended, review the diff and run `bun test --update-snapshots`.
   When a shop redesigns, refresh the fixtures, fix the parser, then update the snapshots.
   Prettier ignores `tests/fixtures/` and `__snapshots__/`, so formatting never rewrites them.
-- **Fixtures hold no personal data:** `update-fixtures.ts` keeps only the fields the parsers read (via `pick`), dropping sellers, bidders, descriptions and cart reservations (PayToWin, MTGin, Magic Swamp, CartOn's product pages, Citadel, Mana Vault). Traders' lists keep only the list: MTGGoldfish's deck field, ManaBox's island cut down to the fields `parseManabox` reads, and Moxfield's deck cut down to its name, edit date and boards, each row to the fields `parseMoxfield` reads (no owner or authors). Keep it that way for any new source.
+- **Fixtures hold no personal data:** `update-fixtures.ts` keeps only the fields the parsers read (via `pick`), dropping sellers, bidders, descriptions and cart reservations (PayToWin, MTGin, Magic Swamp, Citadel, Mana Vault; CartOn's GraphQL query asks for no seller fields). Traders' lists keep only the list: MTGGoldfish's deck field, ManaBox's island cut down to the fields `parseManabox` reads, and Moxfield's deck cut down to its name, edit date and boards, each row to the fields `parseMoxfield` reads (no owner or authors). Keep it that way for any new source.
 - **Database tests** open `openDatabase(':memory:')`, a fresh migrated database per test; its migration logs a line, so tests that assert on logs clear them after opening it.
-  Nerdik's and MTGin's fixtures need `NERDIK_API_KEY` / `MTGIN_API_KEY` in `.env`; without a key that fixture is left as it is.
+  CartOn's, Nerdik's and MTGin's fixtures need `CARTON_API_KEY` / `NERDIK_API_KEY` / `MTGIN_API_KEY` in `.env`; without a key that fixture is left as it is.
 - **New code:** add tests for it at the mirrored path in `tests/`. For a new shop, add its page to `update-fixtures.ts` and a test file next to the parser's mirrored path (`tests/server/parsers/{api,scrapers}/<shop>.test.ts`, using `parser-fixtures.ts`).
 - **Server:** for an end-to-end check, start it on a spare port (`PORT=3917 bun src/index.ts`) and `curl -X POST localhost:3917/api/search -d '{"cards":["Sol Ring"]}'`.
   This hits the real shops, so keep it to a handful of requests.
@@ -71,7 +71,7 @@ TypeScript isn't a dependency: don't use `bunx tsc`, which fetches an unrelated 
   API searchers don't: an empty API response just means nothing is in stock.
   Pass `search()`'s `signal` to every client call (`{ signal }`), so abandoned searches leave the shop's queue.
   An optional follow-up request that falls back on failure goes through `warnFallback` in its `catch`, never a silent catch.
-  Prefer a page or API that lists every offer at once (Mana Vault's `/api/v1/prices`). Where a shop has none and its search shows only a printing's cheapest price (CartOn), fetch each printing's page through `expandCheapest`, which caps them at `MAX_PRODUCT_PAGES` per search; don't fetch product pages around it.
+  Prefer a page or API that lists every offer at once (Mana Vault's `/api/v1/prices`, CartOn's GraphQL) over fetching each printing's page.
 - **Wiring:** searchers are registered in `src/index.ts`, each shop's wrapped in `CachedCardSearcher`. `TraderListSearcher` is the exception (see Traders' lists).
   The `/api/search` handler lives in `src/server/search-route.ts` (input checks, per-client limits at each shop (`ShopLimits`), NDJSON streaming: a `SearchUpdate` line per card each time a shop finishes), so it's tested without starting a server.
   `/api/click` (`src/server/click-route.ts`) records which offer a user opened (the frontend sends it with `reportClick` in `src/lib/report-click.ts`) as an `offer click` span.
@@ -99,7 +99,7 @@ TypeScript isn't a dependency: don't use `bunx tsc`, which fetches an unrelated 
 
 - **Tracing:** `bun start` preloads `src/instrumentation.ts`, which starts OpenTelemetry only when `OTEL_EXPORTER_OTLP_ENDPOINT` (Railway) or `SENTRY_DSN` is set; otherwise the spans in the code (`tracer` in `src/server/tracing.ts`) are no-ops, so dev and tests are unaffected.
   Tests assert on spans with `tests/server/capture-spans.ts`.
-- **Secrets:** MTGin and Nerdik need `MTGIN_API_KEY` and `NERDIK_API_KEY` (Bun loads `.env`). Without one, that shop fails every search with an error rather than silently finding nothing.
+- **Secrets:** MTGin, CartOn and Nerdik need `MTGIN_API_KEY`, `CARTON_API_KEY` and `NERDIK_API_KEY` (Bun loads `.env`). Without one, that shop fails every search with an error rather than silently finding nothing.
   Traders' sign-in needs `TELEGRAM_CLIENT_ID` and `TELEGRAM_CLIENT_SECRET` (see Traders' lists); without them it's off and the rest of the site works.
   Moderators' notifications need `TELEGRAM_BOT_TOKEN`, the bot's API token (not the Login Widget's secret); without it they're off.
 
@@ -146,6 +146,11 @@ Traders sign in with Telegram, add their MTGGoldfish, ManaBox or Moxfield lists 
     - `POST /api/v1/prices` takes up to 50 names, and every 10 names count as one request. `ManavaultCardSearcher` sends batches of up to 50 and charges each `ceil(names / 10)`.
     - A 429 spends the rest of the window (`exhaust()`): the API has counted more than we have, e.g. another client on our IP.
     - A name the API rejects (under 2 letters) gets an `error` in its own answer rather than failing the batch; the searcher fails only that card.
+- **CartOn's GraphQL API allows 120 requests a minute per key**, shared by every user, and refuses any query scoring over 500 (`products`' and `offers`' `first` must also be 1–50).
+    - The client spaces requests 500 ms apart, which can't exceed 120 a minute; don't lower it.
+    - The score multiplies: each product's fields count `first` times, and inside a product's `offers(first: O)` everything, `nodes` and `pageInfo` included, counts O times more. The formula and today's page sizes are in `carton-card-searcher.ts`; recompute them before adding a field.
+    - A refused query comes back as a 200 with `errors`, not an HTTP error; `query()` turns it into a `ShopRequestError`.
+    - `search` matches anywhere in the name and has no exact-match option, so short names ("Opt") take a few pages; exact matching is done in our code. There's no product-by-id query: a printing's full offers are searched again by its name within its set (`expansionSlug`).
 - **Scryfall (name lookups) allows 2 requests a second on `/cards/named` and `/cards/collection`** ([rate limits](https://scryfall.com/docs/api/rate-limits)), shared by every user.
     - Most names never reach it: `CardIndex` (`src/server/card-index.ts`) looks them up first in `src/server/card-names.json`, built from Scryfall's oracle-cards bulk file. It answers only when exactly one card fits (exact name, the start of each word, a typo or two, or pieces of two or more words) and leaves the rest to the API: names in another language, ambiguous ones, and cards newer than the file. Refresh the file after each set release.
     - The index is the resolver's fourth argument; tests about the API leave it out.

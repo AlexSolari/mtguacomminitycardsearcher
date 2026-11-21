@@ -18,7 +18,7 @@ The UI is in Ukrainian.
 | Magic Swamp         | [magicswamp.com.ua](https://magicswamp.com.ua)   |
 | Citadel             | [citadel.kyiv.ua](https://citadel.kyiv.ua)       |
 
-MTGin, Mana Vault, Nerdik, PayToWin (auctions) and Magic Swamp are read from their APIs; the other shops (CartOn, Kartoteka, Citadel) don't offer one, so prices are scraped from their pages.
+MTGin, CartOn, Mana Vault, Nerdik, PayToWin (auctions) and Magic Swamp are read from their APIs; the other shops (Kartoteka, Citadel) don't offer one, so prices are scraped from their pages.
 MTGin's and Nerdik's APIs match card names exactly, so they never contribute fuzzy "other matches".
 A shop redesign can break its parser. If one shop stops returning results, that's the likely cause.
 
@@ -61,7 +61,7 @@ bun test       # offline test suite; parsers run against saved shop pages
 
 Set `PORT` to use another port, e.g. `PORT=4000 bun dev`.
 
-The MTGin and Nerdik APIs need keys: set `MTGIN_API_KEY` and `NERDIK_API_KEY`, e.g. in a `.env` file (Bun loads it; it's gitignored).
+The MTGin, CartOn and Nerdik APIs need keys: set `MTGIN_API_KEY`, `CARTON_API_KEY` and `NERDIK_API_KEY`, e.g. in a `.env` file (Bun loads it; it's gitignored).
 Without a key, that shop's searches fail with "… is not set" and the other shops still work.
 
 Traders' lists are stored in SQLite at `DB_PATH` (default `data/cardsearcher.db`, gitignored), created on first start.
@@ -144,8 +144,8 @@ src/
     logger.ts, tracing.ts   structured logs, spans
     searchers/              one per shop: which URLs to fetch; trader-list-searcher.ts reads traders' lists
     parsers/                one per shop: turns a response into CardResult[]
-      api/                  JSON APIs (MTGin, Nerdik, PayToWin, Magic Swamp, Mana Vault)
-      scrapers/             HTML search pages (Carton, Citadel, Kartoteka)
+      api/                  JSON APIs (MTGin, CartOn, Nerdik, PayToWin, Magic Swamp, Mana Vault)
+      scrapers/             HTML search pages (Citadel, Kartoteka)
     auth/                   Telegram sign-in (OpenID Connect) and sessions
     db/                     SQLite: users, sessions, lists, their cards, cached prices
     lists/                  traders' lists: links, parsers (MTGGoldfish, ManaBox, Moxfield), nightly refresh, Scryfall prices

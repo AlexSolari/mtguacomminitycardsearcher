@@ -1,0 +1,171 @@
+{
+  "data": {
+    "products": {
+      "pageInfo": {
+        "hasNextPage": false,
+        "endCursor": "NQ"
+      },
+      "nodes": [
+        {
+          "name": "Counterspell (MAR-9)",
+          "url": "https://carton.cards/magic-the-gathering/singles/marvel-universe-mar/counterspell-mar-9-en-v1",
+          "imageUrl": "https://storage.carton.cards/7dsqt1uzf9xvj19qzzg0kasgc3kk",
+          "expansion": {
+            "name": "Marvel Universe (MAR)",
+            "slug": "marvel-universe-mar"
+          },
+          "offers": {
+            "nodes": [
+              {
+                "amount": 1,
+                "price": 480,
+                "attributes": [
+                  {
+                    "key": "language",
+                    "value": "Англійська"
+                  },
+                  {
+                    "key": "condition",
+                    "value": "Ідеальний"
+                  },
+                  {
+                    "key": "version",
+                    "value": "Non-foil"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "Counterspell (DMR-45)",
+          "url": "https://carton.cards/magic-the-gathering/singles/dominaria-remastered-dmr/counterspell-dmr-45-en-v1",
+          "imageUrl": "https://storage.carton.cards/axvi3owkvdmm5xhmnv5ia2ygzhqe",
+          "expansion": {
+            "name": "Dominaria Remastered (DMR)",
+            "slug": "dominaria-remastered-dmr"
+          },
+          "offers": {
+            "nodes": [
+              {
+                "amount": 9,
+                "price": 100,
+                "attributes": [
+                  {
+                    "key": "language",
+                    "value": "Англійська"
+                  },
+                  {
+                    "key": "condition",
+                    "value": "Ідеальний"
+                  },
+                  {
+                    "key": "version",
+                    "value": "Non-foil"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "Counterspell (MH2-267)",
+          "url": "https://carton.cards/magic-the-gathering/singles/modern-horizons-2-mh2/counterspell-mh2-267-en-v1",
+          "imageUrl": "https://storage.carton.cards/n7tak122gegf3n9vlg8li6wl9ms2",
+          "expansion": {
+            "name": "Modern Horizons 2 (MH2)",
+            "slug": "modern-horizons-2-mh2"
+          },
+          "offers": {
+            "nodes": [
+              {
+                "amount": 3,
+                "price": 133,
+                "attributes": [
+                  {
+                    "key": "language",
+                    "value": "Англійська"
+                  },
+                  {
+                    "key": "condition",
+                    "value": "Відмінний"
+                  },
+                  {
+                    "key": "version",
+                    "value": "Foil"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "Counterspell (STA-15)",
+          "url": "https://carton.cards/magic-the-gathering/singles/strixhaven-mystical-archive-sta/counterspell-sta-15-en-v1",
+          "imageUrl": "https://storage.carton.cards/wowu89rh7hebrw9607snnmbhg158",
+          "expansion": {
+            "name": "Strixhaven Mystical Archive (STA)",
+            "slug": "strixhaven-mystical-archive-sta"
+          },
+          "offers": {
+            "nodes": [
+              {
+                "amount": 1,
+                "price": 270,
+                "attributes": [
+                  {
+                    "key": "language",
+                    "value": "Інша"
+                  },
+                  {
+                    "key": "condition",
+                    "value": "Ідеальний"
+                  },
+                  {
+                    "key": "version",
+                    "value": "Non-foil"
+                  },
+                  {
+                    "key": "comment",
+                    "value": "ru lang"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "Counterspell (FDC-61)",
+          "url": "https://carton.cards/magic-the-gathering/singles/foundations-commander-fdc/counterspell-fdc-61-en-v1",
+          "imageUrl": "https://storage.carton.cards/q992bd4uyll4c1b7lgq9v9ghfbap",
+          "expansion": {
+            "name": "Foundations Commander (FDC)",
+            "slug": "foundations-commander-fdc"
+          },
+          "offers": {
+            "nodes": [
+              {
+                "amount": 1,
+                "price": 146,
+                "attributes": [
+                  {
+                    "key": "language",
+                    "value": "Англійська"
+                  },
+                  {
+                    "key": "condition",
+                    "value": "Ідеальний"
+                  },
+                  {
+                    "key": "version",
+                    "value": "Non-foil"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,14 +1,14 @@
 // Re-downloads the shop pages the parser tests run against (tests/fixtures/).
 // Run it when a shop changes its markup: `bun scripts/update-fixtures.ts`, then `bun test` shows what broke,
 // and `bun test --update-snapshots` accepts the new output once the parsers are fixed.
-// About 11 requests, through ShopClient so they're spaced like the app's. Nerdik and MTGin need their API keys
-// (NERDIK_API_KEY, MTGIN_API_KEY in .env); without one, that shop's fixture is left as it is.
+// About 10 requests, through ShopClient so they're spaced like the app's. CartOn, Nerdik and MTGin need their API keys
+// (CARTON_API_KEY, NERDIK_API_KEY, MTGIN_API_KEY in .env); without one, that shop's fixture is left as it is.
 import { mkdir } from 'node:fs/promises';
 import { LIST_SOURCES } from '../src/server/lists/list-link';
 import { manaboxProps } from '../src/server/lists/parsers/manabox';
 import { DECK_FIELD } from '../src/server/lists/parsers/mtggoldfish';
-import { decodeEntities } from '../src/server/parsers/helpers';
 import { jsonEnd } from '../src/server/parsers/scrapers/citadel';
+import { SEARCH_QUERY } from '../src/server/searchers/carton-card-searcher';
 import { manavaultSource } from '../src/server/searchers/manavault-card-searcher';
 import { ShopClient } from '../src/server/shop-client';
 
@@ -27,42 +27,28 @@ const pick = (o: any, keys: string[]) =>
 // Counterspell has many printings in most shops, so it exercises the multi-printing paths.
 const CARD = 'Counterspell';
 
-const carton = new ShopClient('https://carton.cards');
-const cartonSearch = await carton.fetchHtml(
-    carton.url('/search', {
-        q: CARD,
-        universe: 'magic-the-gathering'
-    })
-);
-await save('carton-search.html', cartonSearch);
-
-// CartOn's product pages name the sellers (also outside the page's JSON), so the fixture is rebuilt from the
-// fields parseCartonProduct reads: the product, and each offer without seller details.
-const cartonProps = (html: string) =>
-    JSON.parse(decodeEntities(html.match(/data-page="([^"]*)"/)?.[1] ?? 'null'))
-        ?.props;
-const cartonProduct = cartonProps(cartonSearch)?.products?.[0];
-if (!cartonProduct) throw new Error('CartOn: no products in the search page');
-const productProps = cartonProps(
-    await carton.fetchHtml(carton.url(cartonProduct.url_path))
-);
-const productJson = JSON.stringify({
-    component: 'Products/Show',
-    props: {
-        product: pick(productProps.product, ['name', 'image', 'property_set']),
-        offers: (productProps.offers ?? []).map((o: any) =>
-            pick(o, ['id', 'amount', 'price', 'status', 'property_set'])
+// CartOn's API answers only the fields the query asks for, and SEARCH_QUERY asks for no seller details.
+const cartonKey = process.env.CARTON_API_KEY;
+if (cartonKey) {
+    const carton = new ShopClient('https://carton.cards');
+    await save(
+        'carton-search.json',
+        json(
+            await carton.fetchJson(carton.url('/graphql'), {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${cartonKey}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    query: SEARCH_QUERY,
+                    variables: { search: CARD, after: null }
+                })
+            })
         )
-    }
-});
-await save(
-    'carton-product.html',
-    `<div id="app" data-page="${productJson
-        .replace(/&/g, '&amp;')
-        .replace(/"/g, '&quot;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')}"></div>\n`
-);
+    );
+} else
+    console.warn('CARTON_API_KEY is not set, carton-search.json not updated');
 
 // MTGin's API lists other sellers' offers too, so keep only the fields parseGin reads (no seller names).
 const GIN_OFFER_FIELDS = [

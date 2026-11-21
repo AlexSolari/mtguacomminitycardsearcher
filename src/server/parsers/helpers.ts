@@ -42,7 +42,19 @@ const LANGUAGE_CODES: Record<string, string> = {
     chinese: 'ZH',
     'simplified chinese': 'ZHS',
     'traditional chinese': 'ZHT',
-    ukrainian: 'UK'
+    ukrainian: 'UK',
+    // CartOn's, in Ukrainian
+    англійська: 'EN',
+    російська: 'RU',
+    японська: 'JA',
+    німецька: 'DE',
+    французька: 'FR',
+    італійська: 'IT',
+    іспанська: 'ES',
+    португальська: 'PT',
+    корейська: 'KO',
+    китайська: 'ZH',
+    українська: 'UK'
 };
 export const languageCode = (s: string | null | undefined) => {
     if (!s) return undefined;

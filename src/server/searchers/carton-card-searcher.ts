@@ -1,71 +1,162 @@
-import {
-    parseCarton,
-    parseCartonNextPage,
-    parseCartonProduct
-} from '../parsers/scrapers/carton';
+import { parseCarton, type CartonProduct } from '../parsers/api/carton';
 import { isExactMatch } from '../../matching';
 import type { CardResult } from '../../search-result';
-import {
-    expandCheapest,
-    warnFallback,
-    warnIfEmpty,
-    type CardSearcher
-} from '../card-searcher';
-import { ShopClient } from '../shop-client';
+import { warnFallback, type CardSearcher } from '../card-searcher';
+import { ShopClient, ShopRequestError } from '../shop-client';
 
-// CartOn's search matches anywhere in the name ("Opt" finds Thopters and Optics), newest first, 24 a page, so an
-// older printing of a short name can sit past the first page. Up to this many pages are read.
-export const MAX_SEARCH_PAGES = 3;
+// CartOn's GraphQL API scores each query and refuses any over 500. Every field counts 1; in `products(first: P)`
+// each product's fields count P times, and inside a product's `offers(first: O)` everything, `nodes` included,
+// counts O times more. So a search page costs 5 + P × (7 + 6 × O): 13 products × 5 offers → 486.
+// Most printings have one or two offers, so a page holds many products with a few offers each.
+export const PRODUCTS_PER_PAGE = 13;
+export const OFFERS_PER_PRODUCT = 5;
 
-// CartOn's search lists one product per printing in stock, with only its cheapest price. For exact matches, the
-// product page is fetched too: its offers give each copy's stock, finish, language and condition. Fuzzy "other
-// matches" keep their search tile (see expandCheapest for the cap and fallbacks).
+// The search matches anywhere in the name ("Opt" finds 22 products, Thopters and Optimistic Scavengers among them),
+// in no useful order, so a short name's printings can sit a few pages in. Up to this many pages are read.
+export const MAX_SEARCH_PAGES = 4;
+
+// An exact printing that fills its OFFERS_PER_PRODUCT may have more, so its offers are fetched again, up to
+// ALL_OFFERS (2 + 2 × (2 + 6 × 40) = 486), for at most MAX_OFFER_PAGES printings per search.
+export const ALL_OFFERS = 40;
+export const MAX_OFFER_PAGES = 5;
+
+const MAGIC_SINGLES =
+    'universeSlug: "magic-the-gathering", productTypeSlug: "singles"';
+const OFFER_FIELDS = 'amount price attributes { key value }';
+
+export const SEARCH_QUERY = `query ($search: String!, $after: String) {
+    products(search: $search, ${MAGIC_SINGLES}, first: ${PRODUCTS_PER_PAGE}, after: $after) {
+        pageInfo { hasNextPage endCursor }
+        nodes {
+            name url imageUrl expansion { name slug }
+            offers(first: ${OFFERS_PER_PRODUCT}) { nodes { ${OFFER_FIELDS} } }
+        }
+    }
+}`;
+
+// One printing's offers: there's no query for a product by id, so it's searched by its own name within its set.
+const OFFERS_QUERY = `query ($search: String!, $expansion: String!) {
+    products(search: $search, ${MAGIC_SINGLES}, expansionSlug: $expansion, first: 2) {
+        nodes { url offers(first: ${ALL_OFFERS}) { nodes { ${OFFER_FIELDS} } } }
+    }
+}`;
+
+type Products = {
+    pageInfo?: { hasNextPage?: boolean; endCursor?: string | null };
+    nodes?: (CartonProduct | null)[];
+};
+
+const nodes = (found: Products | undefined) =>
+    (found?.nodes ?? []).filter((p): p is CartonProduct => p != null);
+
+// CartOn's partner API (POST /graphql), with a key (CARTON_API_KEY, sent as a bearer token). Each search lists the
+// printings in stock with their offers, so no product pages are fetched. The key allows 120 requests a minute,
+// shared by every user: the client spaces requests 500 ms apart, which can't exceed it.
 export class CartonCardSearcher implements CardSearcher {
     readonly shop = 'carton';
 
     constructor(
-        private readonly client = new ShopClient('https://carton.cards')
+        private readonly client = new ShopClient('https://carton.cards', {
+            intervalMs: 500
+        }),
+        private readonly apiKey = process.env.CARTON_API_KEY
     ) {}
 
-    // The search is limited to Magic: other games' products would only push Magic's to later pages.
-    private searchUrl(card: string, page: number) {
-        return this.client.url('/search', {
-            q: card,
-            universe: 'magic-the-gathering',
-            ...(page > 1 ? { page: String(page) } : {})
-        });
-    }
-
     async search(card: string, signal?: AbortSignal): Promise<CardResult[]> {
-        const firstUrl = this.searchUrl(card, 1);
-        let html = await this.client.fetchHtml(firstUrl, { signal });
-        const found = warnIfEmpty(
-            this.shop,
-            firstUrl,
-            parseCarton(html, this.client.baseUrl)
-        );
-        for (let pages = 1; pages < MAX_SEARCH_PAGES; pages++) {
-            const next = parseCartonNextPage(html);
-            if (!next) break;
-            const url = this.searchUrl(card, next);
+        if (!this.apiKey) throw new Error('CARTON_API_KEY is not set');
+        const products: CartonProduct[] = [];
+        let after: string | null = null;
+        for (let page = 0; page < MAX_SEARCH_PAGES; page++) {
+            let found: Products | undefined;
             try {
-                html = await this.client.fetchHtml(url, { signal });
+                found = await this.query(
+                    SEARCH_QUERY,
+                    { search: card, after },
+                    signal
+                );
             } catch (err) {
-                warnFallback(this.shop, url, err, signal);
+                if (page === 0) throw err;
+                warnFallback(
+                    this.shop,
+                    this.client.url('/graphql'),
+                    err,
+                    signal
+                );
                 break;
             }
-            found.push(...parseCarton(html, this.client.baseUrl));
+            products.push(...nodes(found));
+            const next = found?.pageInfo;
+            if (!next?.hasNextPage || !next.endCursor) break;
+            after = next.endCursor;
         }
-        return expandCheapest(
-            this.shop,
-            found,
-            (tile) => isExactMatch(tile.name, card),
-            async (tile) =>
-                parseCartonProduct(
-                    await this.client.fetchHtml(tile.url, { signal }),
-                    tile.url
-                ),
-            signal
+        await this.fetchAllOffers(card, products, signal);
+        return parseCarton(products);
+    }
+
+    // Swaps the first page of offers for all of them on the exact printings that filled it. Fuzzy "other matches"
+    // keep their first page. A failed request keeps it too.
+    private async fetchAllOffers(
+        card: string,
+        products: CartonProduct[],
+        signal?: AbortSignal
+    ) {
+        const full = products
+            .filter(
+                (p) =>
+                    p.name &&
+                    p.expansion?.slug &&
+                    isExactMatch(p.name, card) &&
+                    (p.offers?.nodes?.length ?? 0) >= OFFERS_PER_PRODUCT
+            )
+            .slice(0, MAX_OFFER_PAGES);
+        await Promise.all(
+            full.map(async (product) => {
+                try {
+                    const found = await this.query(
+                        OFFERS_QUERY,
+                        {
+                            search: product.name,
+                            expansion: product.expansion!.slug
+                        },
+                        signal
+                    );
+                    const same = nodes(found).find(
+                        (p) => p.url === product.url
+                    );
+                    if (same?.offers?.nodes?.length)
+                        product.offers = same.offers;
+                } catch (err) {
+                    warnFallback(this.shop, product.url!, err, signal);
+                }
+            })
         );
+    }
+
+    private async query(
+        query: string,
+        variables: Record<string, unknown>,
+        signal?: AbortSignal
+    ): Promise<Products | undefined> {
+        const url = this.client.url('/graphql');
+        const json = await this.client.fetchJson<{
+            data?: { products?: Products } | null;
+            errors?: unknown[];
+        }>(url, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${this.apiKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ query, variables }),
+            signal
+        });
+        // GraphQL answers a refused query (too complex, a bad cursor) with a 200 and `errors`
+        if (json?.errors?.length)
+            throw new ShopRequestError('API error', {
+                url,
+                method: 'POST',
+                body: JSON.stringify(json.errors).slice(0, 500)
+            });
+        return json?.data?.products;
     }
 }

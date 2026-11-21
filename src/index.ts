@@ -128,7 +128,7 @@ const lists = listsHandlers(listStore, users, auth, {
 const server = serve({
     // Bun drops a connection after 10 s without a byte (the default), and a search stays quiet while its slowest
     // shop works: up to 30 s in the shop's queue plus a 15 s timeout per request, and some searches make a few in
-    // a row (CartOn's product pages). The shop timeouts are what bound a search; this only mustn't cut in first.
+    // a row (CartOn's next pages and offer lists). The shop timeouts are what bound a search; this only mustn't cut in first.
     idleTimeout: 120,
 
     routes: {

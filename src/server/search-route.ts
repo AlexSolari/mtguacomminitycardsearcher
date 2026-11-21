@@ -48,7 +48,7 @@ const URGENT_MAX = 2;
 
 // How many cards one client may have at one shop at once, across all its requests; the rest wait their turn.
 // A card's shops don't wait on each other: a client's list goes through each shop at that shop's own pace, so a slow
-// shop (Kartoteka, CartOn's product pages) doesn't hold back the others. The shop queues are shared by every user,
+// shop (Kartoteka) doesn't hold back the others. The shop queues are shared by every user,
 // so a client's long list takes turns with everyone else's cards instead of filling them.
 // Batched shops (see CardSearcher) get a much higher cap: the more of a list they get at once, the fewer requests.
 export type ShopLimits = { shops: InFlightLimiter; batched: InFlightLimiter };
