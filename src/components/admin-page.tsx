@@ -1,26 +1,25 @@
 import { useEffect, useState } from 'react';
-import { Ban, Check, List, RefreshCw, Search, Undo2, X } from 'lucide-react';
-import type { ListStatus, ModeratedList, ModeratedSeller } from '@/account';
-import { formatDate, ListName, ListStatusLine } from '@/components/list-parts';
+import { RefreshCw, Search } from 'lucide-react';
+import type { ListStatus } from '@/account';
+import { ModeratedListItem, type Act } from '@/components/moderated-list-item';
 import {
     Loading,
     Notice,
     PageLayout,
     SERVER_ERROR
 } from '@/components/page-layout';
+import { SellerItem } from '@/components/seller-item';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAccount } from '@/hooks/use-account';
+import { useLoader } from '@/hooks/use-loader';
 import { LISTS, plural } from '@/i18n';
-import { cn } from '@/lib/utils';
 import {
     ApiError,
     fetchQueue,
     fetchSellers,
     refreshLists,
-    reviewList,
-    searchLists,
-    setBanned
+    searchLists
 } from '@/lib/account-api';
 
 // The server's MAX_SEARCH_RESULTS: a search that fills it may have more.
@@ -75,7 +74,6 @@ export function AdminPage() {
 
 function Moderation() {
     const [tab, setTab] = useState<Tab>('pending');
-    const [lists, setLists] = useState<ModeratedList[] | null>();
     const [error, setError] = useState<string | null>(null);
     const [done, setDone] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
@@ -94,27 +92,21 @@ function Moderation() {
         return () => clearTimeout(timer);
     }, [text]);
 
+    // the sellers' tab loads its own (Sellers)
+    const lists = useLoader(
+        tab === 'sellers'
+            ? null
+            : () => (query ? searchLists(query) : fetchQueue(tab)),
+        [tab, query, reloads],
+        fail
+    );
+    // a new load: an earlier one's error (or a failed action's) no longer applies, nor do the ticks
     useEffect(() => {
-        // a new load: an earlier one's error (or a failed action's) no longer applies
         setError(null);
-        if (tab === 'sellers') return;
-        let live = true;
-        setLists(undefined);
         setSelected(new Set());
-        (query ? searchLists(query) : fetchQueue(tab))
-            .then((l) => live && setLists(l))
-            .catch((err) => {
-                if (!live) return;
-                setLists(null);
-                fail(err);
-            });
-        return () => {
-            live = false;
-        };
     }, [tab, query, reloads]);
 
-    // Runs a moderation action, then reloads the tab. An action may say what it did.
-    const act = async (action: () => Promise<string | void>) => {
+    const act: Act = async (action) => {
         setBusy(true);
         setError(null);
         setDone(null);
@@ -235,83 +227,18 @@ function Moderation() {
                         lists && (
                             <ul className='grid gap-2'>
                                 {lists.map((list) => (
-                                    <li
+                                    <ModeratedListItem
                                         key={list.id}
-                                        className='grid gap-3 rounded-lg border bg-card px-4 py-3'
-                                    >
-                                        <div className='flex min-w-0 items-start gap-3'>
-                                            {list.status === 'approved' && (
-                                                <input
-                                                    type='checkbox'
-                                                    aria-label='Вибрати для оновлення'
-                                                    checked={selected.has(
-                                                        list.id
-                                                    )}
-                                                    onChange={() =>
-                                                        setSelected((s) =>
-                                                            toggle(s, list.id)
-                                                        )
-                                                    }
-                                                    className='mt-1 size-4 shrink-0 accent-primary'
-                                                />
-                                            )}
-                                            <div className='grid min-w-0 gap-0.5'>
-                                                <ListName list={list} />
-                                                <ListStatusLine list={list} />
-                                                <Owner list={list} />
-                                            </div>
-                                        </div>
-                                        <div className='flex flex-wrap gap-2'>
-                                            {list.status !== 'approved' && (
-                                                <Button
-                                                    size='sm'
-                                                    disabled={busy}
-                                                    onClick={() =>
-                                                        act(() =>
-                                                            reviewList(
-                                                                list.id,
-                                                                'approved'
-                                                            )
-                                                        )
-                                                    }
-                                                >
-                                                    <Check />
-                                                    Схвалити
-                                                </Button>
-                                            )}
-                                            {list.status !== 'rejected' && (
-                                                <Button
-                                                    size='sm'
-                                                    variant='outline'
-                                                    disabled={busy}
-                                                    onClick={() =>
-                                                        act(() =>
-                                                            reviewList(
-                                                                list.id,
-                                                                'rejected'
-                                                            )
-                                                        )
-                                                    }
-                                                >
-                                                    <X />
-                                                    Відхилити
-                                                </Button>
-                                            )}
-                                            <BanButton
-                                                banned={list.owner.banned}
-                                                username={list.owner.username}
-                                                disabled={busy}
-                                                onToggle={(banned) =>
-                                                    act(() =>
-                                                        setBanned(
-                                                            list.owner.id,
-                                                            banned
-                                                        )
-                                                    )
-                                                }
-                                            />
-                                        </div>
-                                    </li>
+                                        list={list}
+                                        selected={selected.has(list.id)}
+                                        onSelect={() =>
+                                            setSelected((s) =>
+                                                toggle(s, list.id)
+                                            )
+                                        }
+                                        busy={busy}
+                                        act={act}
+                                    />
                                 ))}
                             </ul>
                         )
@@ -322,8 +249,7 @@ function Moderation() {
     );
 }
 
-// The "Продавці" tab: every seller (or those the search finds), most recently signed in first, with their lists'
-// states, exchange rate and dates; "Показати списки" opens their lists.
+// The "Продавці" tab: every seller (or those the search finds), most recently signed in first.
 function Sellers({
     query,
     busy,
@@ -334,22 +260,14 @@ function Sellers({
     query: string;
     busy: boolean;
     reloads: number;
-    act: (action: () => Promise<string | void>) => void;
+    act: Act;
     onShowLists: (username: string) => void;
 }) {
-    const [sellers, setSellers] = useState<ModeratedSeller[] | null>();
-    useEffect(() => {
-        let live = true;
-        setSellers(undefined);
-        fetchSellers(query)
-            .then((s) => live && setSellers(s))
-            .catch((err) => {
-                if (live && !reloadIfSignedOut(err)) setSellers(null);
-            });
-        return () => {
-            live = false;
-        };
-    }, [query, reloads]);
+    const sellers = useLoader(
+        () => fetchSellers(query),
+        [query, reloads],
+        reloadIfSignedOut
+    );
 
     if (sellers === undefined) return <Loading />;
     if (sellers === null) return <Notice tone='error'>{SERVER_ERROR}</Notice>;
@@ -368,108 +286,25 @@ function Sellers({
             )}
             <ul className='grid gap-2'>
                 {sellers.map((seller) => (
-                    <li
+                    <SellerItem
                         key={seller.id}
-                        className='grid gap-3 rounded-lg border bg-card px-4 py-3'
-                    >
-                        <div className='grid min-w-0 gap-0.5'>
-                            <p className='min-w-0 font-medium'>
-                                {seller.displayName}{' '}
-                                <a
-                                    href={`https://t.me/${seller.username}`}
-                                    target='_blank'
-                                    rel='noopener noreferrer'
-                                    className='font-normal text-primary hover:underline'
-                                >
-                                    @{seller.username}
-                                </a>
-                                {seller.admin && (
-                                    <span className='font-normal text-muted-foreground'>
-                                        {' '}
-                                        · модератор
-                                    </span>
-                                )}
-                                {seller.banned && (
-                                    <span className='font-normal text-destructive'>
-                                        {' '}
-                                        · заблоковано
-                                    </span>
-                                )}
-                            </p>
-                            <SellerLists seller={seller} />
-                            <p className='text-sm text-muted-foreground'>
-                                {seller.usdRate === null
-                                    ? 'курс не вказано'
-                                    : `курс ${seller.usdRate.toLocaleString('uk-UA')} ₴ за $1`}
-                                {' · з нами з '}
-                                {formatDate(seller.createdAt)}
-                                {' · останній вхід '}
-                                {formatDate(seller.lastLoginAt)}
-                            </p>
-                        </div>
-                        <div className='flex flex-wrap gap-2'>
-                            <Button
-                                size='sm'
-                                variant='outline'
-                                onClick={() => onShowLists(seller.username)}
-                            >
-                                <List />
-                                Показати списки
-                            </Button>
-                            {!seller.admin && (
-                                <BanButton
-                                    banned={seller.banned}
-                                    username={seller.username}
-                                    disabled={busy}
-                                    onToggle={(banned) =>
-                                        act(() => setBanned(seller.id, banned))
-                                    }
-                                />
-                            )}
-                        </div>
-                    </li>
+                        seller={seller}
+                        busy={busy}
+                        act={act}
+                        onShowLists={() => onShowLists(seller.username)}
+                    />
                 ))}
             </ul>
         </>
     );
 }
 
-// "2 схвалені · 1 на перевірці", leaving out states with none; "списків немає" without any.
-function SellerLists({ seller }: { seller: ModeratedSeller }) {
-    const { pending, approved, rejected } = seller.lists;
-    const parts = [
-        approved > 0 && {
-            text: `схвалено ${approved}`,
-            className: 'text-emerald-700 dark:text-emerald-400'
-        },
-        pending > 0 && {
-            text: `на перевірці ${pending}`,
-            className: 'text-amber-700 dark:text-amber-400'
-        },
-        rejected > 0 && {
-            text: `відхилено ${rejected}`,
-            className: 'text-destructive'
-        }
-    ].filter((p) => p !== false);
-    return (
-        <p className='text-sm text-muted-foreground'>
-            {parts.length === 0
-                ? 'списків немає'
-                : parts.map((p, i) => (
-                      <span key={p.text}>
-                          {i > 0 && ' · '}
-                          <span className={p.className}>{p.text}</span>
-                      </span>
-                  ))}
-        </p>
-    );
-}
-
 // The lists are read in the background, one every few seconds per source, so the tab shows the new reads only later.
+// None queued: the lists asked for aren't approved, or their seller is banned (ListStore.refreshNow).
 async function refresh(ids: number[] | 'all') {
     const { refreshed } = await refreshLists(ids);
     return refreshed.length === 0
-        ? 'Ці списки вже чекають на оновлення.'
+        ? 'Немає списків, які можна оновити: їх не схвалено або продавця заблоковано.'
         : `Поставлено в чергу на оновлення: ${plural(refreshed.length, LISTS)}. Нові дані з’являться тут за кілька хвилин.`;
 }
 
@@ -478,76 +313,3 @@ const toggle = (set: ReadonlySet<number>, id: number) => {
     if (!next.delete(id)) next.add(id);
     return next;
 };
-
-function Owner({ list }: { list: ModeratedList }) {
-    const { owner } = list;
-    return (
-        <p className='text-sm text-muted-foreground'>
-            {owner.displayName}{' '}
-            <a
-                href={`https://t.me/${owner.username}`}
-                target='_blank'
-                rel='noopener noreferrer'
-                className='text-primary hover:underline'
-            >
-                @{owner.username}
-            </a>
-            {owner.banned && (
-                <span className='text-destructive'> · заблоковано</span>
-            )}
-            {' · додано '}
-            {formatDate(list.createdAt)}
-            {' · '}
-            <RateNote list={list} />
-        </p>
-    );
-}
-
-// The exchange rate the list's prices show at in search, and whose it is. Sellers change it without review.
-function RateNote({ list }: { list: ModeratedList }) {
-    const rate = list.usdRate ?? list.owner.usdRate;
-    if (rate === null) return <>курс не вказано, ціни в доларах</>;
-    return (
-        <>
-            курс{' '}
-            <span className='font-medium text-foreground tabular-nums'>
-                {rate.toLocaleString('uk-UA')} ₴ за $1
-            </span>{' '}
-            ({list.usdRate === null ? 'загальний' : 'для цього списку'})
-        </>
-    );
-}
-
-// A ban takes all of the trader's lists out of search and signs them out, so it asks first.
-function BanButton({
-    banned,
-    username,
-    disabled,
-    onToggle
-}: {
-    banned: boolean;
-    username: string;
-    disabled: boolean;
-    onToggle: (banned: boolean) => void;
-}) {
-    return (
-        <Button
-            size='sm'
-            variant='ghost'
-            disabled={disabled}
-            className={cn(!banned && 'text-destructive hover:text-destructive')}
-            onClick={() => {
-                if (
-                    banned ||
-                    confirm(
-                        `Заблокувати @${username}? Усі списки цього продавця зникнуть із пошуку, а вхід на сайт буде закрито.`
-                    )
-                )
-                    onToggle(!banned);
-            }}
-        >
-            {banned ? <Undo2 /> : <Ban />}
-            {banned ? 'Розблокувати' : 'Заблокувати'}
-        </Button>
-    );
-}

@@ -1,5 +1,12 @@
 import type { CardResult } from '../../../search-result';
-import { abs, languageCode, toPrice } from '../helpers';
+import {
+    abs,
+    capitalize,
+    isArtSeriesSet,
+    languageCode,
+    toPrice,
+    withEdition
+} from '../helpers';
 
 // magicswamp.com.ua/api/listings/grouped/cards?game=mtg&search=… — a marketplace of private sellers. One entry per
 // printing, with every seller's offer for it:
@@ -55,21 +62,20 @@ export function parseMagicswamp(
             (c.sellers ?? [])
                 .filter((o) => o?.listing_id && o.quantity > 0)
                 .map((o) => {
-                    // "Boltwave — Foundations, Etched": the edition goes after " — ", where isExactMatch cuts.
                     // Plain foil is the `foil` badge; special finishes (etched, halo, surge…) are named.
                     const finish =
                         o.foil_type && !['none', 'foil'].includes(o.foil_type)
-                            ? o.foil_type[0]!.toUpperCase() +
-                              o.foil_type.slice(1)
+                            ? capitalize(o.foil_type)
                             : null;
-                    const edition = [c.set_name, finish]
-                        .filter(Boolean)
-                        .join(', ');
                     return {
                         shop: 'magicswamp' as const,
-                        name: edition
-                            ? `${c.card_name} — ${edition}`
-                            : c.card_name,
+                        // "Boltwave — Foundations, Etched"
+                        name: withEdition(
+                            c.card_name,
+                            c.set_name,
+                            null,
+                            finish
+                        ),
                         url: abs(base, `/mtg/listing/${o.listing_id}`)!,
                         image: abs(base, c.card_image_url ?? undefined),
                         // unknown when not in hryvnias
@@ -77,7 +83,7 @@ export function parseMagicswamp(
                             (o.currency ?? 'UAH') === 'UAH'
                                 ? toPrice(o.price)
                                 : null,
-                        artSeries: /art series/i.test(c.set_name ?? ''),
+                        artSeries: isArtSeriesSet(c.set_name),
                         stock: o.quantity,
                         foil: o.is_foil,
                         language: languageCode(o.language),

@@ -7,8 +7,10 @@ import type { CardResult, OfferGroup } from '@/search-result';
 import {
     AuctionMeta,
     Badge,
+    ConditionBadge,
     discountOf,
-    FOIL_BADGE,
+    FoilBadge,
+    LanguageBadge,
     PriceBlock,
     SellerBadge,
     SellerDetails
@@ -118,31 +120,17 @@ const ResultRow = memo(function ResultRow({
                             Аукціон
                         </Badge>
                     )}
-                    {link.foil && (
-                        <Badge className={cn(FOIL_BADGE, 'shadow-none')}>
-                            FOIL
-                        </Badge>
-                    )}
+                    {link.foil && <FoilBadge />}
                     {discount !== null && (
                         <Badge className='bg-rose-600 text-white shadow-none'>
                             −{discount}%
                         </Badge>
                     )}
                     {link.language && (
-                        <Badge
-                            className='border border-border bg-transparent font-mono text-foreground shadow-none'
-                            title='Мова'
-                        >
-                            {link.language}
-                        </Badge>
+                        <LanguageBadge language={link.language} />
                     )}
                     {link.condition && (
-                        <Badge
-                            className='bg-sky-600/90 text-white shadow-none'
-                            title='Стан'
-                        >
-                            {link.condition}
-                        </Badge>
+                        <ConditionBadge condition={link.condition} />
                     )}
                 </div>
             </td>

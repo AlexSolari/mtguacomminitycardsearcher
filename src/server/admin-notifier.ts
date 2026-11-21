@@ -2,6 +2,7 @@ import { LISTS, plural } from '../i18n';
 import type { TraderList } from './db/list-store';
 import type { User } from './db/user-store';
 import { LIST_SOURCES } from './lists/list-link';
+import { kyivHour } from './kyiv-time';
 import { logger } from './logger';
 import { ShopClient } from './shop-client';
 
@@ -20,14 +21,9 @@ import { ShopClient } from './shop-client';
 export const TELEGRAM_API = 'https://api.telegram.org';
 
 // Kyiv hours when messages arrive without a sound: 23:00…07:59.
-const QUIET = { tz: 'Europe/Kyiv', from: 23, to: 8 };
-const LOCAL_HOUR = new Intl.DateTimeFormat('en-GB', {
-    timeZone: QUIET.tz,
-    hour: 'numeric',
-    hourCycle: 'h23'
-});
+const QUIET = { from: 23, to: 8 };
 export function isQuietHour(at: number): boolean {
-    const hour = Number(LOCAL_HOUR.format(at));
+    const hour = kyivHour(at);
     return hour >= QUIET.from || hour < QUIET.to;
 }
 

@@ -1,4 +1,4 @@
-import { languageCode, toPrice } from '../helpers';
+import { isArtSeriesSet, languageCode, toPrice } from '../helpers';
 import type { CardResult } from '../../../search-result';
 
 export type CartonOffer = {
@@ -52,7 +52,7 @@ export function parseCarton(products: unknown): CardResult[] {
                 url: p.url,
                 image: p.imageUrl || null,
                 price: toPrice(o!.price),
-                artSeries: /\bart series\b/i.test(p.expansion?.name ?? ''),
+                artSeries: isArtSeriesSet(p.expansion?.name),
                 stock: amount,
                 foil: FINISHES[attr('version')],
                 // "Інша" (other) has no code

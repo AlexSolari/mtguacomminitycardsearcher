@@ -1,11 +1,13 @@
 import { describe, expect, test } from 'bun:test';
 import {
     cheapestCopies,
+    isComplete,
     isNotFound,
     mergeSameCard,
     offerKey,
     sellerUah,
-    splitMatches
+    splitMatches,
+    summarize
 } from '@/results';
 import type { CardResult, SearchResult } from '@/search-result';
 
@@ -310,5 +312,114 @@ describe('mergeSameCard', () => {
         // a lone entry is passed through as it is
         const lone = { card: 'Opt', count: 1, result: pending };
         expect(mergeSameCard([lone])[0]).toBe(lone);
+    });
+});
+
+describe('isComplete', () => {
+    test('a result with no shop still pending', () => {
+        expect(isComplete({ result: null })).toBe(false);
+        expect(isComplete({ result: result('Opt', []) })).toBe(true);
+        expect(
+            isComplete({ result: { ...result('Opt', []), pending: ['gin'] } })
+        ).toBe(false);
+        expect(
+            isComplete({ result: { ...result('Opt', []), pending: [] } })
+        ).toBe(true);
+    });
+});
+
+describe('summarize', () => {
+    const entry = (card: string, count: number, r: SearchResult | null) => ({
+        card,
+        count,
+        result: r
+    });
+
+    test('totals the cheapest exact copies, within stock; fuzzy, Art Series, auctions and traders never count', () => {
+        const s = summarize([
+            entry(
+                'Opt',
+                3,
+                result('Opt', [
+                    offer('Opt', 10, { stock: 1 }),
+                    offer('Opt', 20),
+                    offer('Opt — Art Series', 1, { artSeries: true })
+                ])
+            ),
+            entry(
+                'Daze',
+                1,
+                result('Daze', [offer('School Daze', 5), offer('Daze', 40)])
+            )
+        ]);
+        expect(s).toMatchObject({
+            cards: 2,
+            finished: 2,
+            found: 2,
+            offers: 5,
+            total: 10 + 2 * 20 + 40,
+            missing: [],
+            short: []
+        });
+    });
+
+    test('short and missing cards, once every shop has answered', () => {
+        const s = summarize([
+            entry('Opt', 3, result('Opt', [offer('Opt', 10, { stock: 2 })])),
+            entry('Daze', 1, result('Daze', [offer('School Daze', 5)])),
+            // still waiting on a shop: neither short nor missing yet
+            entry('Brainstorm', 4, {
+                ...result('Brainstorm', [offer('Brainstorm', 7, { stock: 1 })]),
+                pending: ['gin']
+            }),
+            entry('Ponder', 1, { ...result('Ponder', []), pending: ['gin'] }),
+            // not in yet at all
+            entry('Shock', 1, null)
+        ]);
+        expect(s).toMatchObject({
+            cards: 5,
+            finished: 2,
+            found: 2,
+            total: 20 + 7,
+            missing: ['Daze'],
+            short: [{ card: 'Opt', copies: 2, count: 3 }]
+        });
+    });
+
+    test("a card whose search failed somewhere isn't called missing; failures count per shop", () => {
+        const failed = (card: string, shops: ('gin' | 'carton')[]) => ({
+            ...result(card, []),
+            errors: shops.map((shop) => ({ shop, message: 'down' }))
+        });
+        const s = summarize([
+            entry('Opt', 1, failed('Opt', ['gin', 'carton'])),
+            entry('Daze', 1, failed('Daze', ['gin'])),
+            entry('Ponder', 1, {
+                ...result('Ponder', []),
+                errors: [{ message: 'whole request failed' }]
+            })
+        ]);
+        expect(s.missing).toEqual([]);
+        expect([...s.failedShops]).toEqual([
+            ['gin', 2],
+            ['carton', 1]
+        ]);
+    });
+
+    test('a card on two lines is one card, wanted as many times as both say', () => {
+        const giant = result('Bonecrusher Giant // Stomp', [
+            offer('Bonecrusher Giant // Stomp', 50, { stock: 2 })
+        ]);
+        const s = summarize([
+            entry('Bonecrusher Giant', 1, giant),
+            entry('Bonecrusher Giant // Stomp', 2, giant)
+        ]);
+        expect(s).toMatchObject({
+            cards: 1,
+            found: 1,
+            offers: 1,
+            total: 100,
+            short: [{ card: 'Bonecrusher Giant', copies: 2, count: 3 }]
+        });
     });
 });

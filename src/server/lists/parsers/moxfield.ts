@@ -1,6 +1,6 @@
-import { toPrice } from '../../parsers/helpers';
 import {
     mergeRows,
+    toUsd,
     type Finish,
     type ListCard,
     type ParsedList
@@ -41,14 +41,6 @@ const PRICE_KEYS: Record<Finish, string> = {
 const SCRYFALL_ID =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
-// to the cent, as the other sources' prices
-const usd = (value: unknown) => {
-    const price = toPrice(value);
-    return price === null
-        ? undefined
-        : Math.round(price * 100) / 100 || undefined;
-};
-
 const isObject = (v: unknown): v is Record<string, any> =>
     !!v && typeof v === 'object' && !Array.isArray(v);
 
@@ -63,7 +55,7 @@ function toCard(row: any): ListCard | null {
     const id: unknown = card.scryfall_id;
     const scryfallId =
         typeof id === 'string' && SCRYFALL_ID.test(id) ? id : undefined;
-    const price = usd(card.prices?.[PRICE_KEYS[finish]]);
+    const price = toUsd(card.prices?.[PRICE_KEYS[finish]]);
     return {
         name,
         quantity,

@@ -1,6 +1,7 @@
 // How a card's offers are grouped and priced, for the result sections and the summary. Browser-only, pure.
 import { isArtSeries, isExactMatch, normalize } from './matching';
 import type { CardResult, SearchResult } from './search-result';
+import type { ShopId } from './shops';
 
 // React key for an offer. The URL alone isn't unique: Nerdik lists one printing's offers at different
 // prices, and CartOn's offers of different conditions or languages, all sharing the printing's URL. A trader's
@@ -118,6 +119,67 @@ export function mergeSameCard<
         });
     }
     return [...merged.values()];
+}
+
+// A card whose search has answered from every shop: it has a result with no shop still pending.
+export const isComplete = (entry: { result: SearchResult | null }) =>
+    entry.result !== null && !entry.result.pending?.length;
+
+// The summary over a list's search, for the cards searched so far, counting what's in for cards still waiting on a
+// shop (they don't count as finished, missing or short until they're complete). A card on two lines of the list is
+// one card, wanted as many times as both say (mergeSameCard).
+export type Summary = {
+    cards: number;
+    finished: number;
+    found: number; // with an exact match
+    offers: number;
+    // The cheapest way to buy the list: exact matches only, as many copies as it asks for, within shop stock. Fuzzy
+    // matches, Art Series and auctions aren't the card or have no fixed price; traders' offers are guides.
+    total: number;
+    missing: string[]; // no exact match, and every shop answered
+    short: { card: string; copies: number; count: number }[];
+    failedShops: Map<ShopId, number>; // shop → cards whose search failed there
+};
+export function summarize(
+    entries: { card: string; count: number; result: SearchResult | null }[]
+): Summary {
+    const cards = mergeSameCard(entries);
+    const summary: Summary = {
+        cards: cards.length,
+        finished: 0,
+        found: 0,
+        offers: 0,
+        total: 0,
+        missing: [],
+        short: [],
+        failedShops: new Map()
+    };
+    for (const entry of cards) {
+        const { card, count, result } = entry;
+        if (!result) continue;
+        const complete = isComplete(entry);
+        if (complete) summary.finished++;
+        summary.offers += result.links.length;
+        for (const e of result.errors)
+            if (e.shop)
+                summary.failedShops.set(
+                    e.shop,
+                    (summary.failedShops.get(e.shop) ?? 0) + 1
+                );
+
+        const { exact } = splitMatches(result);
+        if (exact.length === 0) {
+            if (complete && result.errors.length === 0)
+                summary.missing.push(card);
+            continue;
+        }
+        summary.found++;
+        const { cost, copies } = cheapestCopies(exact, count);
+        summary.total += cost;
+        if (complete && copies < count)
+            summary.short.push({ card, copies, count });
+    }
+    return summary;
 }
 
 // cheapestCopies, with which offers it took and how many of each (for the order plan).

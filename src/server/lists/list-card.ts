@@ -1,5 +1,7 @@
 // What a trader's list holds, as the list parsers read it from the source (see lists/parsers/).
 
+import { toPrice } from '../parsers/helpers';
+
 // Scryfall's finishes, which its prices follow (usd, usd_foil, usd_etched).
 export type Finish = 'nonfoil' | 'foil' | 'etched';
 
@@ -15,6 +17,15 @@ export type ListCard = {
     scryfallId?: string;
     image?: string;
     usd?: number; // this printing and finish's price in USD, when the list carries one (ManaBox)
+};
+
+// A price in USD as a list source gives it, to the cent (ManaBox sends floats: 9.5600004196167); undefined when
+// there's none, as for `ListCard.usd`.
+export const toUsd = (value: unknown): number | undefined => {
+    const price = toPrice(value);
+    return price === null
+        ? undefined
+        : Math.round(price * 100) / 100 || undefined;
 };
 
 export type ParsedList = {

@@ -1,5 +1,11 @@
 import type { CardResult } from '../../../search-result';
-import { abs, languageCode, toPrice } from '../helpers';
+import {
+    abs,
+    isArtSeriesSet,
+    languageCode,
+    toPrice,
+    withEdition
+} from '../helpers';
 
 // mtgin.kyiv.ua/api/public/v1/search — the partner API. The answer to a batch of lookups has one entry per lookup, in
 // request order, each with the matching offers (one per printing, finish, condition and seller), cheapest first:
@@ -37,23 +43,20 @@ export function parseGin(
     return (result?.offers ?? [])
         .filter((o) => o?.name && o.url && o.quantity > 0)
         .map((o) => {
-            // "Sol Ring — Commander Masters #1, Etched": the edition goes after " — ", where isExactMatch cuts
-            const edition = [
-                [o.setName, o.collectorNumber && `#${o.collectorNumber}`]
-                    .filter(Boolean)
-                    .join(' '),
-                o.finish === 'etched' && 'Etched',
-                o.signed && 'Signed'
-            ]
-                .filter(Boolean)
-                .join(', ');
             return {
                 shop: 'gin' as const,
-                name: edition ? `${o.name} — ${edition}` : o.name,
+                // "Sol Ring — Commander Masters #1, Etched"
+                name: withEdition(
+                    o.name,
+                    o.setName,
+                    o.collectorNumber,
+                    o.finish === 'etched' && 'Etched',
+                    o.signed && 'Signed'
+                ),
                 url: abs(base, o.url)!,
                 image: abs(base, o.imageUrl ?? undefined),
                 price: toPrice(o.priceUah),
-                artSeries: /art series/i.test(o.setName ?? ''),
+                artSeries: isArtSeriesSet(o.setName),
                 stock: o.quantity,
                 foil: o.finish ? o.finish !== 'nonfoil' : undefined,
                 language: languageCode(o.language),

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { LayoutGrid, Rows3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -14,14 +14,15 @@ function loadView(): ResultsView {
     }
 }
 
+// The setter is the same function every render, so ResultsPanel (memoized) doesn't re-render while the list is typed.
 export function useResultsView() {
     const [view, setView] = useState<ResultsView>(loadView);
-    const changeView = (next: ResultsView) => {
+    const changeView = useCallback((next: ResultsView) => {
         setView(next);
         try {
             localStorage.setItem(VIEW_KEY, next);
         } catch {} // private mode / blocked storage — the choice just won't persist
-    };
+    }, []);
     return [view, changeView] as const;
 }
 

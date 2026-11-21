@@ -19,7 +19,7 @@ export function RateField({
     compact = false
 }: {
     value: number | null;
-    onSave: (rate: number | null) => Promise<void>;
+    onSave: (rate: number | null) => Promise<unknown>; // settles when the save is done, however it went
     placeholder: string;
     label: string;
     hint?: string; // beside an empty field: what applies instead

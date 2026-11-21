@@ -3,8 +3,10 @@
 // spreads them over the night rather than starting them all at once. Approvals and moderators' refreshes don't
 // wait for the night (see ListRefresher).
 
+import { KYIV_TZ, kyivHour } from '../kyiv-time';
+
 export const NIGHT = {
-    tz: 'Europe/Kyiv',
+    tz: KYIV_TZ,
     from: 2, // 02:00…
     to: 7 // …06:59, local time; daylight saving is the time zone's business
 };
@@ -27,13 +29,7 @@ export function nextSlot(listId: number, after: number): number {
         .getTime();
 }
 
-const LOCAL_HOUR = new Intl.DateTimeFormat('en-GB', {
-    timeZone: NIGHT.tz,
-    hour: 'numeric',
-    hourCycle: 'h23'
-});
-
 export function isNight(at: number): boolean {
-    const hour = Number(LOCAL_HOUR.format(at));
+    const hour = kyivHour(at);
     return hour >= NIGHT.from && hour < NIGHT.to;
 }

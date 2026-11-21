@@ -1,5 +1,5 @@
 import type { CardResult } from '../../../search-result';
-import { languageCode, toPrice } from '../helpers';
+import { languageCode, toPrice, withEdition } from '../helpers';
 
 // hub.nerdik.club/api/singles/search/batch — JSON, one result per looked-up name, in request order; each lists
 // that card's printings, each with its in-stock offers:
@@ -37,10 +37,8 @@ export function parseNerdik(json: NerdikResult | undefined): CardResult[] {
     return (json?.cards ?? []).flatMap((card) => {
         // the shop also sells other TCGs (e.g. Sorcery: Contested Realms)
         if (card?.game !== 'mtg' || !card.name) return [];
-        // "Sol Ring — Fallout #359", the same shape the old HTML parser built (isExactMatch splits on " — ")
-        const edition = [card.set_name, card.number && `#${card.number}`]
-            .filter(Boolean)
-            .join(' ');
+        // "Sol Ring — Fallout #359"
+        const name = withEdition(card.name, card.set_name, card.number);
         const foil =
             card.treatment === 'regular'
                 ? false
@@ -55,7 +53,7 @@ export function parseNerdik(json: NerdikResult | undefined): CardResult[] {
             )
             .map((offer) => ({
                 shop: 'nerdik' as const,
-                name: edition ? `${card.name} — ${edition}` : card.name,
+                name,
                 url: offer.nerdik_url ?? card.nerdik_url,
                 image: card.image_url,
                 price: toPrice(offer.price_uah), // a decimal string, "183.00"

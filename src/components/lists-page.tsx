@@ -5,24 +5,18 @@ import {
     Plus,
     Search,
     ShieldCheck,
-    Trash2,
     UserX
 } from 'lucide-react';
 import type {
     CurrentUser,
     MyList,
     LoginFailure,
-    MyLists,
     SkipReason,
     SubmittedLists
 } from '@/account';
 import { TelegramIcon } from '@/components/icons';
-import {
-    ListName,
-    ListStatusLine,
-    SOURCE_LABELS,
-    SourceName
-} from '@/components/list-parts';
+import { SOURCE_LABELS, SourceName } from '@/components/list-parts';
+import { MyListItem } from '@/components/my-list-item';
 import {
     Loading,
     Notice,
@@ -34,17 +28,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { RateField } from '@/components/rate-field';
 import { useAccount } from '@/hooks/use-account';
+import { NO_LINKS, useMyLists } from '@/hooks/use-my-lists';
 import { LISTS, LISTS_GENITIVE, plural } from '@/i18n';
-import {
-    ApiError,
-    deleteAccount,
-    deleteList,
-    fetchMyLists,
-    logout,
-    setDefaultRate,
-    setListRate,
-    submitLists
-} from '@/lib/account-api';
+import { deleteAccount, logout } from '@/lib/account-api';
 
 const LOGIN_FAILURES: Record<LoginFailure, string> = {
     cancelled: 'Вхід скасовано.',
@@ -55,9 +41,6 @@ const LOGIN_FAILURES: Record<LoginFailure, string> = {
     banned: 'Ваш акаунт заблоковано.',
     busy: 'Забагато спроб входу. Спробуйте ще раз за кілька хвилин.'
 };
-
-const NO_LINKS =
-    'Тут немає посилань на списки MTGGoldfish, ManaBox або Moxfield. Скопіюйте адресу сторінки зі списком або все повідомлення з посиланнями.';
 
 // /lists, "Мої списки": traders sign in with Telegram and add their MTGGoldfish, ManaBox or Moxfield lists, which show in
 // search once a moderator approves them. The sign-in comes back here, with ?login=<reason> when it failed.
@@ -184,95 +167,33 @@ function listMatcher(filter: string) {
         );
 }
 
+// The signed-in trader's page: adding lists, their exchange rate, and their lists. The lists and the requests that
+// change them are in useMyLists; this keeps what's on the page (the field, the last result, the search).
 function TraderLists({ user }: { user: CurrentUser }) {
-    const [data, setData] = useState<MyLists | null>();
+    const { data, error, ...lists } = useMyLists();
     const [filter, setFilter] = useState('');
     const [text, setText] = useState('');
     const [submitting, setSubmitting] = useState(false);
-    const [error, setError] = useState<string | null>(null);
     const [result, setResult] = useState<SubmittedLists | null>(null);
 
-    // An expired session (401) starts over from the sign-in; anything else is the server's fault.
-    const fail = (err: unknown) => {
-        if (err instanceof ApiError && err.status === 401) location.reload();
-        else setError(SERVER_ERROR);
-    };
-
-    useEffect(() => {
-        fetchMyLists()
-            .then(setData)
-            .catch((err) => {
-                setData(null);
-                fail(err);
-            });
-    }, []);
-
-    // One link, or a whole post with several (the way traders share their lists in Telegram groups).
     async function add(e?: FormEvent) {
         e?.preventDefault();
         if (!data || !text.trim() || submitting) return;
         setSubmitting(true);
-        setError(null);
         setResult(null);
-        try {
-            const result = await submitLists(text);
-            // from the latest state, not `data` as it was before the request: a delete may have finished meanwhile
-            setData((d) => d && { ...d, lists: [...result.added, ...d.lists] });
+        const added = await lists.add(text);
+        if (added) {
             setText('');
-            setResult(result);
-        } catch (err) {
-            if (err instanceof ApiError && err.code === 'no-links')
-                setError(NO_LINKS);
-            else fail(err);
-        } finally {
-            setSubmitting(false);
+            setResult(added);
         }
-    }
-
-    // A failed save leaves the field as typed, to try again; the error shows above.
-    async function saveDefaultRate(usdRate: number | null) {
-        setError(null);
-        try {
-            await setDefaultRate(usdRate);
-            setData((d) => d && { ...d, usdRate });
-        } catch (err) {
-            fail(err);
-        }
-    }
-
-    async function saveListRate(id: number, usdRate: number | null) {
-        setError(null);
-        try {
-            const list = await setListRate(id, usdRate);
-            setData(
-                (d) =>
-                    d && {
-                        ...d,
-                        lists: d.lists.map((l) => (l.id === id ? list : l))
-                    }
-            );
-        } catch (err) {
-            fail(err);
-        }
+        setSubmitting(false);
     }
 
     async function remove(id: number) {
-        if (
-            !data ||
-            !confirm('Видалити цей список? Його карти зникнуть із пошуку.')
-        )
+        if (!confirm('Видалити цей список? Його карти зникнуть із пошуку.'))
             return;
-        setError(null);
         setResult(null);
-        try {
-            await deleteList(id);
-            // from the latest state: two deletes in a row mustn't bring the first list back
-            setData(
-                (d) => d && { ...d, lists: d.lists.filter((l) => l.id !== id) }
-            );
-        } catch (err) {
-            fail(err);
-        }
+        await lists.remove(id);
     }
 
     const full = data ? data.lists.length >= data.max : false;
@@ -352,9 +273,10 @@ function TraderLists({ user }: { user: CurrentUser }) {
                         Без курсу ціни показуються в доларах. Для окремого
                         списку можна задати інший курс.
                     </p>
+                    {/* a failed save leaves the field as typed, to try again; the error shows above */}
                     <RateField
                         value={data.usdRate}
-                        onSave={saveDefaultRate}
+                        onSave={lists.saveDefaultRate}
                         placeholder='не вказано'
                         label='Курс долара для всіх списків'
                     />
@@ -382,49 +304,15 @@ function TraderLists({ user }: { user: CurrentUser }) {
             ) : data && data.lists.length > 0 ? (
                 <ul className='grid gap-2'>
                     {shown.map((list) => (
-                        <li
+                        <MyListItem
                             key={list.id}
-                            className='flex items-center gap-3 rounded-lg border bg-card px-4 py-3'
-                        >
-                            <div className='grid min-w-0 flex-1 gap-1.5'>
-                                <div className='grid gap-0.5'>
-                                    <ListName list={list} />
-                                    <ListStatusLine list={list} />
-                                </div>
-                                <div className='flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground'>
-                                    <span>Курс цього списку:</span>
-                                    <RateField
-                                        compact
-                                        value={list.usdRate}
-                                        onSave={(rate) =>
-                                            saveListRate(list.id, rate)
-                                        }
-                                        placeholder={
-                                            data.usdRate === null
-                                                ? 'не вказано'
-                                                : data.usdRate.toLocaleString(
-                                                      'uk-UA'
-                                                  )
-                                        }
-                                        hint={
-                                            data.usdRate === null
-                                                ? undefined
-                                                : 'як загальний'
-                                        }
-                                        label='Курс долара для цього списку'
-                                    />
-                                </div>
-                            </div>
-                            <Button
-                                variant='ghost'
-                                size='icon-sm'
-                                onClick={() => remove(list.id)}
-                                title='Видалити список'
-                                aria-label='Видалити список'
-                            >
-                                <Trash2 />
-                            </Button>
-                        </li>
+                            list={list}
+                            defaultRate={data.usdRate}
+                            onSaveRate={(rate) =>
+                                lists.saveListRate(list.id, rate)
+                            }
+                            onRemove={() => remove(list.id)}
+                        />
                     ))}
                 </ul>
             ) : (

@@ -1,3 +1,5 @@
+import { ART_SERIES } from '../../matching';
+
 export const decodeEntities = (s: string) =>
     s
         .replace(/&quot;/g, '"')
@@ -8,6 +10,30 @@ export const decodeEntities = (s: string) =>
         .replace(/&lt;/g, '<')
         .replace(/&gt;/g, '>')
         .replace(/&amp;/g, '&');
+
+// "Sol Ring — Commander Masters #1, Etched": a card's name with its edition after " — ", where isExactMatch cuts,
+// the shape every shop's listing takes. `set` and `number` make its first part ("Commander Masters #1"), and
+// `details` (finishes, treatments: "Etched", "Showcase") follow, comma-separated. Empty parts are left out; with no
+// edition at all, the name is as it is.
+export function withEdition(
+    name: string,
+    set: string | null | undefined,
+    number?: string | number | null,
+    ...details: (string | false | null | undefined)[]
+): string {
+    const printing = [set, number ? `#${number}` : null]
+        .filter(Boolean)
+        .join(' ');
+    const edition = [printing, ...details].filter(Boolean).join(', ');
+    return edition ? `${name} — ${edition}` : name;
+}
+
+// "etched" → "Etched", for finishes and treatments a shop gives in lower case
+export const capitalize = (s: string) => s && s[0]!.toUpperCase() + s.slice(1);
+
+// Whether a printing's set is an Art Series one (see isArtSeries), for a shop that gives the set's name.
+export const isArtSeriesSet = (setName: string | null | undefined) =>
+    ART_SERIES.test(setName ?? '');
 
 // out-of-range numeric entities would make String.fromCodePoint throw
 const codePoint = (n: number) =>

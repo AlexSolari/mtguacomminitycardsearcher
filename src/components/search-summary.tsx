@@ -1,41 +1,13 @@
 import { AlertTriangle, Loader2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { CARDS, plural } from '@/i18n';
-import { cheapestCopies, mergeSameCard, splitMatches } from '@/results';
-import { SHOP_INFO, type ShopId } from '@/shops';
-import { isComplete, type SearchEntry } from '@/hooks/use-card-search';
+import { summarize } from '@/results';
+import { SHOP_INFO } from '@/shops';
+import type { SearchEntry } from '@/hooks/use-card-search';
 import { formatPrice } from '@/components/offer-parts';
+import { Stat, WarningChip } from '@/components/stat';
 
-function Stat({
-    label,
-    value,
-    accent
-}: {
-    label: string;
-    value: React.ReactNode;
-    accent?: boolean;
-}) {
-    return (
-        <div className='flex flex-col gap-0.5'>
-            <span className='text-xs uppercase tracking-wider text-muted-foreground'>
-                {label}
-            </span>
-            <span
-                className={cn(
-                    'text-2xl font-semibold tabular-nums',
-                    accent && 'text-primary'
-                )}
-            >
-                {value}
-            </span>
-        </div>
-    );
-}
-
-// Live totals over the cards searched so far, including what's in for cards still waiting on a shop (they don't
-// count as finished, missing or short until they're complete). The minimum sum counts only exact matches, for as
-// many copies as the list asks for (within shop stock). Fuzzy matches, Art Series and auctions are left out: they aren't
-// the card, or have no fixed price. `entries` are already filtered, so every figure is for the offers shown.
+// Live totals over the cards searched so far (see summarize in results.ts). `entries` are already filtered, so
+// every figure is for the offers shown.
 export function SearchSummary({
     entries,
     filtered
@@ -43,48 +15,28 @@ export function SearchSummary({
     entries: SearchEntry[];
     filtered?: boolean; // the filters are on
 }) {
-    let finished = 0;
-    let found = 0;
-    let offers = 0;
-    let total = 0;
-    const missing: string[] = []; // no exact match, and every shop answered
-    const short: { card: string; copies: number; count: number }[] = [];
-    // shop → number of cards whose search failed there
-    const failedShops = new Map<ShopId, number>();
-    // a card on two lines of the list is one card, wanted as many times as both say
-    const cards = mergeSameCard(entries);
-    for (const entry of cards) {
-        const { card, count, result } = entry;
-        if (!result) continue;
-        const complete = isComplete(entry);
-        if (complete) finished++;
-        offers += result.links.length;
-        for (const e of result.errors)
-            if (e.shop)
-                failedShops.set(e.shop, (failedShops.get(e.shop) ?? 0) + 1);
-
-        const { exact } = splitMatches(result);
-        if (exact.length === 0) {
-            if (complete && result.errors.length === 0) missing.push(card);
-            continue;
-        }
-        found++;
-        const { cost, copies } = cheapestCopies(exact, count);
-        total += cost;
-        if (complete && copies < count) short.push({ card, copies, count });
-    }
-    const remaining = cards.length - finished;
+    const {
+        cards,
+        finished,
+        found,
+        offers,
+        total,
+        missing,
+        short,
+        failedShops
+    } = summarize(entries);
+    const remaining = cards - finished;
 
     return (
         <div className='flex flex-col gap-4 rounded-2xl border bg-card/60 p-5 backdrop-blur animate-in fade-in duration-500'>
             <div className='grid grid-cols-3 gap-4'>
-                <Stat label='Знайдено' value={`${found} / ${cards.length}`} />
-                <Stat label='Пропозиції' value={offers} />
-                <Stat
-                    label='Мінімальна сума'
-                    value={formatPrice(total)}
-                    accent
-                />
+                <Stat label='Знайдено'>
+                    {found} / {cards}
+                </Stat>
+                <Stat label='Пропозиції'>{offers}</Stat>
+                <Stat label='Мінімальна сума' accent>
+                    {formatPrice(total)}
+                </Stat>
             </div>
             {remaining > 0 && (
                 <div className='flex flex-col gap-2'>
@@ -96,7 +48,7 @@ export function SearchSummary({
                         <div
                             className='h-full rounded-full bg-primary transition-[width] duration-500 ease-out'
                             style={{
-                                width: `${(finished / cards.length) * 100}%`
+                                width: `${(finished / cards) * 100}%`
                             }}
                         />
                     </div>
@@ -109,9 +61,9 @@ export function SearchSummary({
                         Пошук не вдався в магазинах:
                     </span>
                     {[...failedShops].map(([shop, count]) => (
-                        <Chip key={shop}>
+                        <WarningChip key={shop}>
                             {SHOP_INFO[shop].label} · {plural(count, CARDS)}
-                        </Chip>
+                        </WarningChip>
                     ))}
                 </div>
             )}
@@ -121,9 +73,9 @@ export function SearchSummary({
                         Недостатньо в наявності:
                     </span>
                     {short.map((s) => (
-                        <Chip key={s.card}>
+                        <WarningChip key={s.card}>
                             {s.card} · {s.copies} з {s.count}
-                        </Chip>
+                        </WarningChip>
                     ))}
                 </div>
             )}
@@ -135,18 +87,10 @@ export function SearchSummary({
                             : 'Немає точних збігів:'}
                     </span>
                     {missing.map((card) => (
-                        <Chip key={card}>{card}</Chip>
+                        <WarningChip key={card}>{card}</WarningChip>
                     ))}
                 </div>
             )}
         </div>
-    );
-}
-
-function Chip({ children }: { children: React.ReactNode }) {
-    return (
-        <span className='rounded-full border border-destructive/30 bg-destructive/10 px-2.5 py-0.5 text-xs text-destructive'>
-            {children}
-        </span>
     );
 }

@@ -240,3 +240,55 @@ const LIST_DATE = new Intl.DateTimeFormat('uk', {
 
 export const FOIL_BADGE =
     'bg-[linear-gradient(110deg,#f0abfc,#93c5fd_35%,#86efac_60%,#fde68a)] tracking-wider text-slate-900';
+
+// An offer's foil, language and condition, the same in the table, the tiles and the order plan. Flat in a row of
+// text; `overlay` on a card's image (the tiles), where they keep their shadow and the language reads white on black
+// in both themes, as the image is behind it.
+export function FoilBadge({ overlay }: { overlay?: boolean }) {
+    return (
+        <Badge className={cn(FOIL_BADGE, !overlay && 'shadow-none')}>
+            FOIL
+        </Badge>
+    );
+}
+
+export function LanguageBadge({
+    language,
+    overlay
+}: {
+    language: string;
+    overlay?: boolean;
+}) {
+    return (
+        <Badge
+            className={
+                overlay
+                    ? 'border border-white/25 bg-black/70 font-mono tracking-wide text-white backdrop-blur'
+                    : 'border border-border bg-transparent font-mono text-foreground shadow-none'
+            }
+            title='Мова'
+        >
+            {language}
+        </Badge>
+    );
+}
+
+export function ConditionBadge({
+    condition,
+    overlay
+}: {
+    condition: string;
+    overlay?: boolean;
+}) {
+    return (
+        <Badge
+            className={cn(
+                'bg-sky-600/90 text-white',
+                !overlay && 'shadow-none'
+            )}
+            title='Стан'
+        >
+            {condition}
+        </Badge>
+    );
+}

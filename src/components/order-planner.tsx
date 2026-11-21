@@ -21,16 +21,19 @@ import {
     type ShopOrder,
     type TraderMatch
 } from '@/order-plan';
-import { offerKey } from '@/results';
+import { isComplete, offerKey } from '@/results';
 import type { CardResult } from '@/search-result';
 import { SHOP_IDS, SHOP_INFO, type ShopId } from '@/shops';
-import { isComplete, type SearchEntry } from '@/hooks/use-card-search';
+import type { SearchEntry } from '@/hooks/use-card-search';
+import { Stat, WarningChip } from '@/components/stat';
 import { TelegramIcon } from '@/components/icons';
 import { OfferFilters } from '@/components/offer-filters';
 import {
     Badge,
-    FOIL_BADGE,
+    ConditionBadge,
+    FoilBadge,
     formatPrice,
+    LanguageBadge,
     PriceBlock,
     SellerDetails
 } from '@/components/offer-parts';
@@ -120,15 +123,13 @@ export function OrderPlanner({
             )}
 
             <div className={cn(panel, 'grid grid-cols-3 gap-4 p-5')}>
-                <Stat label='Сума'>
-                    <span className='text-primary'>
-                        {fromPrice && (
-                            <span className='mr-1 text-sm font-normal text-muted-foreground'>
-                                від
-                            </span>
-                        )}
-                        {formatPrice(plan.total)}
-                    </span>
+                <Stat label='Сума' accent>
+                    {fromPrice && (
+                        <span className='mr-1 text-sm font-normal text-muted-foreground'>
+                            від
+                        </span>
+                    )}
+                    {formatPrice(plan.total)}
                 </Stat>
                 <Stat label='Копій'>
                     {plan.copies} / {plan.wanted}
@@ -165,12 +166,9 @@ export function OrderPlanner({
                             : 'Немає в обраних магазинах:'}
                     </span>
                     {plan.short.map((s) => (
-                        <span
-                            key={s.card}
-                            className='rounded-full border border-destructive/30 bg-destructive/10 px-2.5 py-0.5 text-xs text-destructive'
-                        >
+                        <WarningChip key={s.card}>
                             {s.card} · {s.copies} з {s.count}
-                        </span>
+                        </WarningChip>
                     ))}
                 </div>
             )}
@@ -186,25 +184,6 @@ export function OrderPlanner({
 // How many of the list's cards a shop has, for the shop menu.
 const cardsAt = (cards: PlanCard[], shop: ShopId) =>
     cards.filter((c) => c.offers.some((o) => o.shop === shop)).length;
-
-function Stat({
-    label,
-    children
-}: {
-    label: string;
-    children: React.ReactNode;
-}) {
-    return (
-        <div className='flex flex-col gap-0.5'>
-            <span className='text-xs uppercase tracking-wider text-muted-foreground'>
-                {label}
-            </span>
-            <span className='text-2xl font-semibold tabular-nums'>
-                {children}
-            </span>
-        </div>
-    );
-}
 
 // The best plan for each number of shops; picking a row shows that plan.
 function OptionsTable({
@@ -344,25 +323,9 @@ function ShopOrderBlock({
 function OfferBadges({ offer }: { offer: CardResult }) {
     return (
         <span className='inline-flex flex-wrap items-center gap-1'>
-            {offer.foil && (
-                <Badge className={cn(FOIL_BADGE, 'shadow-none')}>FOIL</Badge>
-            )}
-            {offer.language && (
-                <Badge
-                    className='border border-border bg-transparent font-mono text-foreground shadow-none'
-                    title='Мова'
-                >
-                    {offer.language}
-                </Badge>
-            )}
-            {offer.condition && (
-                <Badge
-                    className='bg-sky-600/90 text-white shadow-none'
-                    title='Стан'
-                >
-                    {offer.condition}
-                </Badge>
-            )}
+            {offer.foil && <FoilBadge />}
+            {offer.language && <LanguageBadge language={offer.language} />}
+            {offer.condition && <ConditionBadge condition={offer.condition} />}
         </span>
     );
 }

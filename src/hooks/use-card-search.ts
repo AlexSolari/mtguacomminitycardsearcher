@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CardEntry } from '@/decklist';
 import { tooManySearches } from '@/i18n';
+import { isComplete } from '@/results';
 import type { SearchResult, SearchUpdate } from '@/search-result';
 
 // One entry per searched card, in list order. The whole list goes in one request (or a few, for a long list), and
@@ -12,9 +13,6 @@ export type SearchEntry = {
     count: number; // copies wanted, from the list's quantity
     result: SearchResult | null;
 };
-
-export const isComplete = (entry: SearchEntry) =>
-    entry.result !== null && !entry.result.pending?.length;
 
 // Cards per request: the server's MAX_CARDS_PER_REQUEST. The server paces each shop itself (see ShopLimits in
 // search-route.ts), so a list is sent whole: batched shops (MTGin, Nerdik, Mana Vault) then look it all up at once.

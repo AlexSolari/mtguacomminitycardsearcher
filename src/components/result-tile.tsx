@@ -8,8 +8,10 @@ import {
     AuctionMeta,
     Badge,
     CardImage,
+    ConditionBadge,
     discountOf,
-    FOIL_BADGE,
+    FoilBadge,
+    LanguageBadge,
     PriceBlock,
     SellerBadge,
     SellerDetails
@@ -68,7 +70,7 @@ export const ResultTile = memo(function ResultTile({
                             Аукціон
                         </Badge>
                     )}
-                    {link.foil && <Badge className={FOIL_BADGE}>FOIL</Badge>}
+                    {link.foil && <FoilBadge overlay />}
                     {discount !== null && (
                         <Badge className='bg-rose-600 text-white'>
                             −{discount}%
@@ -79,20 +81,13 @@ export const ResultTile = memo(function ResultTile({
                 {(link.language || link.condition) && (
                     <div className='absolute right-3.5 top-3.5 flex flex-col items-end gap-1'>
                         {link.language && (
-                            <Badge
-                                className='border border-white/25 bg-black/70 font-mono tracking-wide text-white backdrop-blur'
-                                title='Мова'
-                            >
-                                {link.language}
-                            </Badge>
+                            <LanguageBadge language={link.language} overlay />
                         )}
                         {link.condition && (
-                            <Badge
-                                className='bg-sky-600/90 text-white'
-                                title='Стан'
-                            >
-                                {link.condition}
-                            </Badge>
+                            <ConditionBadge
+                                condition={link.condition}
+                                overlay
+                            />
                         )}
                     </div>
                 )}

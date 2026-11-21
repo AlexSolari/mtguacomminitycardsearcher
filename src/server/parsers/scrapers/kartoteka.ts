@@ -1,4 +1,4 @@
-import { abs, decodeEntities, toPrice } from '../helpers';
+import { abs, decodeEntities, toPrice, withEdition } from '../helpers';
 import type { CardResult } from '../../../search-result';
 
 // kartoteka.in.ua — mostly a board-game shop (same Horoshop platform as Nerdik). The search page declares
@@ -55,15 +55,17 @@ export function parseKartoteka(html: string, base: string): CardResult[] {
             (t) => t !== 'Normal' && !/foil/i.test(t)
         );
         const number = code[2]!.replace(/f$/, '');
-        const edition = [
-            `${code[1]!.toUpperCase()} #${number}`,
-            ...treatments
-        ].join(', ');
 
         return [
             {
                 shop: 'kartoteka' as const,
-                name: `${title} — ${edition}`,
+                // "Sol Ring — CMM #410, Borderless"
+                name: withEdition(
+                    title,
+                    code[1]!.toUpperCase(),
+                    number,
+                    ...treatments
+                ),
                 url,
                 image: abs(base, card.image),
                 price: toPrice(p.price),

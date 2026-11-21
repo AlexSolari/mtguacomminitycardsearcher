@@ -1,6 +1,7 @@
-import { decodeEntities, toPrice } from '../../parsers/helpers';
+import { decodeEntities } from '../../parsers/helpers';
 import {
     mergeRows,
+    toUsd,
     type Finish,
     type ListCard,
     type ParsedList
@@ -54,14 +55,6 @@ export function manaboxProps(html: string): any {
     return null;
 }
 
-// to the cent: ManaBox sends floats (9.5600004196167)
-const usd = (value: unknown) => {
-    const price = toPrice(value);
-    return price === null
-        ? undefined
-        : Math.round(price * 100) / 100 || undefined;
-};
-
 // "Normal" and "Foil" are what shared decks show; "Etched" is a guess at how ManaBox names the third finish
 const finish = (variant: unknown): Finish =>
     typeof variant !== 'string'
@@ -79,7 +72,7 @@ function toCard(c: any): ListCard | null {
     const image: unknown = c.images?.[0]?.imageUrlNormal;
     const scryfallId =
         typeof image === 'string' ? image.match(SCRYFALL_ID)?.[1] : undefined;
-    const price = usd(c.pricing?.tcgplayer?.value);
+    const price = toUsd(c.pricing?.tcgplayer?.value);
     return {
         name,
         quantity,

@@ -1,5 +1,12 @@
 import type { CardResult } from '../../../search-result';
-import { abs, languageCode, toPrice } from '../helpers';
+import {
+    abs,
+    capitalize,
+    isArtSeriesSet,
+    languageCode,
+    toPrice,
+    withEdition
+} from '../helpers';
 
 // citadel.kyiv.ua/singles?q=… — a Next.js app with no public JSON API. The search page is rendered on the server,
 // and the props it hydrates with arrive as React Server Components data in inline scripts, each a JSON string:
@@ -74,8 +81,6 @@ export function citadelItems(html: string): CitadelItem[] | null {
     }
 }
 
-const capitalize = (s: string) => s[0]!.toUpperCase() + s.slice(1);
-
 // One result per item, linked to the printing's page (/singles/<scryfall id>), which lists all its offers.
 export function parseCitadel(html: string, base: string): CardResult[] {
     return (citadelItems(html) ?? [])
@@ -83,28 +88,28 @@ export function parseCitadel(html: string, base: string): CardResult[] {
         .flatMap((it) => {
             const stock = it.availableQty ?? it.quantity ?? 0;
             if (stock <= 0) return [];
-            // "Abrade — Secrets of Strixhaven Mystical Archive, Showcase": the edition goes after " — ", where
-            // isExactMatch cuts. Plain foil is the `foil` badge; special finishes (etched…) are named.
-            const edition = [
-                it.set_name,
-                it.variant && it.variant !== 'regular'
-                    ? capitalize(it.variant)
-                    : null,
-                it.foilType && !['nonfoil', 'foil'].includes(it.foilType)
-                    ? capitalize(it.foilType)
-                    : null,
-                it.promo ? 'Promo' : null
-            ]
-                .filter(Boolean)
-                .join(', ');
             return [
                 {
                     shop: 'citadel' as const,
-                    name: edition ? `${it.name} — ${edition}` : it.name,
+                    // "Abrade — Secrets of Strixhaven Mystical Archive, Showcase". Plain foil is the `foil` badge;
+                    // special finishes (etched…) are named.
+                    name: withEdition(
+                        it.name,
+                        it.set_name,
+                        null,
+                        it.variant && it.variant !== 'regular'
+                            ? capitalize(it.variant)
+                            : null,
+                        it.foilType &&
+                            !['nonfoil', 'foil'].includes(it.foilType)
+                            ? capitalize(it.foilType)
+                            : null,
+                        it.promo ? 'Promo' : null
+                    ),
                     url: abs(base, `/singles/${it.scryfall_id}`)!,
                     image: abs(base, it.faces?.[0]?.images?.normal),
                     price: toPrice(it.prices),
-                    artSeries: /art series/i.test(it.set_name ?? ''),
+                    artSeries: isArtSeriesSet(it.set_name),
                     stock,
                     foil: it.isFoil,
                     language: languageCode(it.lang),

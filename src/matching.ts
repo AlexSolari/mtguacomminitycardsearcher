@@ -24,5 +24,7 @@ export function isExactMatch(listing: string, query: string) {
 }
 
 // Art Series cards are collectible art cards, not playable copies — grouped separately and kept out of pricing.
+// Their set is "<Set> Art Series" ("Modern Horizons 3 Art Series"), and the name a shop lists carries it.
+export const ART_SERIES = /\bart series\b/i;
 export const isArtSeries = (l: CardResult) =>
-    l.artSeries === true || /\bart series\b/i.test(l.name);
+    l.artSeries === true || ART_SERIES.test(l.name);

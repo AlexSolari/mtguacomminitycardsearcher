@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { memo, useEffect, useMemo, useRef } from 'react';
 import type { SearchEntry } from '@/hooks/use-card-search';
 import { useOfferFilters } from '@/hooks/use-offer-filters';
 import { usePlanView } from '@/hooks/use-plan-view';
@@ -23,7 +23,9 @@ import { ViewToggle, type ResultsView } from '@/components/view-toggle';
 // as every shop has answered for a card and none has it, the card moves out of the list into one compact block at
 // the bottom. The filters apply to the sections and the summary; "none has it" is judged before them, so a card
 // whose offers are all filtered out keeps its section and says so. The order plan replaces all of it while open.
-export function ResultsPanel({
+// Memoized: the page re-renders on every keystroke in the card list, which changes none of its props (`entries`
+// changes only as a search streams in, and the view's setter is stable).
+export const ResultsPanel = memo(function ResultsPanel({
     entries,
     view,
     onViewChange
@@ -34,6 +36,26 @@ export function ResultsPanel({
 }) {
     const [filters, setFilters] = useOfferFilters();
     const [planOpen, showPlan, hidePlan] = usePlanView();
+
+    // recounted when the results or the filters change, not when the view does
+    const { filtered, languages, shops } = useMemo(() => {
+        const results = entries.flatMap((e) => (e.result ? [e.result] : []));
+        const filtered = entries.map((e) => {
+            const result = e.result && filterResult(e.result, filters);
+            return {
+                ...e,
+                result,
+                notFound: !!e.result && isNotFound(e.result),
+                hidden:
+                    (e.result?.links.length ?? 0) - (result?.links.length ?? 0)
+            };
+        });
+        return {
+            filtered,
+            languages: languageCounts(results),
+            shops: shopCounts(results)
+        };
+    }, [entries, filters]);
 
     // switching between the results and the plan starts the new one at its top, if that's scrolled away
     const top = useRef<HTMLDivElement>(null);
@@ -59,16 +81,6 @@ export function ResultsPanel({
             </div>
         );
 
-    const results = entries.flatMap((e) => (e.result ? [e.result] : []));
-    const filtered = entries.map((e) => {
-        const result = e.result && filterResult(e.result, filters);
-        return {
-            ...e,
-            result,
-            notFound: !!e.result && isNotFound(e.result),
-            hidden: (e.result?.links.length ?? 0) - (result?.links.length ?? 0)
-        };
-    });
     const notFound = filtered.filter((e) => e.notFound);
     const shown = filtered.filter((e) => !e.notFound);
 
@@ -83,8 +95,8 @@ export function ResultsPanel({
                     <OfferFilters
                         filters={filters}
                         onChange={setFilters}
-                        languages={languageCounts(results)}
-                        shops={shopCounts(results)}
+                        languages={languages}
+                        shops={shops}
                         onPlan={showPlan}
                     />
                     <ViewToggle view={view} onChange={onViewChange} />
@@ -122,4 +134,4 @@ export function ResultsPanel({
             </div>
         </>
     );
-}
+});

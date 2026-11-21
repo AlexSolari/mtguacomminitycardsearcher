@@ -1,5 +1,5 @@
 import type { CardResult } from '../../../search-result';
-import { languageCode, toPrice } from '../helpers';
+import { languageCode, toPrice, withEdition } from '../helpers';
 
 // One answer of manavaultstore.com's POST /api/v1/prices (`{"answers":[…]}`, one per name, the same as what
 // GET /api/v1/prices?q=… returns) — JSON, one row per printing × finish × condition × language, in stock only,
@@ -42,22 +42,18 @@ export function parseManavault(json: ManavaultAnswer): CardResult[] {
     return (json.results ?? []).flatMap((row) => {
         // a malformed row is skipped, not thrown on: it would take the card's other offers with it
         if (!row?.name || !row.url || !(Number(row.stock) > 0)) return [];
-        // "Sol Ring — New Capenna Commander #379, Etched": the edition goes after " — ", where isExactMatch cuts
-        // (the same shape as the other shops' names)
-        const edition = [
-            [row.setName, row.number && `#${row.number}`]
-                .filter(Boolean)
-                .join(' '),
-            row.etched && 'Etched',
-            row.altered && 'Altered',
-            row.signed && 'Signed'
-        ]
-            .filter(Boolean)
-            .join(', ');
         return [
             {
                 shop: 'manavault' as const,
-                name: edition ? `${row.name} — ${edition}` : row.name,
+                // "Sol Ring — New Capenna Commander #379, Etched"
+                name: withEdition(
+                    row.name,
+                    row.setName,
+                    row.number,
+                    row.etched && 'Etched',
+                    row.altered && 'Altered',
+                    row.signed && 'Signed'
+                ),
                 url: row.url,
                 image: row.image || null,
                 price: toPrice(row.price),

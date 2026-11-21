@@ -1,9 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 import {
     abs,
+    capitalize,
     decodeEntities,
+    isArtSeriesSet,
     languageCode,
-    toPrice
+    toPrice,
+    withEdition
 } from '@/server/parsers/helpers';
 
 describe('toPrice', () => {
@@ -75,4 +78,44 @@ describe('languageCode', () => {
     test.each(['Klingon', '', null, undefined])('%p → undefined', (input) => {
         expect(languageCode(input)).toBeUndefined();
     });
+});
+
+describe('withEdition', () => {
+    test('name — set #number, then the details, leaving out empty parts', () => {
+        expect(
+            withEdition('Sol Ring', 'Commander Masters', '1', 'Etched', false)
+        ).toBe('Sol Ring — Commander Masters #1, Etched');
+        expect(withEdition('Sol Ring', 'Fallout', 359)).toBe(
+            'Sol Ring — Fallout #359'
+        );
+        expect(withEdition('Boltwave', 'Foundations', null, 'Etched')).toBe(
+            'Boltwave — Foundations, Etched'
+        );
+        expect(withEdition('Opt', null, '12', null, 'Promo')).toBe(
+            'Opt — #12, Promo'
+        );
+        expect(withEdition('Opt', '', undefined, undefined, 'Promo')).toBe(
+            'Opt — Promo'
+        );
+    });
+
+    test('with no edition at all, the name is as it is', () => {
+        expect(withEdition('Opt', undefined)).toBe('Opt');
+        expect(withEdition('Opt', null, '', false, null)).toBe('Opt');
+    });
+});
+
+test('capitalize', () => {
+    expect(capitalize('etched')).toBe('Etched');
+    expect(capitalize('Showcase')).toBe('Showcase');
+    expect(capitalize('')).toBe('');
+});
+
+test('isArtSeriesSet: a set named "… Art Series", as a whole phrase', () => {
+    expect(isArtSeriesSet('Modern Horizons 3 Art Series')).toBe(true);
+    expect(isArtSeriesSet('art series: dominaria')).toBe(true);
+    expect(isArtSeriesSet('Commander Masters')).toBe(false);
+    expect(isArtSeriesSet('Smart Seriesless')).toBe(false);
+    expect(isArtSeriesSet(null)).toBe(false);
+    expect(isArtSeriesSet(undefined)).toBe(false);
 });
