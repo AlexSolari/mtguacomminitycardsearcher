@@ -54,6 +54,23 @@ describe('Batcher', () => {
         expect(batches).toEqual([[1, 2], [3, 4], [5]]);
     });
 
+    // as CartOn's query score: maxBatch caps the batch's total weight
+    test('weighed items fill each batch up to maxBatch, a lighter one passing a heavier one that would not fit', async () => {
+        const batches: number[][] = [];
+        const batcher = new Batcher<number, number>(
+            async (items) => {
+                batches.push(items);
+                return items;
+            },
+            10,
+            BATCH_WINDOW_MS,
+            (item) => item
+        );
+        await Promise.all([6, 5, 3, 4, 12].map((i) => batcher.add(i)));
+        // 12 is heavier than any batch may be, so it goes alone rather than never
+        expect(batches).toEqual([[6, 3], [5, 4], [12]]);
+    });
+
     test("the batch is sent with its own signal, not a caller's", async () => {
         const signals: AbortSignal[] = [];
         const batcher = new Batcher<string, string>(async (items, signal) => {

@@ -111,7 +111,7 @@ browser ──POST /api/search {cards:[…]}──▶ Bun server
 
 - **Rate limiting:** a deck fans out to (cards × shops) requests. Each searcher's own `ShopClient` spaces out its shop's requests so the shops don't rate-limit us (HTTP 429).
   The queues are shared by every user, so a request that would wait more than 30 s fails as "server busy", and each client has at most 6 cards at a time at each shop.
-  Each shop goes through a list at its own pace, so a slow shop doesn't hold back the others; the batched APIs (MTGin, Nerdik, Mana Vault) get the whole list at once.
+  Each shop goes through a list at its own pace, so a slow shop doesn't hold back the others; the batched APIs (MTGin, Nerdik, Mana Vault, CartOn) get the whole list at once.
 - **Streaming:** `/api/search` answers in NDJSON, a line per card each time one of its shops finishes, so a slow shop (Kartoteka) doesn't hold back the others; the card shows which shops are still searching.
 - **Filtering:** the server keeps only listings whose name contains the searched card. Shop search is fuzzy, so "Sol Ring" also matches "Soldier of the Grey Host".
 - **Grouping:** the browser groups the results.
@@ -160,7 +160,7 @@ src/
     outbound/               requests we send
       shop-client.ts        rate-limited fetch with timeout, one per shop
       circuit-breaker.ts    stops calling a shop that keeps failing, for 60 s
-      batcher.ts            many cards per request for the batched APIs (MTGin, Nerdik, Mana Vault)
+      batcher.ts            many cards per request for the batched APIs (MTGin, Nerdik, Mana Vault, CartOn)
       window-budget.ts      Mana Vault's 60-requests-a-minute budget
     http/                   requests we receive: per-client limits, body reading
     observability/          structured logs, spans, Sentry, unique visitor counts

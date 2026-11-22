@@ -15,7 +15,8 @@ export type SearchEntry = {
 };
 
 // Cards per request: the server's MAX_CARDS_PER_REQUEST. The server paces each shop itself (see ShopLimits in
-// search-route.ts), so a list is sent whole: batched shops (MTGin, Nerdik, Mana Vault) then look it all up at once.
+// search-route.ts), so a list is sent whole: batched shops (MTGin, Nerdik, Mana Vault, CartOn) then look it all up
+// at once.
 const CARDS_PER_REQUEST = 100;
 
 // The first few cards go in a request of their own, sent before the rest, so they reach the name lookup and the

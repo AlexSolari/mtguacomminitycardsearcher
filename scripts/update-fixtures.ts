@@ -8,7 +8,10 @@ import { LIST_SOURCES } from '@/server/lists/list-link';
 import { manaboxProps } from '@/server/lists/parsers/manabox';
 import { DECK_FIELD } from '@/server/lists/parsers/mtggoldfish';
 import { jsonEnd } from '@/server/parsers/scrapers/citadel';
-import { SEARCH_QUERY } from '@/server/searchers/carton-card-searcher';
+import {
+    cartonQuery,
+    NEXT_PAGE_PRODUCTS
+} from '@/server/searchers/carton-card-searcher';
 import { manavaultSource } from '@/server/searchers/manavault-card-searcher';
 import { ShopClient } from '@/server/outbound/shop-client';
 
@@ -27,25 +30,28 @@ const pick = (o: any, keys: string[]) =>
 // Counterspell has many printings in most shops, so it exercises the multi-printing paths.
 const CARD = 'Counterspell';
 
-// CartOn's API answers only the fields the query asks for, and SEARCH_QUERY asks for no seller details.
+// CartOn's API answers only the fields the query asks for, and cartonQuery asks for no seller details.
+// A next page (the larger kind) of one search, its alias saved as `products` for the parser test.
 const cartonKey = process.env.CARTON_API_KEY;
 if (cartonKey) {
     const carton = new ShopClient('https://carton.cards');
+    const answer = await carton.fetchJson<any>(carton.url('/graphql'), {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${cartonKey}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(
+            cartonQuery([
+                { search: CARD, after: null, first: NEXT_PAGE_PRODUCTS }
+            ])
+        )
+    });
+    if (!answer?.data?.c0)
+        throw new Error(`CartOn answered ${JSON.stringify(answer?.errors)}`);
     await save(
         'carton-search.json',
-        json(
-            await carton.fetchJson(carton.url('/graphql'), {
-                method: 'POST',
-                headers: {
-                    Authorization: `Bearer ${cartonKey}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    query: SEARCH_QUERY,
-                    variables: { search: CARD, after: null }
-                })
-            })
-        )
+        json({ data: { products: answer.data.c0 } })
     );
 } else
     console.warn('CARTON_API_KEY is not set, carton-search.json not updated');

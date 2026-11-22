@@ -28,9 +28,12 @@ export type SendBatch<T, R> = (
     signal: AbortSignal
 ) => Promise<(R | Error)[]>;
 
-// For APIs that take many lookups per request under a tight request budget (MTGin, Nerdik): items that arrive
-// together go out as one request of up to `maxBatch`, and only one request is in flight at a time. Whatever arrives
-// meanwhile waits and goes out as the next batch.
+// For APIs that take many lookups per request under a tight request budget (MTGin, Nerdik, CartOn): items that
+// arrive together go out as one request of up to `maxBatch`, and only one request is in flight at a time. Whatever
+// arrives meanwhile waits and goes out as the next batch.
+// `maxBatch` caps the batch's total `weight`, one per item by default. An API that limits what a request costs
+// rather than how many lookups it holds (CartOn's query score) weighs each item by its cost; a batch then takes the
+// waiting items in order, skipping any that would push it over, so a smaller item behind them can fill the gap.
 // Each caller can give up through its own signal: it leaves the next batch, or, once sent, the request is aborted
 // when nobody else in its batch is still waiting (which takes it out of the shop client's queue).
 export class Batcher<T, R> {
@@ -41,7 +44,8 @@ export class Batcher<T, R> {
     constructor(
         private readonly sendBatch: SendBatch<T, R>,
         private readonly maxBatch: number,
-        private readonly windowMs = BATCH_WINDOW_MS
+        private readonly windowMs = BATCH_WINDOW_MS,
+        private readonly weight: (item: T) => number = () => 1
     ) {}
 
     // An `urgent` item goes out at once (with whatever else is waiting) instead of waiting for the window.
@@ -92,8 +96,22 @@ export class Batcher<T, R> {
         }, this.windowMs);
     }
 
+    // The first waiting item always goes, even one heavier than `maxBatch`, so nothing waits forever.
+    private take() {
+        const taken: Entry<T, R>[] = [];
+        let total = 0;
+        this.pending = this.pending.filter((entry) => {
+            const weight = this.weight(entry.item);
+            if (taken.length > 0 && total + weight > this.maxBatch) return true;
+            taken.push(entry);
+            total += weight;
+            return false;
+        });
+        return taken;
+    }
+
     private async send() {
-        const entries = this.pending.splice(0, this.maxBatch);
+        const entries = this.take();
         if (entries.length === 0) return;
         this.sending = true;
         const batch: Batch = {
