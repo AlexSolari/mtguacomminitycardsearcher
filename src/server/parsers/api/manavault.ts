@@ -1,5 +1,5 @@
-import type { CardResult } from '../../../search-result';
-import { languageCode, toPrice, withEdition } from '../helpers';
+import type { CardResult } from '@/shared/search-result';
+import { languageCode, toPrice, withEdition } from '@/server/parsers/helpers';
 
 // One answer of manavaultstore.com's POST /api/v1/prices (`{"answers":[…]}`, one per name, the same as what
 // GET /api/v1/prices?q=… returns) — JSON, one row per printing × finish × condition × language, in stock only,

@@ -11,11 +11,11 @@ import {
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { formatCardList } from '@/decklist';
+import { formatCardList } from '@/lib/decklist';
 import { useDeckImport, type ImportNote } from '@/hooks/use-deck-import';
 import { useFileDrop } from '@/hooks/use-file-drop';
 import { MAX_SEARCH_CARDS } from '@/hooks/use-card-search';
-import { CARDS, plural } from '@/i18n';
+import { CARDS, plural } from '@/shared/i18n';
 
 const DECK_FILE_ACCEPT = '.txt,.dec,.dek,.csv,.mwDeck,text/plain,text/csv';
 

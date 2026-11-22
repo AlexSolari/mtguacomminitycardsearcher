@@ -3,7 +3,7 @@
 // what must hold whatever the shop lists. After refreshing the fixtures, review the diff and accept it with
 // `bun test --update-snapshots`.
 import { expect } from 'bun:test';
-import type { CardResult } from '@/search-result';
+import type { CardResult } from '@/shared/search-result';
 
 const fixture = (name: string) =>
     Bun.file(new URL(`../../fixtures/${name}`, import.meta.url));

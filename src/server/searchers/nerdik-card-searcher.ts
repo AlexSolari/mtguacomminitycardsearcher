@@ -2,11 +2,11 @@ import {
     parseNerdik,
     type NerdikBatchResponse,
     type NerdikResult
-} from '../parsers/api/nerdik';
-import type { CardResult } from '../../search-result';
-import { Batcher, pairAnswers } from '../batcher';
-import type { CardSearcher } from '../card-searcher';
-import { ShopClient } from '../shop-client';
+} from '@/server/parsers/api/nerdik';
+import type { CardResult } from '@/shared/search-result';
+import { Batcher, pairAnswers } from '@/server/outbound/batcher';
+import type { CardSearcher } from '@/server/search/card-searcher';
+import { ShopClient } from '@/server/outbound/shop-client';
 
 // The API takes up to 100 names per request.
 const MAX_BATCH = 100;

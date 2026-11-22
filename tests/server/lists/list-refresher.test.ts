@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
-import type { IndexedCard } from '@/server/card-index';
+import type { IndexedCard } from '@/server/search/card-index';
 import { openDatabase } from '@/server/db/database';
 import { ListStore, type StoredCard } from '@/server/db/list-store';
 import { UserStore, type User } from '@/server/db/user-store';

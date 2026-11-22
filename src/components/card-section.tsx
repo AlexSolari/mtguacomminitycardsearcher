@@ -7,15 +7,15 @@ import {
     SearchX
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { OFFERS, plural } from '@/i18n';
-import { offerKey, splitMatches } from '@/results';
+import { OFFERS, plural } from '@/shared/i18n';
+import { offerKey, splitMatches } from '@/lib/results';
 import type {
     CardResult,
     OfferGroup,
     SearchError,
     SearchResult
-} from '@/search-result';
-import { manualSearchUrl, SHOP_INFO } from '@/shops';
+} from '@/shared/search-result';
+import { manualSearchUrl, SHOP_INFO } from '@/shared/shops';
 import { formatPrice } from '@/components/offer-parts';
 import { ResultTable } from '@/components/result-table';
 import { ManualCheckTile, ResultTile } from '@/components/result-tile';

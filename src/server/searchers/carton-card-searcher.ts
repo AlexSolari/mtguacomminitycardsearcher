@@ -1,8 +1,8 @@
-import { parseCarton, type CartonProduct } from '../parsers/api/carton';
-import { isExactMatch } from '../../matching';
-import type { CardResult } from '../../search-result';
-import { warnFallback, type CardSearcher } from '../card-searcher';
-import { ShopClient, ShopRequestError } from '../shop-client';
+import { parseCarton, type CartonProduct } from '@/server/parsers/api/carton';
+import { isExactMatch } from '@/shared/matching';
+import type { CardResult } from '@/shared/search-result';
+import { warnFallback, type CardSearcher } from '@/server/search/card-searcher';
+import { ShopClient, ShopRequestError } from '@/server/outbound/shop-client';
 
 // CartOn's GraphQL API scores each query and refuses any over 500. Every field counts 1; in `products(first: P)`
 // each product's fields count P times, and inside a product's `offers(first: O)` everything, `nodes` included,

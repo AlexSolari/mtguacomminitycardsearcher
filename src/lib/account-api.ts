@@ -7,9 +7,9 @@ import type {
     MyList,
     MyLists,
     SubmittedLists
-} from '@/account';
+} from '@/shared/account';
 
-// The account and lists API (server/auth/auth-route.ts, server/lists-route.ts). A failed request throws
+// The account and lists API (server/auth/auth-route.ts, server/lists/lists-route.ts). A failed request throws
 // ApiError, whose `code` is the server's `error` when it sent one.
 
 export class ApiError extends Error {

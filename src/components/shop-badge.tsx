@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { SHOP_INFO, type ShopId } from '@/shops';
+import { SHOP_INFO, type ShopId } from '@/shared/shops';
 
 export function ShopBadge({
     shop,

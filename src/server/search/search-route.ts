@@ -1,0 +1,351 @@
+import { SpanKind, SpanStatusCode, type Span } from '@opentelemetry/api';
+import { normalize } from '@/shared/matching';
+import type { SearchResult, SearchUpdate } from '@/shared/search-result';
+import type { ShopLimit } from '@/server/search/card-search-service';
+import type { InFlightLimiter } from '@/server/http/in-flight-limiter';
+import { logger } from '@/server/observability/logger';
+import type { NameResolver, ResolvedName } from '@/server/search/name-resolver';
+import {
+    RateLimiter,
+    tooManyRequests,
+    type Bucket
+} from '@/server/http/rate-limiter';
+import {
+    countOnSpan,
+    endSpan,
+    requestContext,
+    tracer
+} from '@/server/observability/tracing';
+import { VisitorIds } from '@/server/observability/visitor-id';
+
+// The frontend sends its whole list at once, in requests of up to this many cards.
+export const MAX_CARDS_PER_REQUEST = 100;
+
+// A long list logs only its first few names; `count` has the rest.
+const LOGGED_NAMES = 5;
+
+// The longest card name is 141 characters ("Our Market Research Shows That Players Like Really Long Card Names…").
+export const MAX_NAME_LENGTH = 150;
+// No card name uses these; they turn up in scanners' injection probes (`{"$ne": null}`, `<machineKey …>`).
+const NOT_IN_NAMES = /[{}<>$=]/;
+
+// Whether a name could be a card. Anything else is dropped before it reaches the shops: in a batched API (MTGin,
+// Nerdik) a name the shop rejects costs extra requests to isolate (see Batcher).
+// `normalize` leaves nothing of a name with nothing searchable ("!!!" would otherwise match every listing).
+export function isSearchableName(name: string) {
+    return (
+        name.length <= MAX_NAME_LENGTH &&
+        !NOT_IN_NAMES.test(name) &&
+        normalize(name) !== ''
+    );
+}
+
+type CardSearch = {
+    search(
+        card: string,
+        signal?: AbortSignal,
+        onUpdate?: (partial: SearchResult) => void,
+        fullName?: string,
+        limit?: ShopLimit,
+        urgent?: boolean
+    ): Promise<SearchResult>;
+};
+
+// A request this short is a search's first cards (the frontend sends them ahead of the rest): batched shops send
+// them at once rather than waiting for their batch window.
+const URGENT_MAX = 2;
+
+// How many cards one client may have at one shop at once, across all its requests; the rest wait their turn.
+// A card's shops don't wait on each other: a client's list goes through each shop at that shop's own pace, so a slow
+// shop (Kartoteka) doesn't hold back the others. The shop queues are shared by every user,
+// so a client's long list takes turns with everyone else's cards instead of filling them.
+// Batched shops (see CardSearcher) get a much higher cap: the more of a list they get at once, the fewer requests.
+export type ShopLimits = { shops: InFlightLimiter; batched: InFlightLimiter };
+
+// Cards one client may search over time (see RateLimiter), cached or not: a few whole lists in a row, then about
+// one every 20 s, and 3000 an hour. Searching made-up names misses every cache and spends the budgets all users
+// share, so a script has to be held to what a person editing a list does.
+export const SEARCH_BUCKETS: Bucket[] = [
+    { capacity: 300, refillMs: 60_000 },
+    { capacity: 3000, refillMs: 3_600_000 }
+];
+// Cards one client may have accepted and not yet finished, across its requests. InFlightLimiter holds the rest of a
+// list back, but would queue any number of them; a new search cancels the last, so a person needs about one list.
+export const MAX_PENDING_CARDS = 3 * MAX_CARDS_PER_REQUEST;
+
+export type ClientLimits = { rate: RateLimiter; maxPendingCards: number };
+
+// Behind a proxy (Railway) every connection comes from the proxy, so the client is the address the proxy
+// appended last to X-Forwarded-For. Earlier entries are whatever the client sent, so they can't be trusted.
+// `peer` is the connection's own address, used when there's no proxy.
+// The limits are per client, so an IPv6 client is its /64 (see clientKey).
+export function clientId(req: Request, peer: string | undefined) {
+    const forwarded = req.headers.get('x-forwarded-for');
+    const last = forwarded?.split(',').at(-1)?.trim();
+    return clientKey(last || peer || 'unknown');
+}
+
+// An IPv6 address's first 64 bits: an ISP hands each customer a /64 (or more), so its owner can pick a new address
+// in it for every request, and limits keyed on the whole address wouldn't hold. An IPv4-mapped address is its IPv4;
+// anything that doesn't parse is kept as it is.
+export function clientKey(address: string): string {
+    if (!address.includes(':')) return address;
+    const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/i.exec(address);
+    if (mapped) return mapped[1]!;
+    const parts = address.replace(/%.*$/, '').toLowerCase().split('::');
+    if (parts.length > 2) return address;
+    const head = parts[0] ? parts[0].split(':') : [];
+    const tail = parts[1] ? parts[1].split(':') : [];
+    // `::` stands for at least one group of zeros
+    if (parts.length === 2 && head.length + tail.length > 7) return address;
+    const groups =
+        parts.length === 2
+            ? [
+                  ...head,
+                  ...Array<string>(8 - head.length - tail.length).fill('0'),
+                  ...tail
+              ]
+            : head;
+    if (groups.length !== 8 || !groups.every((g) => /^[0-9a-f]{1,4}$/.test(g)))
+        return address;
+    return `${groups
+        .slice(0, 4)
+        .map((g) => parseInt(g, 16).toString(16))
+        .join(':')}::/64`;
+}
+
+// POST /api/search {cards: string[]} → NDJSON, one SearchUpdate per line. Each card gets a line every time one of
+// its shops finishes, so a slow shop (Kartoteka) doesn't hold back the others; the card's last line has no `pending`.
+// Lines come in whatever order the shops finish, so each carries the card's index in `cards`.
+// Each card fans out to every shop, through `limits` (see ShopLimits). `req.signal` aborts when the client
+// disconnects (closed tab, a new search), which cancels the searches and ends the stream.
+// The names go through `names` first, so a misspelled or shortened name ("overlord balemurk") is searched under
+// the card's real name; the result's `card` is then that name, and `typed` keeps what was sent.
+// A name that can't be a card (see isSearchableName) isn't searched; it gets an empty result at once.
+// A client over its limits (see ClientLimits) gets a 429 with Retry-After, and nothing is searched.
+export function searchHandler(
+    cardSearch: CardSearch,
+    limits: ShopLimits,
+    names: NameResolver = {
+        resolve: async (card) => ({ name: card, fullName: card })
+    },
+    visitors = new VisitorIds(),
+    clientLimits: ClientLimits = {
+        rate: new RateLimiter(SEARCH_BUCKETS),
+        maxPendingCards: MAX_PENDING_CARDS
+    }
+) {
+    // per client, the cards accepted and not yet finished; a client is dropped at 0
+    const pending = new Map<string, number>();
+    const release = (client: string, count: number) => {
+        const left = (pending.get(client) ?? 0) - count;
+        if (left > 0) pending.set(client, left);
+        else pending.delete(client);
+    };
+
+    const respond = async (
+        req: Request,
+        client: string,
+        span: Span
+    ): Promise<Response> => {
+        const limit: ShopLimit = (searcher, run) =>
+            (searcher.batched ? limits.batched : limits.shops).run(
+                `${client}\n${searcher.shop}`,
+                run,
+                req.signal
+            );
+        const searchCard = async (
+            card: string,
+            resolved: Promise<ResolvedName>,
+            onUpdate: (partial: SearchResult) => void
+        ): Promise<SearchResult> => {
+            const { name, fullName, foundBy } = await resolved;
+            const withTyped = (result: SearchResult) =>
+                name === card ? result : { ...result, typed: card };
+            // separate messages, so how many corrections still cost a Scryfall request can be counted. The span
+            // counts them too, since a count of Scryfall's request spans would also take in the traders' list
+            // prices, lookups that found nothing, and collection requests that place many names at once.
+            if (name !== card) {
+                countOnSpan(
+                    span,
+                    foundBy === 'index'
+                        ? 'search.names_corrected_index'
+                        : 'search.names_corrected_scryfall'
+                );
+                logger.info(
+                    foundBy === 'index'
+                        ? 'name corrected locally'
+                        : 'name corrected via scryfall',
+                    { typed: card, card: name }
+                );
+            }
+            return withTyped(
+                await cardSearch.search(
+                    name,
+                    req.signal,
+                    (partial) => onUpdate(withTyped(partial)),
+                    fullName,
+                    limit,
+                    urgent
+                )
+            );
+        };
+        const body = (await req.json().catch(() => null)) as {
+            cards?: unknown[];
+        } | null;
+        const entries = Array.isArray(body?.cards) ? body.cards : [];
+        // each card keeps its index in the request, which its lines carry
+        const sent = entries.flatMap((c, index) =>
+            typeof c === 'string' ? [{ card: c.trim(), index }] : []
+        );
+        const skipped = sent.filter((c) => !isSearchableName(c.card));
+        const searched = sent.filter((c) => isSearchableName(c.card));
+        const cards = searched.map((c) => c.card);
+        const urgent = cards.length <= URGENT_MAX;
+        logger.info('search', {
+            cards: cards.slice(0, LOGGED_NAMES),
+            count: cards.length
+        });
+        // One string rather than an array attribute, so a Sentry table widget can show it as a column.
+        // Every name, unlike the log line; MAX_CARDS_PER_REQUEST × MAX_NAME_LENGTH bounds it at ~15 KB.
+        span.setAttributes({
+            'search.cards': cards.join('; '),
+            'search.card_count': cards.length,
+            'visitor.id': visitors.id(client, req.headers.get('user-agent'))
+        });
+        // Counted before skipping: skipped names cost no tokens, so they'd otherwise make a request of any length.
+        // The frontend never sends more entries than this, searchable or not.
+        if (entries.length > MAX_CARDS_PER_REQUEST) {
+            endSpan(span, { status: 400 });
+            return Response.json(
+                { error: `Too many cards (max ${MAX_CARDS_PER_REQUEST})` },
+                { status: 400 }
+            );
+        }
+        // pending first: a request turned away for it shouldn't also spend the client's tokens
+        const busy = (pending.get(client) ?? 0) + cards.length;
+        const taken =
+            busy > clientLimits.maxPendingCards
+                ? ({ ok: false, retryAfterMs: 1000 } as const)
+                : clientLimits.rate.take(client, cards.length);
+        if (!taken.ok) {
+            const retryAfter = Math.ceil(taken.retryAfterMs / 1000);
+            // the visitor id on the span tells which client; the IP is never logged
+            logger.warn('search refused', {
+                reason:
+                    busy > clientLimits.maxPendingCards ? 'pending' : 'rate',
+                count: cards.length,
+                retryAfter
+            });
+            span.setAttribute('search.refused_retry_after', retryAfter);
+            endSpan(span, { status: 429 });
+            return tooManyRequests(taken.retryAfterMs, {
+                error: 'Too many searches',
+                retryAfter
+            });
+        }
+        pending.set(client, busy);
+
+        const encoder = new TextEncoder();
+        const stream = new ReadableStream<Uint8Array>({
+            async start(controller) {
+                // the cards are pending until the search ends, finished or cancelled
+                try {
+                    await streamResults(controller);
+                } finally {
+                    release(client, cards.length);
+                }
+            }
+        });
+        return new Response(stream, {
+            headers: {
+                'Content-Type': 'application/x-ndjson; charset=utf-8',
+                'Cache-Control': 'no-store'
+            }
+        });
+
+        // a function declaration, so it's hoisted: `start` runs while the stream is being constructed
+        async function streamResults(
+            controller: ReadableStreamDefaultController<Uint8Array>
+        ) {
+            const send = (update: SearchUpdate) => {
+                if (req.signal.aborted) return;
+                try {
+                    controller.enqueue(
+                        encoder.encode(JSON.stringify(update) + '\n')
+                    );
+                } catch {
+                    // the client went away mid-write; the abort cancels the rest
+                }
+            };
+            for (const { card, index } of skipped)
+                send({ index, result: { card, links: [], errors: [] } });
+            const resolved = names.resolveAll
+                ? names.resolveAll(cards, req.signal)
+                : cards.map((card) => names.resolve(card, req.signal));
+            await Promise.all(
+                searched.map(async ({ card, index }, i) => {
+                    try {
+                        const result = await searchCard(
+                            card,
+                            resolved[i]!,
+                            (partial) => send({ index, result: partial })
+                        );
+                        send({ index, result });
+                    } catch (err) {
+                        if (req.signal.aborted) return;
+                        const message = (err as Error).message;
+                        // the status line is long gone, so the failure is reported as the card's result
+                        logger.error('card search failed', {
+                            card,
+                            error: err
+                        });
+                        span.addEvent('card search failed', {
+                            card,
+                            'exception.message': message
+                        });
+                        span.setStatus({ code: SpanStatusCode.ERROR });
+                        send({
+                            index,
+                            result: {
+                                card,
+                                links: [],
+                                errors: [{ message }]
+                            }
+                        });
+                    }
+                })
+            );
+            endSpan(span, { status: 200, signal: req.signal });
+            try {
+                controller.close();
+            } catch {
+                // already cancelled by the client
+            }
+        }
+    };
+
+    // The span covers the whole search, so it ends when the stream does (see `start` above), not when the Response
+    // is returned: the cards are searched inside the stream, after the status line has gone out. Spans the
+    // search starts (name resolution, shop requests) are its children, since the stream starts in its context.
+    return (req: Request, client: string): Promise<Response> =>
+        tracer.startActiveSpan(
+            'POST /api/search',
+            {
+                kind: SpanKind.SERVER,
+                attributes: {
+                    'http.request.method': 'POST',
+                    'url.path': '/api/search'
+                }
+            },
+            requestContext(req),
+            async (span) => {
+                try {
+                    return await respond(req, client, span);
+                } catch (error) {
+                    endSpan(span, { error, signal: req.signal });
+                    throw error;
+                }
+            }
+        );
+}

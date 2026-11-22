@@ -1,7 +1,7 @@
 import { Fragment } from 'react';
 import { ExternalLink } from 'lucide-react';
-import type { ListRefreshError, ListSource, MyList } from '@/account';
-import { CARDS, plural } from '@/i18n';
+import type { ListRefreshError, ListSource, MyList } from '@/shared/account';
+import { CARDS, plural } from '@/shared/i18n';
 
 export const SOURCE_LABELS: Record<ListSource, string> = {
     mtggoldfish: 'MTGGoldfish',

@@ -4,9 +4,9 @@ import { Hourglass, ImageOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TelegramIcon } from '@/components/icons';
 import { useNearViewport } from '@/hooks/use-near-viewport';
-import { BIDS, plural } from '@/i18n';
-import { sellerUah } from '@/results';
-import type { AuctionInfo, CardResult } from '@/search-result';
+import { BIDS, plural } from '@/shared/i18n';
+import { sellerUah } from '@/lib/results';
+import type { AuctionInfo, CardResult } from '@/shared/search-result';
 
 export const formatPrice = (price: number) =>
     `${price.toLocaleString('uk-UA')} ₴`;

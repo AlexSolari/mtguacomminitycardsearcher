@@ -1,7 +1,7 @@
-import { parseKartoteka } from '../parsers/scrapers/kartoteka';
-import type { CardResult } from '../../search-result';
-import { warnIfEmpty, type CardSearcher } from '../card-searcher';
-import { ShopClient } from '../shop-client';
+import { parseKartoteka } from '@/server/parsers/scrapers/kartoteka';
+import type { CardResult } from '@/shared/search-result';
+import { warnIfEmpty, type CardSearcher } from '@/server/search/card-searcher';
+import { ShopClient } from '@/server/outbound/shop-client';
 
 export class KartotekaCardSearcher implements CardSearcher {
     readonly shop = 'kartoteka';

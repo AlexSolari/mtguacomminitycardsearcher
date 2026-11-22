@@ -1,4 +1,4 @@
-import type { OfferClick } from '@/search-result';
+import type { OfferClick } from '@/shared/search-result';
 
 // Tells the server which offer was opened (see click-route.ts). sendBeacon hands the request to the browser, so it
 // never delays the link and isn't cancelled when the shop's tab opens. Best effort: a failure is ignored.

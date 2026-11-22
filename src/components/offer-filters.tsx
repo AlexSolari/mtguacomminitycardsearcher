@@ -13,8 +13,8 @@ import {
     NO_FILTERS,
     type FoilFilter,
     type OfferFilters as Filters
-} from '@/filters';
-import { SHOP_INFO, type ShopId } from '@/shops';
+} from '@/lib/filters';
+import { SHOP_INFO, type ShopId } from '@/shared/shops';
 
 const group =
     'inline-flex items-center rounded-lg border bg-card/60 p-0.5 backdrop-blur';

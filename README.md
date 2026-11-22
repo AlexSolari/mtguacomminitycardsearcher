@@ -123,38 +123,51 @@ browser ──POST /api/search {cards:[…]}──▶ Bun server
 src/
   index.ts                  Bun server: /api/search, /api/click, sign-in and lists, serves the frontend
   instrumentation.ts        OpenTelemetry / Sentry setup, preloaded by `bun start`
-  shops.ts                  shop list (used by server and browser)
-  search-result.ts          API result types (used by server and browser)
-  account.ts                sign-in and lists API types (used by server and browser)
-  matching.ts               card name matching (used by server and browser)
-  decklist.ts, deckfile.ts  card list / deck file parsing, with counts (browser)
-  results.ts                grouping offers per card, best price, the cheapest total (browser)
-  i18n.ts                   Ukrainian plural forms
-  theme.ts                  light / dark theme choice
+  index.html, frontend.tsx  the browser entry; frontend.tsx picks the page by path
+  App.tsx                   the search page
+  shared/                   used by both server and browser
+    shops.ts                shop list
+    search-result.ts        API result types
+    account.ts              sign-in and lists API types
+    matching.ts             card name matching
+    i18n.ts                 Ukrainian plural forms
+  components/               UI (card-section.tsx renders a card's results, search-summary.tsx the totals,
+                            order-planner.tsx the cheapest order, lists-page.tsx and admin-page.tsx the
+                            traders' and moderators' pages); ui/ holds the shadcn primitives
+  hooks/                    search, deck import, drag-and-drop, filters, theme, account
+  lib/                      browser logic
+    decklist.ts, deckfile.ts  card list / deck file parsing, with counts
+    results.ts              grouping offers per card, best price, the cheapest total
+    filters.ts              offer filters (shops, foil, language, condition…)
+    order-plan.ts           which shops to buy each card from
+    search-url.ts           shareable search URLs
+    report-click.ts         click reporting
+    account-api.ts          the account and lists API client
+    usd-rate.ts, theme.ts, near-viewport.ts, utils.ts
   server/
-    search-route.ts         POST /api/search: input checks, per-client limit, NDJSON streaming
-    click-route.ts          POST /api/click: records which offer a user opened
-    name-resolver.ts        resolves each typed name to the card's name: card-index.ts first, then Scryfall's API
-    card-index.ts           local card name lookup, from card-names.json (scripts/update-card-names.ts)
-    shop-client.ts          rate-limited fetch with timeout, one per shop
-    card-search-service.ts  searches all shops for one card
-    cached-card-searcher.ts result cache
-    batcher.ts              many cards per request for the batched APIs (MTGin, Nerdik, Mana Vault)
-    window-budget.ts        Mana Vault's 60-requests-a-minute budget
-    logger.ts, tracing.ts   structured logs, spans
+    search/
+      search-route.ts       POST /api/search: input checks, per-client limit, NDJSON streaming
+      click-route.ts        POST /api/click: records which offer a user opened
+      card-search-service.ts  searches all shops for one card
+      cached-card-searcher.ts result cache
+      card-searcher.ts      the interface each shop's searcher implements
+      name-resolver.ts      resolves each typed name to the card's name: card-index.ts first, then Scryfall's API
+      card-index.ts         local card name lookup, from card-names.json (scripts/update-card-names.ts)
     searchers/              one per shop: which URLs to fetch; trader-list-searcher.ts reads traders' lists
     parsers/                one per shop: turns a response into CardResult[]
       api/                  JSON APIs (MTGin, CartOn, Nerdik, PayToWin, Magic Swamp, Mana Vault)
       scrapers/             HTML search pages (Citadel, Kartoteka)
+    outbound/               requests we send
+      shop-client.ts        rate-limited fetch with timeout, one per shop
+      circuit-breaker.ts    stops calling a shop that keeps failing, for 60 s
+      batcher.ts            many cards per request for the batched APIs (MTGin, Nerdik, Mana Vault)
+      window-budget.ts      Mana Vault's 60-requests-a-minute budget
+    http/                   requests we receive: per-client limits, body reading
+    observability/          structured logs, spans, Sentry, unique visitor counts
     auth/                   Telegram sign-in (OpenID Connect) and sessions
     db/                     SQLite: users, sessions, lists, their cards, cached prices
-    lists/                  traders' lists: links, parsers (MTGGoldfish, ManaBox, Moxfield), nightly refresh, Scryfall prices
-    lists-route.ts          /api/lists and /api/admin: a trader's lists, moderation
-  App.tsx                   the search page; frontend.tsx picks the page by path
-  components/               UI (card-section.tsx renders a card's results, search-summary.tsx the totals,
-                            lists-page.tsx and admin-page.tsx the traders' and moderators' pages)
-  hooks/                    search, deck import, drag-and-drop, theme
-  lib/                      shareable search URLs, click reporting
+    lists/                  traders' lists: /api/lists and /api/admin, links, parsers (MTGGoldfish, ManaBox,
+                            Moxfield), nightly refresh, Scryfall prices, moderators' notifications
 ```
 
 ## Contributing

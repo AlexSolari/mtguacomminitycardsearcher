@@ -2,12 +2,12 @@ import { useId, useMemo, useState } from 'react';
 import { ArrowLeft, ExternalLink, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { clickReporters } from '@/lib/report-click';
-import { CARDS, plural, SHOPS } from '@/i18n';
+import { CARDS, plural, SHOPS } from '@/shared/i18n';
 import {
     filterResult,
     languageCounts,
     type OfferFilters as Filters
-} from '@/filters';
+} from '@/lib/filters';
 import {
     planCards,
     planOptions,
@@ -20,10 +20,10 @@ import {
     type PlanOption,
     type ShopOrder,
     type TraderMatch
-} from '@/order-plan';
-import { isComplete, offerKey } from '@/results';
-import type { CardResult } from '@/search-result';
-import { SHOP_IDS, SHOP_INFO, type ShopId } from '@/shops';
+} from '@/lib/order-plan';
+import { isComplete, offerKey } from '@/lib/results';
+import type { CardResult } from '@/shared/search-result';
+import { SHOP_IDS, SHOP_INFO, type ShopId } from '@/shared/shops';
 import type { SearchEntry } from '@/hooks/use-card-search';
 import { Stat, WarningChip } from '@/components/stat';
 import { TelegramIcon } from '@/components/icons';

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { SHOP_INFO } from '@/shops';
+import { SHOP_INFO } from '@/shared/shops';
 import { parsePaytowin } from '@/server/parsers/api/paytowin';
 import { expectWellFormed, json } from '../parser-fixtures';
 

@@ -4,7 +4,7 @@ import {
     parseThemePreference,
     resolveTheme,
     type ThemePreference
-} from '@/theme';
+} from '@/lib/theme';
 
 const DARK_QUERY = '(prefers-color-scheme: dark)';
 

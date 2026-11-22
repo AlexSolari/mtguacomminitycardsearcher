@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { AuthState } from '@/account';
+import type { AuthState } from '@/shared/account';
 import { fetchAuth } from '@/lib/account-api';
 
 // Who's signed in: undefined while asking, null if the server couldn't be reached.

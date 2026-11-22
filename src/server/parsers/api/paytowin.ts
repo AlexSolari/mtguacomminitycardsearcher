@@ -1,6 +1,6 @@
-import type { CardResult } from '../../../search-result';
-import { SHOP_INFO } from '../../../shops';
-import { asString, languageCode, toPrice } from '../helpers';
+import type { CardResult } from '@/shared/search-result';
+import { SHOP_INFO } from '@/shared/shops';
+import { asString, languageCode, toPrice } from '@/server/parsers/helpers';
 
 const CONDITIONS: Record<string, string> = {
     mint: 'M',

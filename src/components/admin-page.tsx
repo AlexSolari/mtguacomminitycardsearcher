@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { RefreshCw, Search } from 'lucide-react';
-import type { ListStatus } from '@/account';
+import type { ListStatus } from '@/shared/account';
 import { ModeratedListItem, type Act } from '@/components/moderated-list-item';
 import {
     Loading,
@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAccount } from '@/hooks/use-account';
 import { useLoader } from '@/hooks/use-loader';
-import { LISTS, plural } from '@/i18n';
+import { LISTS, plural } from '@/shared/i18n';
 import {
     ApiError,
     fetchQueue,

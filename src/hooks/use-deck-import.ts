@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { DeckFileError, deckFileToCards } from '@/deckfile';
-import { formatCardList, parseCardList, type CardEntry } from '@/decklist';
-import { CARDS, FILES, plural } from '@/i18n';
+import { DeckFileError, deckFileToCards } from '@/lib/deckfile';
+import { formatCardList, parseCardList, type CardEntry } from '@/lib/decklist';
+import { CARDS, FILES, plural } from '@/shared/i18n';
 
 export type ImportNote = { ok: boolean; text: string };
 

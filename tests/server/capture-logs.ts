@@ -3,7 +3,7 @@ import {
     configureLogger,
     type LogConfig,
     type LogRecord
-} from '@/server/logger';
+} from '@/server/observability/logger';
 
 // Call at the top of a test file: each test's log records collect in the returned array instead of being written,
 // at every level, and the logger's config is restored after the test.

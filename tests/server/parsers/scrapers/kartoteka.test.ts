@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { SHOP_INFO } from '@/shops';
+import { SHOP_INFO } from '@/shared/shops';
 import { parseKartoteka } from '@/server/parsers/scrapers/kartoteka';
 import { expectWellFormed, html } from '../parser-fixtures';
 

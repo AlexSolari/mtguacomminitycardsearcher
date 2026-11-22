@@ -10,7 +10,7 @@ import {
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
 import * as Sentry from '@sentry/node-core/light';
 import { otlpIntegration } from '@sentry/node-core/light/otlp';
-import { sentryOtlpTraces } from './server/sentry-otlp';
+import { sentryOtlpTraces } from '@/server/observability/sentry-otlp';
 
 // Loaded with `bun --preload` (see the start script). Each part starts only when its environment variable is set,
 // so dev and tests are unaffected: with neither, no SDK starts and the spans created in the code are no-ops.

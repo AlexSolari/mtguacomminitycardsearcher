@@ -1,5 +1,5 @@
-import { ShopClient } from '../shop-client';
-import { IdTokenError, Jwks, verifyIdToken } from './id-token';
+import { ShopClient } from '@/server/outbound/shop-client';
+import { IdTokenError, Jwks, verifyIdToken } from '@/server/auth/id-token';
 
 // "Log in with Telegram" over OpenID Connect: the authorization code flow with PKCE, done by the server
 // (https://core.telegram.org/bots/telegram-login). The bot is set up in @BotFather → Login Widget, which gives the

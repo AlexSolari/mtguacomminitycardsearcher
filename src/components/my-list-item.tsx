@@ -1,5 +1,5 @@
 import { Trash2 } from 'lucide-react';
-import type { MyList } from '@/account';
+import type { MyList } from '@/shared/account';
 import { ListName, ListStatusLine } from '@/components/list-parts';
 import { RateField } from '@/components/rate-field';
 import { Button } from '@/components/ui/button';

@@ -4,7 +4,7 @@
 import { existsSync } from 'fs';
 import { rm } from 'fs/promises';
 import path from 'path';
-import { SHOP_INFO } from '../src/shops';
+import { SHOP_INFO } from '@/shared/shops';
 
 const candidates = [
     process.env.CHROME_PATH,

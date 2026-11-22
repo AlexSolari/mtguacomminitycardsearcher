@@ -1,4 +1,4 @@
-import type { CardResult } from '../../../search-result';
+import type { CardResult } from '@/shared/search-result';
 import {
     abs,
     capitalize,
@@ -6,7 +6,7 @@ import {
     languageCode,
     toPrice,
     withEdition
-} from '../helpers';
+} from '@/server/parsers/helpers';
 
 // magicswamp.com.ua/api/listings/grouped/cards?game=mtg&search=… — a marketplace of private sellers. One entry per
 // printing, with every seller's offer for it:

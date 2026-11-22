@@ -1,6 +1,6 @@
 // Sellers' exchange rates (UAH per USD), as typed on /lists.
 
-// The server's bounds (MIN_USD_RATE, MAX_USD_RATE in server/lists-route.ts), checked here too so a typo is caught
+// The server's bounds (MIN_USD_RATE, MAX_USD_RATE in server/lists/lists-route.ts), checked here too so a typo is caught
 // before it's sent.
 export const MIN_RATE = 1;
 export const MAX_RATE = 1000;

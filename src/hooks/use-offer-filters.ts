@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { parseFilters, type OfferFilters } from '@/filters';
+import { parseFilters, type OfferFilters } from '@/lib/filters';
 
 // The results' filters, remembered per browser like the view (a convenience, not something to rely on).
 const FILTERS_KEY = 'searcher:filters';

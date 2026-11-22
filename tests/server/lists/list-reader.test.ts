@@ -5,7 +5,7 @@ import {
     MAX_LIST_ROWS
 } from '@/server/lists/list-reader';
 import type { ListSource } from '@/server/lists/list-link';
-import { HttpError, ShopClient } from '@/server/shop-client';
+import { HttpError, ShopClient } from '@/server/outbound/shop-client';
 import { captureLogs } from '../capture-logs';
 import { html } from '../parsers/parser-fixtures';
 

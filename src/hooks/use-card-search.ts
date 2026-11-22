@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import type { CardEntry } from '@/decklist';
-import { tooManySearches } from '@/i18n';
-import { isComplete } from '@/results';
-import type { SearchResult, SearchUpdate } from '@/search-result';
+import type { CardEntry } from '@/lib/decklist';
+import { tooManySearches } from '@/shared/i18n';
+import { isComplete } from '@/lib/results';
+import type { SearchResult, SearchUpdate } from '@/shared/search-result';
 
 // One entry per searched card, in list order. The whole list goes in one request (or a few, for a long list), and
 // the server streams each card's result each time one of its shops finishes, so sections fill in as their shops

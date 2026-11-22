@@ -1,4 +1,4 @@
-import { ART_SERIES } from '../../matching';
+import { ART_SERIES } from '@/shared/matching';
 
 export const decodeEntities = (s: string) =>
     s

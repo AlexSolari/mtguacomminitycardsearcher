@@ -1,7 +1,7 @@
 import logo from '@/favicon.svg';
 import { ShopBadge } from '@/components/shop-badge';
 import { useGreasefangEasterEgg } from '@/components/greasefang-easter-egg';
-import { SHOP_IDS } from '@/shops';
+import { SHOP_IDS } from '@/shared/shops';
 
 const TITLE_CLASS =
     'cursor-pointer rounded-lg outline-none transition-opacity hover:opacity-80 focus-visible:ring-[3px] focus-visible:ring-ring/50';

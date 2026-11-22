@@ -2,8 +2,8 @@ import { memo } from 'react';
 import { Crown, Gavel } from 'lucide-react';
 import { clickReporters } from '@/lib/report-click';
 import { cn } from '@/lib/utils';
-import { offerKey } from '@/results';
-import type { CardResult, OfferGroup } from '@/search-result';
+import { offerKey } from '@/lib/results';
+import type { CardResult, OfferGroup } from '@/shared/search-result';
 import {
     AuctionMeta,
     Badge,

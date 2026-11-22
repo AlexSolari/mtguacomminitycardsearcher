@@ -1,7 +1,7 @@
 import { Database } from 'bun:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { logger } from '../logger';
+import { logger } from '@/server/observability/logger';
 
 // The app's own data: traders, their sessions and lists. SQLite in one file, which fits the single instance the
 // app runs as (see AGENTS.md); on Railway the file lives on a volume (DB_PATH), or a redeploy would wipe it.

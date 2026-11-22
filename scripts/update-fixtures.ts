@@ -4,13 +4,13 @@
 // About 10 requests, through ShopClient so they're spaced like the app's. CartOn, Nerdik and MTGin need their API keys
 // (CARTON_API_KEY, NERDIK_API_KEY, MTGIN_API_KEY in .env); without one, that shop's fixture is left as it is.
 import { mkdir } from 'node:fs/promises';
-import { LIST_SOURCES } from '../src/server/lists/list-link';
-import { manaboxProps } from '../src/server/lists/parsers/manabox';
-import { DECK_FIELD } from '../src/server/lists/parsers/mtggoldfish';
-import { jsonEnd } from '../src/server/parsers/scrapers/citadel';
-import { SEARCH_QUERY } from '../src/server/searchers/carton-card-searcher';
-import { manavaultSource } from '../src/server/searchers/manavault-card-searcher';
-import { ShopClient } from '../src/server/shop-client';
+import { LIST_SOURCES } from '@/server/lists/list-link';
+import { manaboxProps } from '@/server/lists/parsers/manabox';
+import { DECK_FIELD } from '@/server/lists/parsers/mtggoldfish';
+import { jsonEnd } from '@/server/parsers/scrapers/citadel';
+import { SEARCH_QUERY } from '@/server/searchers/carton-card-searcher';
+import { manavaultSource } from '@/server/searchers/manavault-card-searcher';
+import { ShopClient } from '@/server/outbound/shop-client';
 
 const dir = new URL('../tests/fixtures/', import.meta.url);
 await mkdir(dir, { recursive: true });

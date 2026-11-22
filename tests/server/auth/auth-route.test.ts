@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
-import type { AuthState } from '@/account';
+import type { AuthState } from '@/shared/account';
 import {
     adminIds,
     authHandlers,
@@ -17,7 +17,7 @@ import { codeChallenge, tokenHash } from '@/server/auth/tokens';
 import { openDatabase } from '@/server/db/database';
 import { ListStore } from '@/server/db/list-store';
 import { UserStore } from '@/server/db/user-store';
-import { RateLimiter } from '@/server/rate-limiter';
+import { RateLimiter } from '@/server/http/rate-limiter';
 import { captureLogs } from '../capture-logs';
 
 const logs = captureLogs();

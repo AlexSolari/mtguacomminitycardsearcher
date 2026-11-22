@@ -1,5 +1,5 @@
-import type { CardResult } from '../../../search-result';
-import { languageCode, toPrice, withEdition } from '../helpers';
+import type { CardResult } from '@/shared/search-result';
+import { languageCode, toPrice, withEdition } from '@/server/parsers/helpers';
 
 // hub.nerdik.club/api/singles/search/batch — JSON, one result per looked-up name, in request order; each lists
 // that card's printings, each with its in-stock offers:

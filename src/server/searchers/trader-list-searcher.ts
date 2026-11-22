@@ -1,7 +1,7 @@
-import type { CardResult } from '../../search-result';
-import type { CardSearcher } from '../card-searcher';
-import type { ListOffer, ListStore } from '../db/list-store';
-import { LIST_SOURCES } from '../lists/list-link';
+import type { CardResult } from '@/shared/search-result';
+import type { CardSearcher } from '@/server/search/card-searcher';
+import type { ListOffer, ListStore } from '@/server/db/list-store';
+import { LIST_SOURCES } from '@/server/lists/list-link';
 
 // What traders' approved lists have of a card (see lists/list-refresher.ts, which keeps them up to date).
 // Unlike the shops' searchers, it fetches nothing: it reads the database, so it has no ShopClient and isn't cached

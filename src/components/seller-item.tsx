@@ -1,5 +1,5 @@
 import { List } from 'lucide-react';
-import type { ModeratedSeller } from '@/account';
+import type { ModeratedSeller } from '@/shared/account';
 import { formatDate } from '@/components/list-parts';
 import { BanButton, type Act } from '@/components/moderated-list-item';
 import { Button } from '@/components/ui/button';

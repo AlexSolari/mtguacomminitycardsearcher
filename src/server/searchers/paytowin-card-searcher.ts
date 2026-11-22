@@ -1,7 +1,7 @@
-import { parsePaytowin } from '../parsers/api/paytowin';
-import type { CardResult } from '../../search-result';
-import type { CardSearcher } from '../card-searcher';
-import { ShopClient } from '../shop-client';
+import { parsePaytowin } from '@/server/parsers/api/paytowin';
+import type { CardResult } from '@/shared/search-result';
+import type { CardSearcher } from '@/server/search/card-searcher';
+import { ShopClient } from '@/server/outbound/shop-client';
 
 export class PaytowinCardSearcher implements CardSearcher {
     readonly shop = 'paytowin';

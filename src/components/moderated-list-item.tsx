@@ -1,5 +1,5 @@
 import { Ban, Check, Undo2, X } from 'lucide-react';
-import type { ModeratedList } from '@/account';
+import type { ModeratedList } from '@/shared/account';
 import { formatDate, ListName, ListStatusLine } from '@/components/list-parts';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';

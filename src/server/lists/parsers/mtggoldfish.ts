@@ -1,10 +1,10 @@
-import { decodeEntities } from '../../parsers/helpers';
+import { decodeEntities } from '@/server/parsers/helpers';
 import {
     mergeRows,
     type Finish,
     type ListCard,
     type ParsedList
-} from '../list-card';
+} from '@/server/lists/list-card';
 
 // mtggoldfish.com/proxies/new?id=<deck>: the proxy printer, prefilled with the deck. The deck's own pages
 // (/deck/<id>, /deck/download/<id>) are behind a Cloudflare challenge; this one isn't. One line per printing:

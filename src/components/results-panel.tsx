@@ -7,8 +7,8 @@ import {
     isFiltering,
     languageCounts,
     shopCounts
-} from '@/filters';
-import { isNotFound } from '@/results';
+} from '@/lib/filters';
+import { isNotFound } from '@/lib/results';
 import {
     CardSection,
     CardSectionSkeleton,

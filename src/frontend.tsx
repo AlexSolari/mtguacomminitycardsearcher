@@ -7,10 +7,10 @@
 
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { App } from './App';
-import { AdminPage } from './components/admin-page';
-import { ListsPage } from './components/lists-page';
-import './index.css';
+import { App } from '@/App';
+import { AdminPage } from '@/components/admin-page';
+import { ListsPage } from '@/components/lists-page';
+import '@/index.css';
 
 // The server answers every path with this page; the path picks what it shows. Pages link to each other with
 // plain links, so there's no client-side routing to keep in step.

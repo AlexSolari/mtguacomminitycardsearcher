@@ -1,10 +1,10 @@
-// Rebuilds src/server/card-names.json, the card names the name resolver looks typed names up in before asking
-// Scryfall (src/server/card-index.ts), from Scryfall's oracle-cards bulk file (one entry per card).
+// Rebuilds src/server/search/card-names.json, the card names the name resolver looks typed names up in before asking
+// Scryfall (src/server/search/card-index.ts), from Scryfall's oracle-cards bulk file (one entry per card).
 //   bun scripts/update-card-names.ts                  downloads the latest (one API request, then a ~160 MB file
 //                                                     from data.scryfall.io, which isn't rate-limited)
 //   bun scripts/update-card-names.ts <file.json[l]>   reads a downloaded copy (JSON array or one card per line)
 // Run it after each set release: until then, the new set's names fall back to Scryfall's API.
-import type { CardNameEntry } from '../src/server/card-index';
+import type { CardNameEntry } from '@/server/search/card-index';
 
 // Scryfall rejects requests without these
 const HEADERS = { 'User-Agent': 'searcher/0.1', Accept: 'application/json' };
@@ -77,7 +77,7 @@ const cards: CardNameEntry[] = all
 const body = `{\n"source": ${JSON.stringify(source)},\n"cards": [\n${cards
     .map((c) => JSON.stringify(c))
     .join(',\n')}\n]\n}\n`;
-const out = new URL('../src/server/card-names.json', import.meta.url);
+const out = new URL('../src/server/search/card-names.json', import.meta.url);
 await Bun.write(out, body);
 console.log(
     `card-names.json  ${cards.length} cards (of ${all.length})  ${(body.length / 1024).toFixed(0)} KB`

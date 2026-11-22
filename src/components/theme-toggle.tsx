@@ -1,7 +1,7 @@
 import { Monitor, Moon, Sun } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/hooks/use-theme';
-import type { ThemePreference } from '@/theme';
+import type { ThemePreference } from '@/lib/theme';
 
 const OPTIONS: {
     value: ThemePreference;

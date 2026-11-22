@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import './greasefang-easter-egg.css';
+import '@/components/greasefang-easter-egg.css';
 
 // Easter egg behind the header logo: Greasefang, Okiba Boss crews Parhelion II, which makes two Angels
 // and flies off with them. The timeline lives in greasefang-easter-egg.css.

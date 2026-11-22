@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test';
 import { clickReporters, reportClick } from '@/lib/report-click';
-import type { OfferClick } from '@/search-result';
+import type { OfferClick } from '@/shared/search-result';
 
 const CLICK: OfferClick = {
     shop: 'carton',

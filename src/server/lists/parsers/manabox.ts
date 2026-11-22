@@ -1,11 +1,11 @@
-import { decodeEntities } from '../../parsers/helpers';
+import { decodeEntities } from '@/server/parsers/helpers';
 import {
     mergeRows,
     toUsd,
     type Finish,
     type ListCard,
     type ParsedList
-} from '../list-card';
+} from '@/server/lists/list-card';
 
 // manabox.app/decks/<id>: a deck shared from the ManaBox app. The page is server-rendered Astro, and the deck
 // is the props of its "Main" island: HTML-escaped JSON in Astro's encoding, where every value is a

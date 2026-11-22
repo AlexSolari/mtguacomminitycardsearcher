@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { MAX_RATE, MIN_RATE, parseRate } from '@/lib/usd-rate';
-import { MAX_USD_RATE, MIN_USD_RATE } from '@/server/lists-route';
+import { MAX_USD_RATE, MIN_USD_RATE } from '@/server/lists/lists-route';
 
 test('parseRate reads a rate with a comma or a point, to the kopiyka', () => {
     expect(parseRate('42')).toBe(42);

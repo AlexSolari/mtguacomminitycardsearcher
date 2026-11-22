@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { parseCardList } from '@/decklist';
+import { parseCardList } from '@/lib/decklist';
 import { cardListFromQuery, searchQuery } from '@/lib/search-url';
 
 describe('searchQuery', () => {

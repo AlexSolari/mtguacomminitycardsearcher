@@ -1,4 +1,4 @@
-import type { ListSource } from '../../account';
+import type { ListSource } from '@/shared/account';
 
 // The links traders submit for their lists, and where each list is read from.
 

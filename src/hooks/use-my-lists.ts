@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { MyLists, SubmittedLists } from '@/account';
+import type { MyLists, SubmittedLists } from '@/shared/account';
 import { SERVER_ERROR } from '@/components/page-layout';
 import {
     ApiError,

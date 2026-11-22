@@ -1,5 +1,5 @@
 import { Pencil } from 'lucide-react';
-import { CARDS, plural } from '@/i18n';
+import { CARDS, plural } from '@/shared/i18n';
 
 // The card list folded into a one-line bar after a search, so results get the full width.
 // The whole bar is the button that reopens the list; "Змінити" is just its most visible part.

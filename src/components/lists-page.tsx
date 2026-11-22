@@ -13,7 +13,7 @@ import type {
     LoginFailure,
     SkipReason,
     SubmittedLists
-} from '@/account';
+} from '@/shared/account';
 import { TelegramIcon } from '@/components/icons';
 import { SOURCE_LABELS, SourceName } from '@/components/list-parts';
 import { MyListItem } from '@/components/my-list-item';
@@ -29,7 +29,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { RateField } from '@/components/rate-field';
 import { useAccount } from '@/hooks/use-account';
 import { NO_LINKS, useMyLists } from '@/hooks/use-my-lists';
-import { LISTS, LISTS_GENITIVE, plural } from '@/i18n';
+import { LISTS, LISTS_GENITIVE, plural } from '@/shared/i18n';
 import { deleteAccount, logout } from '@/lib/account-api';
 
 const LOGIN_FAILURES: Record<LoginFailure, string> = {

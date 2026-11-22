@@ -1,5 +1,9 @@
-import { isArtSeriesSet, languageCode, toPrice } from '../helpers';
-import type { CardResult } from '../../../search-result';
+import {
+    isArtSeriesSet,
+    languageCode,
+    toPrice
+} from '@/server/parsers/helpers';
+import type { CardResult } from '@/shared/search-result';
 
 export type CartonOffer = {
     amount?: number;

@@ -4,7 +4,7 @@ import {
     type Finish,
     type ListCard,
     type ParsedList
-} from '../list-card';
+} from '@/server/lists/list-card';
 
 // api2.moxfield.com/v3/decks/all/<publicId>: a deck as JSON, the API behind moxfield.com/decks/<publicId>.
 // Each board (mainboard, sideboard, commanders, companions…) lists its entries by id, one per card. A card the owner

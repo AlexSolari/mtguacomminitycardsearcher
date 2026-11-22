@@ -6,7 +6,7 @@ import {
     telegramLoginConfig,
     type TelegramLoginConfig
 } from '@/server/auth/telegram-login';
-import { ShopClient } from '@/server/shop-client';
+import { ShopClient } from '@/server/outbound/shop-client';
 import { signingKey } from './signing-keys';
 
 const config: TelegramLoginConfig = {

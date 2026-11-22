@@ -1,7 +1,7 @@
 import { AlertTriangle, Loader2 } from 'lucide-react';
-import { CARDS, plural } from '@/i18n';
-import { summarize } from '@/results';
-import { SHOP_INFO } from '@/shops';
+import { CARDS, plural } from '@/shared/i18n';
+import { summarize } from '@/lib/results';
+import { SHOP_INFO } from '@/shared/shops';
 import type { SearchEntry } from '@/hooks/use-card-search';
 import { formatPrice } from '@/components/offer-parts';
 import { Stat, WarningChip } from '@/components/stat';

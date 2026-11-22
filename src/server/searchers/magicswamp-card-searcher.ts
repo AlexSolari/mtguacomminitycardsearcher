@@ -1,11 +1,11 @@
 import {
     parseMagicswamp,
     type MagicswampResponse
-} from '../parsers/api/magicswamp';
-import type { CardResult } from '../../search-result';
-import type { CardSearcher } from '../card-searcher';
-import { logger } from '../logger';
-import { ShopClient } from '../shop-client';
+} from '@/server/parsers/api/magicswamp';
+import type { CardResult } from '@/shared/search-result';
+import type { CardSearcher } from '@/server/search/card-searcher';
+import { logger } from '@/server/observability/logger';
+import { ShopClient } from '@/server/outbound/shop-client';
 
 // The site is a React app; its own JSON API is what the search page calls. `search` matches part of the name.
 export class MagicswampCardSearcher implements CardSearcher {

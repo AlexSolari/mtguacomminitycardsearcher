@@ -5,7 +5,7 @@ import {
     verifyIdToken,
     type Jwk
 } from '@/server/auth/id-token';
-import { ShopClient } from '@/server/shop-client';
+import { ShopClient } from '@/server/outbound/shop-client';
 import { signingKey } from './signing-keys';
 
 const expected = { issuer: 'https://oauth.telegram.org', audience: '123456' };

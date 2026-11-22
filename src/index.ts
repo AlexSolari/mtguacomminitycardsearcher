@@ -1,42 +1,48 @@
 import { serve } from 'bun';
-import index from './index.html';
-import { CachedCardSearcher } from './server/cached-card-searcher';
-import { CardIndex } from './server/card-index';
-import { CardSearchService } from './server/card-search-service';
-import { InFlightLimiter } from './server/in-flight-limiter';
-import { logger } from './server/logger';
-import { ScryfallNameResolver, scryfallClient } from './server/name-resolver';
-import { CartonCardSearcher } from './server/searchers/carton-card-searcher';
-import { CitadelCardSearcher } from './server/searchers/citadel-card-searcher';
-import { TraderListSearcher } from './server/searchers/trader-list-searcher';
-import { GinCardSearcher } from './server/searchers/gin-card-searcher';
-import { KartotekaCardSearcher } from './server/searchers/kartoteka-card-searcher';
-import { MagicswampCardSearcher } from './server/searchers/magicswamp-card-searcher';
-import { ManavaultCardSearcher } from './server/searchers/manavault-card-searcher';
-import { NerdikCardSearcher } from './server/searchers/nerdik-card-searcher';
-import { PaytowinCardSearcher } from './server/searchers/paytowin-card-searcher';
-import { clickHandler } from './server/click-route';
+import index from '@/index.html';
+import { CachedCardSearcher } from '@/server/search/cached-card-searcher';
+import { CardIndex } from '@/server/search/card-index';
+import { CardSearchService } from '@/server/search/card-search-service';
+import { InFlightLimiter } from '@/server/http/in-flight-limiter';
+import { logger } from '@/server/observability/logger';
+import {
+    ScryfallNameResolver,
+    scryfallClient
+} from '@/server/search/name-resolver';
+import { CartonCardSearcher } from '@/server/searchers/carton-card-searcher';
+import { CitadelCardSearcher } from '@/server/searchers/citadel-card-searcher';
+import { TraderListSearcher } from '@/server/searchers/trader-list-searcher';
+import { GinCardSearcher } from '@/server/searchers/gin-card-searcher';
+import { KartotekaCardSearcher } from '@/server/searchers/kartoteka-card-searcher';
+import { MagicswampCardSearcher } from '@/server/searchers/magicswamp-card-searcher';
+import { ManavaultCardSearcher } from '@/server/searchers/manavault-card-searcher';
+import { NerdikCardSearcher } from '@/server/searchers/nerdik-card-searcher';
+import { PaytowinCardSearcher } from '@/server/searchers/paytowin-card-searcher';
+import { clickHandler } from '@/server/search/click-route';
 import {
     clientId,
     MAX_CARDS_PER_REQUEST,
     searchHandler
-} from './server/search-route';
-import { VisitorIds } from './server/visitor-id';
-import { adminIds, authHandlers } from './server/auth/auth-route';
+} from '@/server/search/search-route';
+import { VisitorIds } from '@/server/observability/visitor-id';
+import { adminIds, authHandlers } from '@/server/auth/auth-route';
 import {
     publicOrigin,
     TelegramLogin,
     telegramLoginConfig
-} from './server/auth/telegram-login';
-import { AdminNotifier, adminNotifierConfig } from './server/admin-notifier';
-import { databasePath, openDatabase } from './server/db/database';
-import { UserStore } from './server/db/user-store';
-import { ListStore } from './server/db/list-store';
-import { listsHandlers } from './server/lists-route';
-import { PriceCache } from './server/db/price-cache';
-import { ListPrices } from './server/lists/list-prices';
-import { ListReader } from './server/lists/list-reader';
-import { ListRefresher } from './server/lists/list-refresher';
+} from '@/server/auth/telegram-login';
+import {
+    AdminNotifier,
+    adminNotifierConfig
+} from '@/server/lists/admin-notifier';
+import { databasePath, openDatabase } from '@/server/db/database';
+import { UserStore } from '@/server/db/user-store';
+import { ListStore } from '@/server/db/list-store';
+import { listsHandlers } from '@/server/lists/lists-route';
+import { PriceCache } from '@/server/db/price-cache';
+import { ListPrices } from '@/server/lists/list-prices';
+import { ListReader } from '@/server/lists/list-reader';
+import { ListRefresher } from '@/server/lists/list-refresher';
 
 // Cards one client may have at one shop at once (see ShopLimits). 6 is what one browser tab had in flight when it
 // sent a card per request, so no shop gets more of a client's requests at once than before.

@@ -3,7 +3,7 @@
 // spreads them over the night rather than starting them all at once. Approvals and moderators' refreshes don't
 // wait for the night (see ListRefresher).
 
-import { KYIV_TZ, kyivHour } from '../kyiv-time';
+import { KYIV_TZ, kyivHour } from '@/server/lists/kyiv-time';
 
 export const NIGHT = {
     tz: KYIV_TZ,

@@ -1,4 +1,4 @@
-import type { ShopClient } from '../shop-client';
+import type { ShopClient } from '@/server/outbound/shop-client';
 
 // Verifies OpenID Connect ID tokens (JWTs) with WebCrypto: the signature against the issuer's published keys
 // (JWKS), then the issuer, audience and expiry.

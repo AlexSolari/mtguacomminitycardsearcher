@@ -1,6 +1,6 @@
 // What a trader's list holds, as the list parsers read it from the source (see lists/parsers/).
 
-import { toPrice } from '../parsers/helpers';
+import { toPrice } from '@/server/parsers/helpers';
 
 // Scryfall's finishes, which its prices follow (usd, usd_foil, usd_etched).
 export type Finish = 'nonfoil' | 'foil' | 'etched';

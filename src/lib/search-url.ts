@@ -1,4 +1,4 @@
-import type { CardEntry } from '@/decklist';
+import type { CardEntry } from '@/lib/decklist';
 
 // A search lives in the page's query string so it can be shared: one `q` per card, in list order, with the
 // count in front when more than one copy is wanted.

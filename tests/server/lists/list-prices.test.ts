@@ -4,7 +4,7 @@ import { PriceCache } from '@/server/db/price-cache';
 import type { StoredCard } from '@/server/db/list-store';
 import { ListPrices } from '@/server/lists/list-prices';
 import { ListRefreshFailure } from '@/server/lists/list-reader';
-import { HttpError, ShopClient } from '@/server/shop-client';
+import { HttpError, ShopClient } from '@/server/outbound/shop-client';
 import { captureLogs } from '../capture-logs';
 
 captureLogs(); // the migration's log line

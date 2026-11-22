@@ -1,8 +1,8 @@
 import type { Database } from 'bun:sqlite';
-import type { ListRefreshError, ListStatus } from '../../account';
-import { normalize } from '../../matching';
-import type { Finish, ListCard, ParsedList } from '../lists/list-card';
-import type { ListLink, ListSource } from '../lists/list-link';
+import type { ListRefreshError, ListStatus } from '@/shared/account';
+import { normalize } from '@/shared/matching';
+import type { Finish, ListCard, ParsedList } from '@/server/lists/list-card';
+import type { ListLink, ListSource } from '@/server/lists/list-link';
 
 export type { ListStatus };
 

@@ -1,11 +1,11 @@
-import type { CardResult } from '../../../search-result';
+import type { CardResult } from '@/shared/search-result';
 import {
     abs,
     isArtSeriesSet,
     languageCode,
     toPrice,
     withEdition
-} from '../helpers';
+} from '@/server/parsers/helpers';
 
 // mtgin.kyiv.ua/api/public/v1/search — the partner API. The answer to a batch of lookups has one entry per lookup, in
 // request order, each with the matching offers (one per printing, finish, condition and seller), cheapest first:
