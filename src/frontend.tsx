@@ -1,15 +1,15 @@
 /**
  * This file is the entry point for the React app, it sets up the root
- * element and renders the App component to the DOM.
+ * element and renders the page for the current path to the DOM.
  *
  * It is included in `src/index.html`.
  */
 
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { App } from '@/App';
-import { AdminPage } from '@/components/admin-page';
-import { ListsPage } from '@/components/lists-page';
+import { AdminPage } from '@/pages/admin-page';
+import { ListsPage } from '@/pages/lists-page';
+import { SearchPage } from '@/pages/search-page';
 import '@/index.css';
 
 // The server answers every path with this page; the path picks what it shows. Pages link to each other with
@@ -18,7 +18,7 @@ const PAGES: Record<string, () => React.JSX.Element> = {
     '/lists': ListsPage,
     '/admin': AdminPage
 };
-const Page = PAGES[location.pathname.replace(/\/+$/, '')] ?? App;
+const Page = PAGES[location.pathname.replace(/\/+$/, '')] ?? SearchPage;
 
 const elem = document.getElementById('root')!;
 const app = (

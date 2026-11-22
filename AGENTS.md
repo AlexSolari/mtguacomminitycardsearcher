@@ -31,7 +31,7 @@ TypeScript isn't a dependency: don't use `bunx tsc`, which fetches an unrelated 
 - **Fixtures hold no personal data:** `update-fixtures.ts` keeps only the fields the parsers read (via `pick`), dropping sellers, bidders, descriptions and cart reservations (PayToWin, MTGin, Magic Swamp, Citadel, Mana Vault; CartOn's GraphQL query asks for no seller fields). Traders' lists keep only the list: MTGGoldfish's deck field, ManaBox's island cut down to the fields `parseManabox` reads, and Moxfield's deck cut down to its name, edit date and boards, each row to the fields `parseMoxfield` reads (no owner or authors). Keep it that way for any new source.
 - **Database tests** open `openDatabase(':memory:')`, a fresh migrated database per test; its migration logs a line, so tests that assert on logs clear them after opening it.
   CartOn's, Nerdik's and MTGin's fixtures need `CARTON_API_KEY` / `NERDIK_API_KEY` / `MTGIN_API_KEY` in `.env`; without a key that fixture is left as it is.
-- **New code:** add tests for it at the mirrored path in `tests/`. For a new shop, add its page to `update-fixtures.ts` and a test file next to the parser's mirrored path (`tests/server/parsers/{api,scrapers}/<shop>.test.ts`, using `parser-fixtures.ts`).
+- **New code:** add tests for it at the mirrored path in `tests/`. For a new shop, add its page to `update-fixtures.ts`, a test file at the parser's mirrored path (`tests/server/parsers/{api,scrapers}/<shop>.test.ts`, using `parser-fixtures.ts`) and one at the searcher's (`tests/server/searchers/<shop>-card-searcher.test.ts`, using `fake-client.ts`).
 - **Server:** for an end-to-end check, start it on a spare port (`PORT=3917 bun src/index.ts`) and `curl -X POST localhost:3917/api/search -d '{"cards":["Sol Ring"]}'`.
   This hits the real shops, so keep it to a handful of requests.
 - **UI:** there are no component tests. Say so when a change hasn't been checked in a browser.
@@ -47,9 +47,9 @@ TypeScript isn't a dependency: don't use `bunx tsc`, which fetches an unrelated 
     - counts go through `plural(n, FORMS)` in `src/shared/i18n.ts`; never hand-write "карт/карти"
     - add new plural forms there
 - **Imports:** `@/` = `src/`. Import anything in `src/` through `@/`, never `./` or `../`, so a file can move without breaking its imports (only `tests/` and `scripts/` reach their own helpers relatively). In type-only imports, use `import type`; `verbatimModuleSyntax` is on.
-- **Files:** kebab-case file names. Each folder holds one kind of file; the root of `src/` keeps only the entry points (`index.ts` server, `frontend.tsx` / `App.tsx` / `index.html` browser, `instrumentation.ts`) and assets.
+- **Files:** kebab-case file names. Each folder holds one kind of file; the root of `src/` keeps only the entry points (`index.ts` server, `index.html` / `frontend.tsx` / `index.css` browser, `instrumentation.ts`) and assets.
     - `src/shared/`: code both the server and the browser import (see Architecture rules)
-    - browser: components in `src/components/` (shadcn primitives in `src/components/ui/`), hooks in `src/hooks/`, all other browser logic in `src/lib/`
+    - browser: a page per path in `src/pages/` (`frontend.tsx` picks one), components in `src/components/` (shadcn primitives in `src/components/ui/`), hooks in `src/hooks/`, all other browser logic in `src/lib/`, the shadcn base stylesheet in `src/styles/`
     - server, in `src/server/`: `search/` (search and click routes, the search pipeline, name resolving), `searchers/` and `parsers/` (one per shop), `outbound/` (requests we send: `ShopClient`, circuit breaker, batching, budgets), `http/` (requests we receive: per-client limits, body reading), `observability/` (logs, spans, visitor counts), `auth/`, `db/`, `lists/` (traders' lists, their route and notifications)
     - a new file goes in the folder of its kind; if none fits, add a folder rather than leaving it loose in `src/` or `src/server/`
     - tests in `tests/`, at the mirrored path
@@ -135,7 +135,7 @@ Traders sign in with Telegram, add their MTGGoldfish, ManaBox or Moxfield lists 
     - Drop out-of-stock items unless the shop only lists in-stock ones.
 3. **Searcher:** write `src/server/searchers/<shop>-card-searcher.ts`, following an existing one.
 4. **Register it:** add it to the list in `src/index.ts`.
-5. **Check:** add the shop's page to `scripts/update-fixtures.ts` and `tests/server/parsers/{api,scrapers}/<shop>.test.ts`, then run one live search.
+5. **Check:** add the shop's page to `scripts/update-fixtures.ts`, `tests/server/parsers/{api,scrapers}/<shop>.test.ts` and `tests/server/searchers/<shop>-card-searcher.test.ts`, then run one live search.
 
 ## Traps (each of these has bitten before)
 

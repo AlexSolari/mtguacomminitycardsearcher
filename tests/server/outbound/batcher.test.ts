@@ -1,4 +1,4 @@
-// The batching itself is exercised through GinCardSearcher (tests/server/searchers/searchers.test.ts): aborts,
+// The batching itself is exercised through GinCardSearcher (tests/server/searchers/gin-card-searcher.test.ts): aborts,
 // failures and requests held in flight. These cover what's generic about it.
 import { describe, expect, test } from 'bun:test';
 import {

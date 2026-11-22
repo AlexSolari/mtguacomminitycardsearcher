@@ -1,4 +1,4 @@
-@import '../styles/globals.css';
+@import './styles/globals.css';
 
 /* Filled controls (buttons, active toggles, badges) use `primary-fill`; text and accents use `primary`.
    They match in the dark theme; the light theme pairs a pale gold fill with a darker gold for text. */

@@ -12,7 +12,7 @@ import { usePreventFileDropNavigation } from '@/hooks/use-file-drop';
 import { cardListFromQuery, searchQuery } from '@/lib/search-url';
 import { parseCardList, type CardEntry } from '@/lib/decklist';
 
-export function App() {
+export function SearchPage() {
     // a shared link (?q=…) opens with its card list filled in, and searches it straight away (below)
     const [text, setText] = useState(() => cardListFromQuery(location.search));
     const { cards, links } = parseCardList(text);
@@ -131,5 +131,3 @@ export function App() {
         </div>
     );
 }
-
-export default App;

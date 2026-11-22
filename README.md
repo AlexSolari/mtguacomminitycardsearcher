@@ -124,16 +124,16 @@ src/
   index.ts                  Bun server: /api/search, /api/click, sign-in and lists, serves the frontend
   instrumentation.ts        OpenTelemetry / Sentry setup, preloaded by `bun start`
   index.html, frontend.tsx  the browser entry; frontend.tsx picks the page by path
-  App.tsx                   the search page
+  index.css                 the theme (light and dark tokens) and app-wide styles, over styles/globals.css (shadcn's base)
   shared/                   used by both server and browser
     shops.ts                shop list
     search-result.ts        API result types
     account.ts              sign-in and lists API types
     matching.ts             card name matching
     i18n.ts                 Ukrainian plural forms
+  pages/                    search-page.tsx, lists-page.tsx (traders' lists), admin-page.tsx (moderation)
   components/               UI (card-section.tsx renders a card's results, search-summary.tsx the totals,
-                            order-planner.tsx the cheapest order, lists-page.tsx and admin-page.tsx the
-                            traders' and moderators' pages); ui/ holds the shadcn primitives
+                            order-planner.tsx the cheapest order); ui/ holds the shadcn primitives
   hooks/                    search, deck import, drag-and-drop, filters, theme, account
   lib/                      browser logic
     decklist.ts, deckfile.ts  card list / deck file parsing, with counts
