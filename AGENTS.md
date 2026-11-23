@@ -17,7 +17,7 @@ See [README.md](README.md) for what the app does and the request flow.
 | Coverage (fails under 95% lines / 90% functions in any file)        | `bun run test:coverage`                                                             |
 | Refresh the parser fixtures from the real shops                     | `bun scripts/update-fixtures.ts` (~11 requests)                                     |
 | Re-render the link preview image (`src/og-image.png`, needs Chrome) | `bun scripts/render-og-image.ts`                                                    |
-| Refresh the card name index (`src/server/search/card-names.json`)   | `bun scripts/update-card-names.ts [oracle-cards.json]` (after each set release)     |
+| Refresh the card name index (`src/server/scryfall/card-names.json`) | `bun scripts/update-card-names.ts [oracle-cards.json]` (after each set release)     |
 
 **Type-check baseline:** zero errors. `bun dev`, `bun run build`, `bun run test` and `bun run test:coverage` run `bun check` first and stop on any type error.
 TypeScript isn't a dependency: don't use `bunx tsc`, which fetches an unrelated npm package named `tsc`.
@@ -31,7 +31,7 @@ TypeScript isn't a dependency: don't use `bunx tsc`, which fetches an unrelated 
 - **Fixtures hold no personal data:** `update-fixtures.ts` keeps only the fields the parsers read (via `pick`), dropping sellers, bidders, descriptions and cart reservations (PayToWin, MTGin, Magic Swamp, Citadel, Mana Vault; CartOn's GraphQL query asks for no seller fields). Traders' lists keep only the list: MTGGoldfish's deck field, ManaBox's island cut down to the fields `parseManabox` reads, and Moxfield's deck cut down to its name, edit date and boards, each row to the fields `parseMoxfield` reads (no owner or authors). Keep it that way for any new source.
 - **Database tests** open `openDatabase(':memory:')`, a fresh migrated database per test; its migration logs a line, so tests that assert on logs clear them after opening it.
   CartOn's, Nerdik's and MTGin's fixtures need `CARTON_API_KEY` / `NERDIK_API_KEY` / `MTGIN_API_KEY` in `.env`; without a key that fixture is left as it is.
-- **New code:** add tests for it at the mirrored path in `tests/`. For a new shop, add its page to `update-fixtures.ts`, a test file at the parser's mirrored path (`tests/server/parsers/{api,scrapers}/<shop>.test.ts`, using `parser-fixtures.ts`) and one at the searcher's (`tests/server/searchers/<shop>-card-searcher.test.ts`, using `fake-client.ts`).
+- **New code:** add tests for it at the mirrored path in `tests/`. For a new shop, add its page to `update-fixtures.ts`, a test file at the parser's mirrored path (`tests/server/shops/<shop>/<shop>-parser.test.ts`, using `tests/server/parser-fixtures.ts`) and one at the searcher's (`tests/server/shops/<shop>/<shop>-card-searcher.test.ts`, using `tests/server/shops/fake-client.ts`).
 - **Server:** for an end-to-end check, start it on a spare port (`PORT=3917 bun src/index.ts`) and `curl -X POST localhost:3917/api/search -d '{"cards":["Sol Ring"]}'`.
   This hits the real shops, so keep it to a handful of requests.
 - **UI:** there are no component tests. Say so when a change hasn't been checked in a browser.
@@ -47,10 +47,11 @@ TypeScript isn't a dependency: don't use `bunx tsc`, which fetches an unrelated 
     - counts go through `plural(n, FORMS)` in `src/shared/i18n.ts`; never hand-write "карт/карти"
     - add new plural forms there
 - **Imports:** `@/` = `src/`. Import anything in `src/` through `@/`, never `./` or `../`, so a file can move without breaking its imports (only `tests/` and `scripts/` reach their own helpers relatively). In type-only imports, use `import type`; `verbatimModuleSyntax` is on.
-- **Files:** kebab-case file names. Each folder holds one kind of file; the root of `src/` keeps only the entry points (`index.ts` server, `index.html` / `frontend.tsx` / `index.css` browser, `instrumentation.ts`) and assets.
+- **Files:** kebab-case file names. Each folder holds one kind of file, or one feature's files (a shop, the traders' lists); the root of `src/` keeps only the entry points (`index.ts` server, `index.html` / `frontend.tsx` / `index.css` browser, `instrumentation.ts`) and assets.
     - `src/shared/`: code both the server and the browser import (see Architecture rules)
-    - browser: a page per path in `src/pages/` (`frontend.tsx` picks one), components in `src/components/` (shadcn primitives in `src/components/ui/`), hooks in `src/hooks/`, all other browser logic in `src/lib/`, the shadcn base stylesheet in `src/styles/`
-    - server, in `src/server/`: `search/` (search and click routes, the search pipeline, name resolving), `searchers/` and `parsers/` (one per shop), `outbound/` (requests we send: `ShopClient`, circuit breaker, batching, budgets), `http/` (requests we receive: per-client limits, body reading), `observability/` (logs, spans, visitor counts), `auth/`, `db/`, `lists/` (traders' lists, their route and notifications)
+    - browser: a page per path in `src/pages/` (`frontend.tsx` picks one), components in `src/components/`, a folder per page (`search/`, `lists/` for /lists and /admin), `layout/` for the page frame and the root for those used across pages (shadcn primitives in `src/components/ui/`), hooks in `src/hooks/`, all other browser logic in `src/lib/` (how prices and dates read in `lib/format.ts`), the shadcn base stylesheet in `src/styles/`
+    - server, in `src/server/`: `search/` (search and click routes, the search pipeline), `scryfall/` (name resolving and the Scryfall client), `shops/` (a folder per shop: its parser and searcher), `outbound/` (requests we send: `ShopClient`, circuit breaker, batching, budgets), `http/` (requests we receive: client ids, per-client limits, body reading, JSON answers), `observability/` (logs, spans, visitor counts), `auth/` (sign-in, sessions, the user store), `db/` (the connection and migrations), `lists/` (traders' lists: their routes, store, refresh, search and notifications)
+    - a store lives with the feature that owns its tables (`lists/list-store.ts`, `auth/user-store.ts`), so `db/` depends on nothing but the logger
     - a new file goes in the folder of its kind; if none fits, add a folder rather than leaving it loose in `src/` or `src/server/`
     - tests in `tests/`, at the mirrored path
 - **Icons:** lucide-react, except brand logos. lucide is removing those, so they're inline SVGs in `components/icons.tsx`.
@@ -67,10 +68,10 @@ TypeScript isn't a dependency: don't use `bunx tsc`, which fetches an unrelated 
     - `matching.ts`: name matching (`normalize`, `isExactMatch`, `isArtSeries`)
     - `i18n.ts`: Ukrainian plural forms (the browser's counts, and the moderators' Telegram notifications)
 - **Parsers** are pure: string/JSON in, `CardResult[]` out, no fetching.
-  JSON API parsers go in `src/server/parsers/api/<shop>.ts`, HTML scrapers in `src/server/parsers/scrapers/<shop>.ts`.
-  Shared helpers (`decodeEntities`, `toPrice`, `abs`, `languageCode`) live in `parsers/helpers.ts`.
+  A shop's parser is `src/server/shops/<shop>/<shop>-parser.ts`, whether it reads a JSON API or scrapes HTML.
+  Shared helpers (`decodeEntities`, `toPrice`, `abs`, `languageCode`) live in `shops/parse-helpers.ts`.
   Parsers that resolve relative links take a `base` argument (the searcher passes `client.baseUrl`); don't hardcode the shop's URL.
-- **Searchers** (`src/server/searchers/<shop>-card-searcher.ts`) decide which URLs to fetch and call the parsers.
+- **Searchers** (`src/server/shops/<shop>/<shop>-card-searcher.ts`, beside the shop's parser) decide which URLs to fetch and call the parsers.
   They **must** fetch through their own `ShopClient` (created in the constructor with the shop's base URL), never `fetch` directly; it provides the shop's rate limit, timeout, queue cap and circuit breaker (after 3 timeouts, dropped connections or 502/503/504 in a row, the shop's requests fail at once for 60 s; `src/server/outbound/circuit-breaker.ts`).
   Build URLs with `client.url(path, params)`. The client refuses URLs on other hosts.
   Scrapers pass every parser result through `warnIfEmpty`: an empty parse is how a shop redesign shows up, so it's logged.
@@ -82,7 +83,7 @@ TypeScript isn't a dependency: don't use `bunx tsc`, which fetches an unrelated 
   The `/api/search` handler lives in `src/server/search/search-route.ts` (input checks, per-client limits at each shop (`ShopLimits`), NDJSON streaming: a `SearchUpdate` line per card each time a shop finishes), so it's tested without starting a server.
   `/api/click` (`src/server/search/click-route.ts`) records which offer a user opened (the frontend sends it with `reportClick` in `src/lib/report-click.ts`) as an `offer click` span.
 - **Per-client limits:** both routes answer 429 with `Retry-After` past a client's limit: cards searched over time (`SEARCH_BUCKETS`) and cards still pending (`MAX_PENDING_CARDS`) for search, clicks over time (`CLICK_BUCKETS`) for click. Sign-in's callback is limited too (`SIGN_IN_BUCKETS`, counted just before the token exchange with Telegram), and sends a client past it back to `/lists?login=busy`. All go through `RateLimiter` (`src/server/http/rate-limiter.ts`).
-  A client is its IP, or its /64 for IPv6 (`clientKey`), since one customer holds the whole /64.
+  A client is its IP, or its /64 for IPv6 (`clientKey` in `src/server/http/client-id.ts`), since one customer holds the whole /64.
   `logger.error` reports at most `SENTRY_EVENTS_PER_MINUTE` Sentry events per message; the rest are only logged.
 - **One instance only:** the shop rate limits, the result cache, the per-client limiters and MTGin's batching all live in process memory, and the traders' database is a SQLite file on the instance's volume.
   A second replica would double the request rate to every shop, split MTGin's and Mana Vault's 60-a-minute budgets, and have a database of its own. Don't scale horizontally without moving those to shared state first.
@@ -116,7 +117,7 @@ Traders sign in with Telegram, add their MTGGoldfish, ManaBox or Moxfield lists 
 - **Storage:** `bun:sqlite` at `DB_PATH` (default `data/cardsearcher.db`, gitignored; on Railway, a file on a volume). `src/server/db/database.ts` holds the schema as numbered migrations (`MIGRATIONS`, tracked in `user_version`): add a new one, never edit a shipped one. Tables are STRICT, with foreign keys on, so deleting a user deletes their sessions, lists and cards.
 - **Sign-in** (`src/server/auth/`): Telegram's OpenID Connect, code flow with PKCE, done by the server. The ID token is verified against Telegram's JWKS. Sessions are a random token in an HttpOnly cookie; the database keeps its sha256 only. Accounts without a username are turned away: buyers couldn't contact them.
   Moderators are the Telegram ids in `ADMIN_TELEGRAM_IDS` (comma-separated). The redirect URL is `PUBLIC_URL` (else `https://$RAILWAY_PUBLIC_DOMAIN`, else `http://localhost:$PORT`) plus `/api/auth/callback`, and must be registered in @BotFather → Login Widget exactly.
-- **Routes:** `/api/auth/*` (`auth-route.ts`: sign-in, `me`, logout, account deletion) and `/api/lists`, `/api/admin/*` (`lists-route.ts`: a trader's lists, up to `MAX_LISTS_PER_USER`; moderation, search over lists and sellers (`?q=`, filtered in code since SQLite's `LIKE` doesn't lower-case Cyrillic), and bans). Writes take JSON only, which with the SameSite=Lax cookie keeps other sites from sending them.
+- **Routes:** `/api/auth/*` (`auth-route.ts`: sign-in, `me`, logout, account deletion) `/api/lists` (`lists-route.ts`: a trader's lists, up to `MAX_LISTS_PER_USER`) and `/api/admin/*` (`admin-route.ts`: moderation, search over lists and sellers (`?q=`, filtered in code since SQLite's `LIKE` doesn't lower-case Cyrillic), and bans). Both go through `sessionGuard` (`auth/signed-in.ts`). Writes take JSON only (`readJson`), which with the SameSite=Lax cookie keeps other sites from sending them.
 - **Reading lists** (`src/server/lists/`): `list-link.ts` parses the links traders paste; the parsers in `lists/parsers/` follow the shop parsers' rules (pure, markup in the comment, snapshot-tested). MTGGoldfish's deck pages are behind a Cloudflare challenge, so lists are read from its proxy printer (`/proxies/new?id=`), which isn't.
   Moxfield's are read from its JSON API (`api2.moxfield.com/v3/decks/all/<id>`; v2 merges a card's printings into one row); see the exception under Scraping etiquette.
   `ListRefresher` runs in the server process and reads lists one at a time, through `ListReader`'s `ShopClient`s (one request per 5 s per source). Scheduled reads happen **only at night**, 02:00–06:59 Kyiv time, when traffic is lowest (`night-schedule.ts`): an in-process `Bun.cron` checks every 5 minutes through the window, and each list has its own slot in it (from its id), so lists spread over the night. After a good read the next is the list's slot the following night. A failure keeps the old cards, stores a `ListRefreshError` the owner sees, and retries after 1, 2, 4… hours, then daily; a retry that would land in the day waits for the list's slot.
@@ -125,17 +126,17 @@ Traders sign in with Telegram, add their MTGGoldfish, ManaBox or Moxfield lists 
   MTGGoldfish's promos (`[PRM-MSC]`, `[PRM-PRE]`…) name a group, not a set, so each is a `/cards/search` of its own on the same client: `pickPromo` takes the printing whose set name or promo types match the row's `<…>` and the group ("Store Championship" → Store Championships), and only when exactly one does; otherwise the row is priced by name, as `≈`.
 - **Notifications:** when a submission adds lists, `AdminNotifier` (`src/server/lists/admin-notifier.ts`, wired through `listsHandlers`' `onSubmitted`) sends each moderator one Telegram message from the bot: the trader, the lists' links, the queue's size and a button to `/admin`. Silent 23:00–07:59 Kyiv time. After a message about a trader, lists they submit within `COOLDOWN_MS` are held and go in one message when it ends, so adding lists one at a time (or a script looping) doesn't flood the moderators. It never fails or delays the submission; a failure is a `logger.warn`.
   A moderator gets them only after pressing Start in the bot. The token is in the API's URL path, so its `ShopClient` gets it as `secret`, which masks it in spans and errors; any credential in a URL goes that way.
-- **Search:** `TraderListSearcher` reads the database: no `ShopClient` and no `CachedCardSearcher`, so a list shows as soon as it's read. Its offers' `url` is the trader's Telegram; `seller` carries the list.
+- **Search:** `TraderListSearcher` (`src/server/lists/trader-list-searcher.ts`) reads the database: no `ShopClient` and no `CachedCardSearcher`, so a list shows as soon as it's read. Its offers' `url` is the trader's Telegram; `seller` carries the list.
 
 ### Adding a shop
 
 1. **Shop info:** add its id to `ShopId` and an entry to `SHOP_INFO` in `src/shared/shops.ts` (`label`, `homepage`, `icon`; `searchUrl` if the shop may answer our server 403 and the user should get a link to search it by hand, see `manualSearchUrl`).
-2. **Parser:** write `src/server/parsers/api/<shop>.ts` if the shop has a JSON API, otherwise `src/server/parsers/scrapers/<shop>.ts`. Start with a comment showing the markup or JSON shape it reads.
+2. **Parser:** write `src/server/shops/<shop>/<shop>-parser.ts`, from the shop's JSON API if it has one, else its HTML. Start with a comment showing the markup or JSON shape it reads.
     - Fill the optional `CardResult` fields the shop exposes: foil, language, stock, condition, old price.
     - Drop out-of-stock items unless the shop only lists in-stock ones.
-3. **Searcher:** write `src/server/searchers/<shop>-card-searcher.ts`, following an existing one.
+3. **Searcher:** write `src/server/shops/<shop>/<shop>-card-searcher.ts`, following an existing one.
 4. **Register it:** add it to the list in `src/index.ts`.
-5. **Check:** add the shop's page to `scripts/update-fixtures.ts`, `tests/server/parsers/{api,scrapers}/<shop>.test.ts` and `tests/server/searchers/<shop>-card-searcher.test.ts`, then run one live search.
+5. **Check:** add the shop's page to `scripts/update-fixtures.ts`, `tests/server/shops/<shop>/<shop>-parser.test.ts` and `tests/server/shops/<shop>/<shop>-card-searcher.test.ts`, then run one live search.
 
 ## Traps (each of these has bitten before)
 
@@ -159,13 +160,13 @@ Traders sign in with Telegram, add their MTGGoldfish, ManaBox or Moxfield lists 
     - A refused query comes back as a 200 with `errors`, not an HTTP error; `send()` turns it into a `ShopRequestError` for every lookup in it. An error whose `path` names one alias fails only that lookup.
     - `search` matches anywhere in the name and has no exact-match option, so short names ("Opt") take a few pages; exact matching is done in our code. There's no product-by-id query: a printing's full offers are searched again by its name within its set (`expansionSlug`).
 - **Scryfall (name lookups) allows 2 requests a second on `/cards/named` and `/cards/collection`** ([rate limits](https://scryfall.com/docs/api/rate-limits)), shared by every user.
-    - Most names never reach it: `CardIndex` (`src/server/search/card-index.ts`) looks them up first in `src/server/search/card-names.json`, built from Scryfall's oracle-cards bulk file. It answers only when exactly one card fits (exact name, the start of each word, a typo or two, or pieces of two or more words) and leaves the rest to the API: names in another language, ambiguous ones, and cards newer than the file. Refresh the file after each set release.
+    - Most names never reach it: `CardIndex` (`src/server/scryfall/card-index.ts`) looks them up first in `src/server/scryfall/card-names.json`, built from Scryfall's oracle-cards bulk file. It answers only when exactly one card fits (exact name, the start of each word, a typo or two, or pieces of two or more words) and leaves the rest to the API: names in another language, ambiguous ones, and cards newer than the file. Refresh the file after each set release.
     - The index is the resolver's fourth argument; tests about the API leave it out.
     - `ScryfallNameResolver` keeps a client per endpoint, each spacing requests 500 ms apart. Don't lower it: a 429 limits access for 30 s, and ignoring 429s can get the app banned.
     - After a 429 every lookup stops for 60 s (`RATE_LIMIT_PAUSE_MS`) and names are searched as typed.
     - A search's first 2 cards come in a request of their own (`FIRST_REQUEST_CARDS` in `use-card-search.ts`): they are looked up by fuzzy name while the rest go in one collection request, and they are `urgent`, so batched shops send them without waiting for the batch window.
     - Tests must give the resolver fakes for both clients (its first and third arguments), or it calls the real API.
-    - The collection client is created in `src/index.ts` (`scryfallClient()`) and shared with the traders' list prices (`ListPrices`), which pause between their own requests so lookups don't queue behind them. Don't give either its own client: two queues would double the rate.
+    - The collection client is created in `src/index.ts` (`scryfallClient()`, `src/server/scryfall/scryfall-client.ts`) and shared with the traders' list prices (`ListPrices`), which pause between their own requests so lookups don't queue behind them. Don't give either its own client: two queues would double the rate.
     - `/cards/collection` finds a double-faced or split card by one face's name, never by the whole "A // B" (`{"name":"Fire // Ice"}` comes back in `not_found`). Ask by the front face.
 - **Nerdik's batch API matches only a card's full name:** "Bonecrusher Giant // Stomp" finds it, "Bonecrusher Giant" finds nothing.
   The name resolver gives shops the front face, so searchers also get `fullName` (Scryfall's name for the whole card) as the third argument of `search()`; `NerdikCardSearcher` searches by it.

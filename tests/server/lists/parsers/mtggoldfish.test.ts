@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { parseMtggoldfish } from '@/server/lists/parsers/mtggoldfish';
-import { html } from '../../parsers/parser-fixtures';
+import { html } from '../../parser-fixtures';
 
 const page = (lines: string) =>
     `<html><body><form><textarea name="deck" id="deck" class="form-control deck-pricer-deck-input">\n${lines}\n</textarea></form></body></html>`;

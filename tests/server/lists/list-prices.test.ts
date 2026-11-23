@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
 import { openDatabase } from '@/server/db/database';
-import { PriceCache } from '@/server/db/price-cache';
-import type { StoredCard } from '@/server/db/list-store';
+import { PriceCache } from '@/server/lists/price-cache';
+import type { StoredCard } from '@/server/lists/list-store';
 import { ListPrices } from '@/server/lists/list-prices';
 import { ListRefreshFailure } from '@/server/lists/list-reader';
 import { HttpError, ShopClient } from '@/server/outbound/shop-client';

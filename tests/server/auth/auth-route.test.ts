@@ -15,8 +15,8 @@ import type {
 } from '@/server/auth/telegram-login';
 import { codeChallenge, tokenHash } from '@/server/auth/tokens';
 import { openDatabase } from '@/server/db/database';
-import { ListStore } from '@/server/db/list-store';
-import { UserStore } from '@/server/db/user-store';
+import { ListStore } from '@/server/lists/list-store';
+import { UserStore } from '@/server/auth/user-store';
 import { RateLimiter } from '@/server/http/rate-limiter';
 import { captureLogs } from '../capture-logs';
 

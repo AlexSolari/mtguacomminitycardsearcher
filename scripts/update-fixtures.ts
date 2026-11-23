@@ -7,12 +7,12 @@ import { mkdir } from 'node:fs/promises';
 import { LIST_SOURCES } from '@/server/lists/list-link';
 import { manaboxProps } from '@/server/lists/parsers/manabox';
 import { DECK_FIELD } from '@/server/lists/parsers/mtggoldfish';
-import { jsonEnd } from '@/server/parsers/scrapers/citadel';
+import { jsonEnd } from '@/server/shops/citadel/citadel-parser';
 import {
     cartonQuery,
     NEXT_PAGE_PRODUCTS
-} from '@/server/searchers/carton-card-searcher';
-import { manavaultSource } from '@/server/searchers/manavault-card-searcher';
+} from '@/server/shops/carton/carton-card-searcher';
+import { manavaultSource } from '@/server/shops/manavault/manavault-card-searcher';
 import { ShopClient } from '@/server/outbound/shop-client';
 
 const dir = new URL('../tests/fixtures/', import.meta.url);
@@ -231,7 +231,7 @@ await save(
 );
 
 // Citadel stocks few singles, so an empty search lists a page of everything. Its data sits in the page's
-// Server Components payload (see parsers/scrapers/citadel.ts); the items there also carry cart reservations, so the
+// Server Components payload (see shops/citadel/citadel-parser.ts); the items there also carry cart reservations, so the
 // payload's `items` is cut down to the fields parseCitadel reads. The rendered markup holds no personal data.
 const CITADEL_ITEM_FIELDS = [
     'scryfall_id',

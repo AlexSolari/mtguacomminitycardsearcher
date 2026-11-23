@@ -7,7 +7,7 @@ import {
 import type { ListSource } from '@/server/lists/list-link';
 import { HttpError, ShopClient } from '@/server/outbound/shop-client';
 import { captureLogs } from '../capture-logs';
-import { html } from '../parsers/parser-fixtures';
+import { html } from '../parser-fixtures';
 
 const logs = captureLogs();
 

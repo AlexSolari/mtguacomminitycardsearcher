@@ -1,5 +1,5 @@
 import type { AuthState, LoginFailure } from '@/shared/account';
-import type { User, UserStore } from '@/server/db/user-store';
+import type { User, UserStore } from '@/server/auth/user-store';
 import { logger } from '@/server/observability/logger';
 import { RateLimiter, type Bucket } from '@/server/http/rate-limiter';
 import type { TelegramLogin } from '@/server/auth/telegram-login';

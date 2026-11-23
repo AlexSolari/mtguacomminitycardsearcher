@@ -25,3 +25,22 @@ export async function readText(
     }
     return new TextDecoder().decode(Buffer.concat(chunks));
 }
+
+// The request's JSON object, or null when it isn't one (or isn't sent as JSON).
+export async function readJson(
+    req: Request,
+    maxBytes: number
+): Promise<Record<string, unknown> | null> {
+    if (!req.headers.get('content-type')?.startsWith('application/json'))
+        return null;
+    const text = await readText(req, maxBytes);
+    if (text === null) return null;
+    try {
+        const body = JSON.parse(text);
+        return typeof body === 'object' && body !== null && !Array.isArray(body)
+            ? body
+            : null;
+    } catch {
+        return null;
+    }
+}

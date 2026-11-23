@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
-import type { IndexedCard } from '@/server/search/card-index';
+import type { IndexedCard } from '@/server/scryfall/card-index';
 import { openDatabase } from '@/server/db/database';
-import { ListStore, type StoredCard } from '@/server/db/list-store';
-import { UserStore, type User } from '@/server/db/user-store';
+import { ListStore, type StoredCard } from '@/server/lists/list-store';
+import { UserStore, type User } from '@/server/auth/user-store';
 import type { ListCard, ParsedList } from '@/server/lists/list-card';
 import type { ListLink } from '@/server/lists/list-link';
 import { ListRefreshFailure } from '@/server/lists/list-reader';

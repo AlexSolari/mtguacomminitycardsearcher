@@ -10,7 +10,7 @@ export type ShopId =
     | 'paytowin'
     | 'magicswamp'
     | 'citadel'
-    | 'traders'; // traders' own lists (server/searchers/trader-list-searcher.ts), not a shop
+    | 'traders'; // traders' own lists (server/lists/trader-list-searcher.ts), not a shop
 
 // lucide's "users" icon, grey so it reads in both themes (an <img> can't take the text colour)
 const TRADERS_ICON = `data:image/svg+xml,${encodeURIComponent(

@@ -1,6 +1,6 @@
 import { normalize } from '@/shared/matching';
-import type { CardIndex } from '@/server/search/card-index';
-import type { ListStore, TraderList } from '@/server/db/list-store';
+import type { CardIndex } from '@/server/scryfall/card-index';
+import type { ListStore, TraderList } from '@/server/lists/list-store';
 import { logger } from '@/server/observability/logger';
 import { mergeRows } from '@/server/lists/list-card';
 import type { ListPrices } from '@/server/lists/list-prices';

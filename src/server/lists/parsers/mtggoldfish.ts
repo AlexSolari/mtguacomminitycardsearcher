@@ -1,4 +1,4 @@
-import { decodeEntities } from '@/server/parsers/helpers';
+import { decodeEntities } from '@/server/shops/parse-helpers';
 import {
     mergeRows,
     type Finish,

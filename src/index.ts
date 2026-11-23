@@ -1,29 +1,27 @@
 import { serve } from 'bun';
 import index from '@/index.html';
 import { CachedCardSearcher } from '@/server/search/cached-card-searcher';
-import { CardIndex } from '@/server/search/card-index';
+import { CardIndex } from '@/server/scryfall/card-index';
 import { CardSearchService } from '@/server/search/card-search-service';
 import { InFlightLimiter } from '@/server/http/in-flight-limiter';
 import { logger } from '@/server/observability/logger';
-import {
-    ScryfallNameResolver,
-    scryfallClient
-} from '@/server/search/name-resolver';
-import { CartonCardSearcher } from '@/server/searchers/carton-card-searcher';
-import { CitadelCardSearcher } from '@/server/searchers/citadel-card-searcher';
-import { TraderListSearcher } from '@/server/searchers/trader-list-searcher';
-import { GinCardSearcher } from '@/server/searchers/gin-card-searcher';
-import { KartotekaCardSearcher } from '@/server/searchers/kartoteka-card-searcher';
-import { MagicswampCardSearcher } from '@/server/searchers/magicswamp-card-searcher';
-import { ManavaultCardSearcher } from '@/server/searchers/manavault-card-searcher';
-import { NerdikCardSearcher } from '@/server/searchers/nerdik-card-searcher';
-import { PaytowinCardSearcher } from '@/server/searchers/paytowin-card-searcher';
+import { ScryfallNameResolver } from '@/server/scryfall/name-resolver';
+import { scryfallClient } from '@/server/scryfall/scryfall-client';
+import { CartonCardSearcher } from '@/server/shops/carton/carton-card-searcher';
+import { CitadelCardSearcher } from '@/server/shops/citadel/citadel-card-searcher';
+import { TraderListSearcher } from '@/server/lists/trader-list-searcher';
+import { GinCardSearcher } from '@/server/shops/gin/gin-card-searcher';
+import { KartotekaCardSearcher } from '@/server/shops/kartoteka/kartoteka-card-searcher';
+import { MagicswampCardSearcher } from '@/server/shops/magicswamp/magicswamp-card-searcher';
+import { ManavaultCardSearcher } from '@/server/shops/manavault/manavault-card-searcher';
+import { NerdikCardSearcher } from '@/server/shops/nerdik/nerdik-card-searcher';
+import { PaytowinCardSearcher } from '@/server/shops/paytowin/paytowin-card-searcher';
 import { clickHandler } from '@/server/search/click-route';
 import {
-    clientId,
     MAX_CARDS_PER_REQUEST,
     searchHandler
 } from '@/server/search/search-route';
+import { clientId } from '@/server/http/client-id';
 import { VisitorIds } from '@/server/observability/visitor-id';
 import { adminIds, authHandlers } from '@/server/auth/auth-route';
 import {
@@ -36,10 +34,11 @@ import {
     adminNotifierConfig
 } from '@/server/lists/admin-notifier';
 import { databasePath, openDatabase } from '@/server/db/database';
-import { UserStore } from '@/server/db/user-store';
-import { ListStore } from '@/server/db/list-store';
+import { UserStore } from '@/server/auth/user-store';
+import { ListStore } from '@/server/lists/list-store';
 import { listsHandlers } from '@/server/lists/lists-route';
-import { PriceCache } from '@/server/db/price-cache';
+import { adminHandlers } from '@/server/lists/admin-route';
+import { PriceCache } from '@/server/lists/price-cache';
 import { ListPrices } from '@/server/lists/list-prices';
 import { ListReader } from '@/server/lists/list-reader';
 import { ListRefresher } from '@/server/lists/list-refresher';
@@ -126,9 +125,11 @@ const refresher = new ListRefresher(
 );
 refresher.start();
 const lists = listsHandlers(listStore, users, auth, {
-    onDue: (ids) => void refresher.run(ids),
     onSubmitted: (user, added, pending) =>
         void notifier?.listsSubmitted(user, added, pending)
+});
+const admin = adminHandlers(listStore, users, auth, {
+    onDue: (ids) => void refresher.run(ids)
 });
 
 const server = serve({
@@ -192,14 +193,14 @@ const server = serve({
             DELETE: (req) => lists.remove(req, req.params.id),
             PATCH: (req) => lists.setListRate(req, req.params.id)
         },
-        '/api/admin/lists': { GET: (req) => lists.queue(req) },
+        '/api/admin/lists': { GET: (req) => admin.queue(req) },
         '/api/admin/lists/:id': {
-            POST: (req) => lists.review(req, req.params.id)
+            POST: (req) => admin.review(req, req.params.id)
         },
-        '/api/admin/refresh': { POST: (req) => lists.refresh(req) },
-        '/api/admin/sellers': { GET: (req) => lists.sellers(req) },
+        '/api/admin/refresh': { POST: (req) => admin.refresh(req) },
+        '/api/admin/sellers': { GET: (req) => admin.sellers(req) },
         '/api/admin/users/:id': {
-            POST: (req) => lists.ban(req, req.params.id)
+            POST: (req) => admin.ban(req, req.params.id)
         }
     },
 

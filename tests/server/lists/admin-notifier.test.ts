@@ -9,8 +9,8 @@ import {
     submittedMessage,
     type AdminNotifierConfig
 } from '@/server/lists/admin-notifier';
-import type { TraderList } from '@/server/db/list-store';
-import type { User } from '@/server/db/user-store';
+import type { TraderList } from '@/server/lists/list-store';
+import type { User } from '@/server/auth/user-store';
 import { ShopClient } from '@/server/outbound/shop-client';
 import { captureLogs } from '../capture-logs';
 

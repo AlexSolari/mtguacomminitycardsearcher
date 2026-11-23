@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { readText } from '@/server/http/read-body';
+import { readJson, readText } from '@/server/http/read-body';
 
 const post = (body: BodyInit | null, headers: Record<string, string> = {}) =>
     new Request('http://localhost/', { method: 'POST', body, headers });
@@ -72,5 +72,30 @@ describe('readText', () => {
             }
         });
         expect(await readText(post(stream), 10)).toBeNull();
+    });
+});
+
+describe('readJson', () => {
+    const json = (body: string, type = 'application/json') =>
+        post(body, { 'content-type': type });
+
+    test('a JSON object sent as JSON', async () => {
+        expect(await readJson(json('{"a":1}'), 100)).toEqual({ a: 1 });
+        expect(
+            await readJson(
+                json('{"a":1}', 'application/json; charset=utf-8'),
+                100
+            )
+        ).toEqual({ a: 1 });
+    });
+
+    test('null for anything else: another type, not JSON, not an object, too big', async () => {
+        expect(await readJson(json('{"a":1}', 'text/plain'), 100)).toBeNull();
+        expect(await readJson(post('{"a":1}'), 100)).toBeNull();
+        for (const body of ['{', '[1]', 'null', '42'])
+            expect(await readJson(json(body), 100), body).toBeNull();
+        expect(
+            await readJson(json(`{"a":"${'x'.repeat(100)}"}`), 100)
+        ).toBeNull();
     });
 });

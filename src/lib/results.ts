@@ -16,6 +16,12 @@ export const sellerUah = (l: CardResult): number | null =>
         ? Math.round(l.usdPrice * l.usdRate)
         : null;
 
+// How much cheaper than its old price an offer is, in whole percent; null without a discount.
+export const discountOf = (link: CardResult) =>
+    link.oldPrice && link.price !== null
+        ? Math.round((1 - link.price / link.oldPrice) * 100) || null
+        : null;
+
 const byPrice = (a: CardResult, b: CardResult) =>
     (a.price ?? Infinity) - (b.price ?? Infinity);
 const byUsdPrice = (a: CardResult, b: CardResult) =>

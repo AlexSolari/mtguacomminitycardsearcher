@@ -132,12 +132,17 @@ src/
     matching.ts             card name matching
     i18n.ts                 Ukrainian plural forms
   pages/                    search-page.tsx, lists-page.tsx (traders' lists), admin-page.tsx (moderation)
-  components/               UI (card-section.tsx renders a card's results, search-summary.tsx the totals,
-                            order-planner.tsx the cheapest order); ui/ holds the shadcn primitives
+  components/               UI; ui/ holds the shadcn primitives
+    search/                 the search page: card-section.tsx renders a card's results, search-summary.tsx the
+                            totals, order-planner.tsx the cheapest order; offer-*.tsx the pieces of one offer
+    lists/                  the traders' and moderators' pages: their lists, account, moderation
+    layout/                 header, footer, page frame, theme toggle
+    icons.tsx, shop-badge.tsx  used across pages
   hooks/                    search, deck import, drag-and-drop, filters, theme, account
   lib/                      browser logic
     decklist.ts, deckfile.ts  card list / deck file parsing, with counts
     results.ts              grouping offers per card, best price, the cheapest total
+    format.ts               prices, dates and countdowns as the UI shows them
     filters.ts              offer filters (shops, foil, language, condition…)
     order-plan.ts           which shops to buy each card from
     search-url.ts           shareable search URLs
@@ -151,23 +156,26 @@ src/
       card-search-service.ts  searches all shops for one card
       cached-card-searcher.ts result cache
       card-searcher.ts      the interface each shop's searcher implements
+    scryfall/
       name-resolver.ts      resolves each typed name to the card's name: card-index.ts first, then Scryfall's API
       card-index.ts         local card name lookup, from card-names.json (scripts/update-card-names.ts)
-    searchers/              one per shop: which URLs to fetch; trader-list-searcher.ts reads traders' lists
-    parsers/                one per shop: turns a response into CardResult[]
-      api/                  JSON APIs (MTGin, CartOn, Nerdik, PayToWin, Magic Swamp, Mana Vault)
-      scrapers/             HTML search pages (Citadel, Kartoteka)
+      scryfall-client.ts    the API client, shared by name lookups and traders' list prices
+    shops/                  one folder per shop (MTGin is gin/)
+      <shop>/<shop>-card-searcher.ts  which URLs to fetch
+      <shop>/<shop>-parser.ts         turns a response (JSON API or HTML page) into CardResult[]
+      parse-helpers.ts      shared by the parsers: prices, entities, links, languages
     outbound/               requests we send
       shop-client.ts        rate-limited fetch with timeout, one per shop
       circuit-breaker.ts    stops calling a shop that keeps failing, for 60 s
       batcher.ts            many cards per request for the batched APIs (MTGin, Nerdik, Mana Vault, CartOn)
       window-budget.ts      Mana Vault's 60-requests-a-minute budget
-    http/                   requests we receive: per-client limits, body reading
+    http/                   requests we receive: client ids, per-client limits, body reading, JSON answers
     observability/          structured logs, spans, Sentry, unique visitor counts
-    auth/                   Telegram sign-in (OpenID Connect) and sessions
-    db/                     SQLite: users, sessions, lists, their cards, cached prices
-    lists/                  traders' lists: /api/lists and /api/admin, links, parsers (MTGGoldfish, ManaBox,
-                            Moxfield), nightly refresh, Scryfall prices, moderators' notifications
+    auth/                   Telegram sign-in (OpenID Connect), sessions, users (user-store.ts)
+    db/                     SQLite: the connection and the schema's migrations
+    lists/                  traders' lists: /api/lists (lists-route.ts) and /api/admin (admin-route.ts), links,
+                            parsers (MTGGoldfish, ManaBox, Moxfield), storage (list-store.ts), nightly refresh,
+                            Scryfall prices, search (trader-list-searcher.ts), moderators' notifications
 ```
 
 ## Contributing

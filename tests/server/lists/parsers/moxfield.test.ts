@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { parseMoxfield } from '@/server/lists/parsers/moxfield';
-import { html } from '../../parsers/parser-fixtures';
+import { html } from '../../parser-fixtures';
 
 const ID = 'cee0459b-9aac-4d2f-abe4-4d5fedde7eb8';
 const IMAGE = `https://cards.scryfall.io/normal/front/c/e/${ID}.jpg`;

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import {
     cheapestCopies,
+    discountOf,
     isComplete,
     isNotFound,
     mergeSameCard,
@@ -211,6 +212,15 @@ test("sellerUah: a trader's USD price at their rate, to the hryvnia", () => {
     expect(sellerUah(trader({ usdPrice: 2.89, usdRate: 43.5 }))).toBe(126);
     expect(sellerUah(trader({ usdPrice: 2.89 }))).toBeNull();
     expect(sellerUah(trader({ usdRate: 43.5 }))).toBeNull();
+});
+
+test('discountOf: whole percent off the old price, null without one', () => {
+    expect(discountOf(offer('Daze', 75, { oldPrice: 100 }))).toBe(25);
+    expect(discountOf(offer('Daze', 67, { oldPrice: 100 }))).toBe(33);
+    expect(discountOf(offer('Daze', 75))).toBeNull();
+    expect(discountOf(offer('Daze', null, { oldPrice: 100 }))).toBeNull();
+    // rounds to nothing: not worth a badge
+    expect(discountOf(offer('Daze', 99.8, { oldPrice: 100 }))).toBeNull();
 });
 
 test('offerKey tells apart offers that share a URL', () => {

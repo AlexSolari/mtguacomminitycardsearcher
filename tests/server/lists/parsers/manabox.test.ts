@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { parseManabox } from '@/server/lists/parsers/manabox';
-import { html } from '../../parsers/parser-fixtures';
+import { html } from '../../parser-fixtures';
 
 // A page as Astro writes it: the props as [type, value] pairs (0 = value, 1 = array), HTML-escaped.
 const astro = (v: unknown): unknown =>

@@ -1,6 +1,6 @@
 import { LISTS, plural } from '@/shared/i18n';
-import type { TraderList } from '@/server/db/list-store';
-import type { User } from '@/server/db/user-store';
+import type { TraderList } from '@/server/lists/list-store';
+import type { User } from '@/server/auth/user-store';
 import { LIST_SOURCES } from '@/server/lists/list-link';
 import { kyivHour } from '@/server/lists/kyiv-time';
 import { logger } from '@/server/observability/logger';
