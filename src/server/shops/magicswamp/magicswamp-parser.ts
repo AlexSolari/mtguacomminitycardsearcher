@@ -8,7 +8,7 @@ import {
     withEdition
 } from '@/server/shops/parse-helpers';
 
-// magicswamp.com.ua/api/listings/grouped/cards?game=mtg&search=… — a marketplace of private sellers. One entry per
+// magicswamp.com.ua/api/listings/grouped/cards?game=mtg&names[]=… — a marketplace of private sellers. One entry per
 // printing, with every seller's offer for it:
 //   {"data":[{"card_id":"8d1ec351-…","card_name":"Boltwave","set_code":"fdn","set_name":"Foundations",
 //     "card_image_url":"https://img.magicswamp.com.ua/cards/fdn/8d1ec351-….jpg","game":"mtg","lowest_price":104,
@@ -27,6 +27,7 @@ export type MagicswampOffer = {
 };
 
 export type MagicswampCard = {
+    card_id?: string; // the printing's; only the searcher reads it
     card_name: string;
     set_name: string | null;
     card_image_url: string | null;

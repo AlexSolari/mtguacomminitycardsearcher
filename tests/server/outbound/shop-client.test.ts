@@ -55,6 +55,18 @@ describe('ShopClient', () => {
         );
     });
 
+    test('url() repeats a parameter given as pairs', () => {
+        const client = new ShopClient('https://magicswamp.com.ua');
+        expect(
+            client.url('/cards', [
+                ['names[]', 'Opt'],
+                ['names[]', 'Turn // Burn']
+            ])
+        ).toBe(
+            'https://magicswamp.com.ua/cards?names%5B%5D=Opt&names%5B%5D=Turn+%2F%2F+Burn'
+        );
+    });
+
     test('refuses URLs on other hosts', async () => {
         const client = new ShopClient(base);
         await expect(client.fetchHtml('https://example.com/')).rejects.toThrow(

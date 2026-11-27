@@ -153,7 +153,11 @@ export class ShopClient {
     }
 
     // ("/search", { q: "Sol Ring" }) → "https://carton.cards/search?q=Sol+Ring"
-    url(path: string, params?: Record<string, string>): string {
+    // A parameter that repeats goes as pairs: [["names[]", "Opt"], ["names[]", "Daze"]].
+    url(
+        path: string,
+        params?: Record<string, string> | [string, string][]
+    ): string {
         const url = new URL(path, this.baseUrl);
         if (params) url.search = new URLSearchParams(params).toString();
         return url.href;
